@@ -14,7 +14,7 @@ RUN npm install -g pnpm
 # [Optional but recommended] Install Turborepo CLI globally if you execute turbo commands directly often
 # RUN pnpm add -g turbo
 
-# Install base OS dependencies if needed by your packages (e.g., build-essential, python3, git)
+# Install base OS dependencies IF needed by your packages (e.g., build-essential, python3, git)
 # RUN apk add --no-cache build-base python3 git
 
 # Copy only package manifests first to leverage Docker cache for dependencies
