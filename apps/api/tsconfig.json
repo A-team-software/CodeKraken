@@ -1,0 +1,45 @@
+// oliver/apps/api/tsconfig.json
+{
+    // Optional: Extend a base config from the root if you have one
+    "extends": "../../tsconfig.base.json", // Adjust path if needed
+    "compilerOptions": {
+        // --- Crucial for Bun Type Prioritization ---
+        "types": [
+            "bun"
+        ], // Explicitly tells TS to load ONLY Bun's global types first.
+        // If libraries break, you might need ["bun", "node"] and ensure
+        // you aren't using conflicting globals without qualification.
+        // --- Standard TS Options for Modern Backends ---
+        "target": "ESNext", // Compile to modern JavaScript
+        "module": "ESNext", // Use modern ES modules
+        "moduleResolution": "bundler", // Modern resolution matching Bun/Node behavior
+        "lib": [
+            "ESNext"
+        ], // Include modern ES features (Bun provides DOM types if needed)
+        "outDir": "./dist", // Output directory for build artifacts
+        "rootDir": "./src", // Root directory of source files
+        "baseUrl": ".", // Base directory for path mapping
+        "paths": { // Optional: Define path aliases if used
+            "@/*": [
+                "./src/*"
+            ]
+        },
+        // --- Strictness & Quality ---
+        "strict": true, // Enable all strict type-checking options
+        "esModuleInterop": true, // Allows default imports from commonjs modules
+        "skipLibCheck": true, // Skip type checking of declaration files (.d.ts)
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": false, // Ensure build output is generated (overrides extends if needed)
+        "resolveJsonModule": true, // Allow importing JSON files
+        // --- Bun Specific (defaults, usually not needed explicitly) ---
+        // "jsx": "react-jsx",        // Bun's default JSX transform
+        // "allowImportingTsExtensions": true // Usually enabled by default in modern setups
+    },
+    "include": [
+        "src/**/*"
+    ], // Files to include in compilation
+    "exclude": [
+        "node_modules",
+        "dist"
+    ] // Files/folders to exclude
+}
