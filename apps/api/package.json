@@ -6,38 +6,38 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "start": "bun run dist/index.js",
-    "test": "bun test", 
+    "test": "bun test",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "mongodb": "^6.10.0",
-    "mongoose": "^8.13.0",
-    "redis": "^4.7.0",
-    "dotenv": "^16.4.7",
-    "cookie": "^0.6.0",
-    "net": "^1.0.2",
-    "uuid": "^11.0.3",
-    "zod": "^3.23.8",
-    "next-auth": "^4.24.10",
     "@octokit/rest": "^21.1.0",
+    "@oliver/db": "workspace:^",
+    "@oliver/utils": "workspace:^",
+    "cookie": "^0.6.0",
+    "dotenv": "^16.4.7",
     "groq": "^3.81.0",
     "groq-sdk": "^0.8.0",
-    "openai": "^4.90.0",
     "mailersend": "^2.3.0",
+    "mongodb": "^6.10.0",
+    "mongoose": "^8.13.0",
+    "net": "^1.0.2",
+    "next-auth": "^4.24.10",
+    "next-worker": "^0.2.0",
     "nodemailer": "^6.9.16",
+    "openai": "^4.90.0",
+    "redis": "^4.7.0",
     "simple-git": "^3.27.0",
-    "next-worker": "^0.2.0"
+    "uuid": "^11.0.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "20.5.7",
-
     "@types/cookie": "^0.6.0",
     "@types/mongoose": "^5.11.97",
+    "@types/node": "20.5.7",
     "@types/nodemailer": "^6.4.16",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
-
     "mongodb-memory-server": "^10.1.4",
     "supertest": "^7.1.0"
   }

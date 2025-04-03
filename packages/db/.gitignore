@@ -10,6 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
+#build
+dist
+
 # testing
 /coverage
 
@@ -35,9 +38,6 @@ yarn-error.log*
 !/.env.example
 # vercel
 .vercel
-
-#build
-dist
 
 # typescript
 *.tsbuildinfo

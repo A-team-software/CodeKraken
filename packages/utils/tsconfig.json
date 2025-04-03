@@ -4,21 +4,21 @@
         "target": "ES2017",
         "outDir": "./dist",
         "rootDir": "./src",
-        "types": [
-            "bun"
-        ],
         "lib": [
             "dom",
             "dom.iterable",
             "esnext"
         ],
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
         "allowJs": true,
         "skipLibCheck": true,
         "strict": true,
         "noEmit": false,
         "esModuleInterop": true,
         // "module": "esnext",
-        "module": "ESNext", // Recommended for Bun
+        "module": "ESNext",
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
@@ -34,6 +34,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "include": [
+        "src/**/*",
         "next-env.d.ts",
         "**/*.ts",
         "**/*.tsx",

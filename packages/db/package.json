@@ -1,0 +1,27 @@
+{
+  "name": "@oliver/db",
+  "version": "1.0.0",
+  "description": "Database SDK for oliver project.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@oliver/utils": "workspace:^",
+    "mongoose": "^8.13.0",
+    "mongodb": "^6.10.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/mongoose": "^5.11.97",
+    "@types/node": "20.5.7",
+    "@types/supertest": "^6.0.2",
+    "mongodb-memory-server": "^10.1.4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.1"
+}

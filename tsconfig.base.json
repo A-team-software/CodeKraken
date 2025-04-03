@@ -1,0 +1,43 @@
+// oliver/tsconfig.base.json
+{
+    "compilerOptions": {
+        "target": "ESNext", // Use consistent modern target
+        "types": [
+            "bun"
+        ],
+        "lib": [
+            "ESNext",
+            "DOM",
+            "DOM.Iterable"
+        ], // Include DOM if client code uses this base too
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true, // Good practice
+        "esModuleInterop": true,
+        "module": "ESNext", // Use modern modules
+        "moduleResolution": "bundler", // Recommended modern resolution
+        "resolveJsonModule": true,
+        "isolatedModules": true, // Often needed by build tools/frameworks
+        "jsx": "preserve", // Keep if Next.js uses this base
+        "incremental": true,
+        "noEmit": false, // Prevent base config from emitting files itself
+        // --- Define Base URL and Paths ---
+        "baseUrl": ".", // Explicitly set base relative to this file (root)
+        "paths": {
+            // Add mappings for your workspace packages
+            "@oliver/utils/*": [
+                "./packages/utils/src/*"
+            ],
+            // Add mappings for other packages like @oliver/ui if they exist
+            // "@oliver/ui": ["./packages/ui/src/index.ts"],
+            // "@/*": ["./*"] // Keep if you use root-relative imports like "@/somefile"
+        }
+    },
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".turbo"
+    ] // Exclude standard folders
+    // 'include' is often better defined per-package instead of globally here
+}

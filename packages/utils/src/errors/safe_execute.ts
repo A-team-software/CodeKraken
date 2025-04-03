@@ -1,7 +1,7 @@
 import SafeExecuteInterface from "../interfaces/safe_execute";
 
 
-async function safeExecute<T, A extends unknown[]>(
+async function withAsync<T, A extends unknown[]>(
     fn: (...args: A) => Promise<T>, // fn takes arguments described by tuple A, returns Promise<T>
     ...args: A                      // The actual arguments matching the tuple type A
 ): Promise<[T | null, Error | null]> {
@@ -16,7 +16,7 @@ async function safeExecute<T, A extends unknown[]>(
 }
 
 
-function safeExecuteNoSync<T, A extends unknown[]>(
+function noSync<T, A extends unknown[]>(
     fn: (...args: A) => T, // fn takes arguments described by tuple A, returns Promise<T>
     ...args: A                      // The actual arguments matching the tuple type A
 ): [T | null, Error | null] {
@@ -31,9 +31,7 @@ function safeExecuteNoSync<T, A extends unknown[]>(
 }
 
 
-const SafeExecute: SafeExecuteInterface = {
-    safeExecute: safeExecute,
-    safeExecuteNoSync: safeExecuteNoSync,
+export const SafeExecute: SafeExecuteInterface = {
+    withSync: withAsync,
+    noSync: noSync,
 } as const;
-
-export default SafeExecute;
