@@ -4,10 +4,8 @@ import crypto from 'crypto'; // For generating 'state'
 // sessionStore.ts
 import { randomUUID } from 'crypto';
 import { CookieMap } from 'bun';
-import { Session } from 'inspector';
-import safeExecute, { safeExecuteNoSync } from '@/utils/errors/error_handler';
-import { Logger } from '@/utils/logger/logger';
-import LocalCacheDB from '@/lib/db/cache';
+import { SafeExecute } from '@oliver/utils';
+import { Logger } from '@oliver/utils';
 
 
 
@@ -51,7 +49,7 @@ function createSession(token: string): CookieMap {
 }
 
 function getSession(sessionId: string): SessionData | null {
-    const [sessionData, error] = safeExecuteNoSync(sessionCookie.get, sessionId);
+    const [sessionData, error] = SafeExecute.noSync(sessionCookie.get, sessionId);
     if (sessionData == null) {
         Logger.logInfo(`Session not found ${sessionData}`);
         return null;

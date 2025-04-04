@@ -1,7 +1,7 @@
 // server/services/fileService.ts
 import fs from 'fs/promises';
 import path from 'path';
-import { Logger } from '@/utils/logger/logger';
+import { Logger } from '@oliver/utils';
 import { CodeGenerationResult } from './ai/code_gen'; // Import the interface
 
 /**

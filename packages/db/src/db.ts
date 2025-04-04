@@ -4,6 +4,8 @@ import { Logger } from "@oliver/utils";
 
 import { ObjectId } from 'mongodb';
 import { SafeExecute } from '@oliver/utils';
+
+
 const finOne = async <T>(criteria: string | number, model: Model<T>): Promise<T | null> => {
     try {
         const result = await model.findOne({ criteria });
@@ -18,12 +20,16 @@ const finOne = async <T>(criteria: string | number, model: Model<T>): Promise<T 
     }
 }
 
-const create = async <T, K>(document: K | number, model: Model<T>): Promise<T[] | null> => {
+const create = async <T, K>(document: K | number, model: Model<T>): Promise<T | null> => {
     // { writeConcern: { w: 1 } }
-    const [result, error] = await SafeExecute.withSync(model.create, document);
-    if ((result == null) || error != null) return null;
+    const result = await model.create(document);
+    console.log()
+    if (result == null) {
+        Logger.logError("Error creating document");
+        return null
+    };
 
-
+    Logger.logInfo(`Document created successfully: ${result}`);
     return result;
 
 }
@@ -31,9 +37,8 @@ const create = async <T, K>(document: K | number, model: Model<T>): Promise<T[] 
 
 
 
-const DB: DBInterface = {
+export const DB: DBInterface = {
     findOne: finOne,
     create: create,
 } as const;
 
-export default DB;

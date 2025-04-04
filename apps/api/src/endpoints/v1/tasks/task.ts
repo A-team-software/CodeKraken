@@ -1,12 +1,10 @@
 // server/api/process-task/index.ts
-import { Logger } from '@/utils/logger/logger';
-import { config } from '../../../env_config';
-import { Trello } from '../../../server/features/trello/trello';
-import * as gitApi from '../../../server/features/git/git_api';
-import * as gitRunner from '../../../server/features/git/git_runner';
-import * as ai from '../../../server/features/ai/code_gen';
-import * as file from '../../../server/features/file_processing';
-// Optional: import safeExecute from '../../utils/safeExecute';
+import { Logger } from '@oliver/utils';
+import { Trello } from '../../../features/trello/trello';
+import * as gitApi from '../../../features/git/git_api';
+import * as gitRunner from '../../../features/git/git_runner';
+import * as ai from '../../../features/ai/code_gen';
+import * as file from '../../../features/file_processing';
 
 // Bun's server setup (if this is the entry point)
 // If you have a central server file, adapt this handler logic.
@@ -41,7 +39,7 @@ export default async function handler(req: Request): Promise<Response> {
         const taskDescription = `Trello Card: "${card.name}"\n\nDescription:\n${card.desc}`;
 
         // 3. Create Temp Directory and Clone Repo
-        tempRepoPath = await file.createTempDir(config.tempDir); // Throws on error
+        tempRepoPath = await file.createTempDir('./server/temp'); // Throws on error
         await gitRunner.cloneRepo(repoUrl, tempRepoPath, "add user token"); // Throws on error
 
         // 4. Generate Code using AI (pass task description)
@@ -73,7 +71,7 @@ export default async function handler(req: Request): Promise<Response> {
             title: `Implement Trello Task: ${card.name} (${cardId})`,
             body: `Resolves Trello card: [${card.name}](https://trello.com/c/${cardId})\n\n${codeChanges.explanation || 'AI generated changes.'}`,
             head: branchName,
-            base: config.github.baseBranch,
+            base: process.env.GITHUB_BASE_BRANCH as string,
         });
 
         if (!prDetails) {

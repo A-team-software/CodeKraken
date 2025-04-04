@@ -1,9 +1,8 @@
 // server/api/auth/github/callback.ts
-import LocalCacheDB from '@/lib/db/cache';
-import { exchangeCodeForToken, getGitHubUserDetails } from '../../../server/features/auth/github_auth'; // Adjust path
-import { Logger } from '@/utils/logger/logger'; // Adjust path
-import safeExecute, { safeExecuteNoSync } from '@/utils/errors/error_handler';
-import { sessionCookie } from '@/server/features/auth/session';
+import { exchangeCodeForToken, getGitHubUserDetails } from '../../../features/auth/github_auth'; // Adjust path
+import { Logger } from '@oliver/utils'; // Adjust path
+import { SafeExecute } from '@oliver/utils';
+import { sessionCookie } from '../../../features/auth/session';
 import { serialize } from 'cookie';
 export default async function handler(req: Request): Promise<Response> {
     const url = new URL(req.url);
@@ -53,7 +52,7 @@ export default async function handler(req: Request): Promise<Response> {
             maxAge: 30 * 24 * 60 * 60, // How long the cookie lasts
             sameSite: 'lax',     // Good default for CSRF protection. Might need 'none' if domains differ significantly AND you use HTTPS ('secure: true'). 'strict' is more restrictive.
         });
-        const [sessionId, error] = safeExecuteNoSync(sessionCookie.get, 'sessionId');
+        const [sessionId, error] = SafeExecute.noSync(sessionCookie.get, 'sessionId');
         let setSessionIDCookie: string | null;
         if (error == null || sessionId !== null) {
             setSessionIDCookie = serialize('sessionId', tokenInfo.accessToken, {

@@ -1,4 +1,4 @@
-export default interface UserInterface {
+export interface UserInterface {
     name: string;
     phoneNumber: string;
 }

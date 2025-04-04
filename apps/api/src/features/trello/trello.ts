@@ -1,6 +1,6 @@
 // server/services/trelloService.ts
 import { config } from '../../env_config';
-import { Logger } from '../../../utils/logger/logger';
+import { Logger } from '@oliver/utils';
 import { TrelloCard } from './interfaces/trello_card';
 import TrelloInterface from './interfaces/trello';
 
@@ -8,7 +8,7 @@ const TRELLO_API_BASE = 'https://api.trello.com/1';
 
 
 async function getCardDetails(cardId: string): Promise<TrelloCard | null> {
-    const url = `${TRELLO_API_BASE}/cards/${cardId}?key=${config.trello.apiKey}&token=${config.trello.apiToken}`;
+    const url = `${TRELLO_API_BASE}/cards/${cardId}?key=${"trello.apiKey"}&token=${"trello.apiToken"}`;
     Logger.logInfo(`Fetching Trello card details for ID: ${cardId}`);
 
     try {
@@ -29,7 +29,7 @@ async function getCardDetails(cardId: string): Promise<TrelloCard | null> {
 
 // Optional: Add function to move card, add comment, etc.
 async function addCommentToCard(cardId: string, text: string): Promise<boolean> {
-    const url = `${TRELLO_API_BASE}/cards/${cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${config.trello.apiKey}&token=${config.trello.apiToken}`;
+    const url = `${TRELLO_API_BASE}/cards/${cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${"trello.apiKey"}&token=${"trello.apiToken"}`;
     Logger.logInfo(`Adding comment to Trello card ID: ${cardId}`);
     try {
         const response = await fetch(url, { method: 'POST' });

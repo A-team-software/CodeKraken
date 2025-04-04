@@ -1,5 +1,5 @@
 // server/services/gitService.ts
-import { Logger } from '@/utils/logger/logger';
+import { Logger } from '@oliver/utils';
 import { $ } from 'bun'; // Use Bun's built-in shell
 
 // Ensure you have git installed and accessible in the PATH where Bun runs

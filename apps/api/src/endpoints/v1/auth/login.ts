@@ -1,6 +1,6 @@
 // server/api/auth/github/login.ts
-import { getGitHubAuthUrl } from '../../../server/features/auth/github_auth'; // Adjust path
-import { Logger } from '@/utils/logger/logger'; // Adjust path
+import { getGitHubAuthUrl } from '../../../features/auth/github_auth'; // Adjust path
+import { Logger } from '@oliver/utils'; // Adjust path
 
 export default async function handler(req: Request): Promise<Response> {
     if (req.method !== 'GET') {

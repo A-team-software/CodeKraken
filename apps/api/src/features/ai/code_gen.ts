@@ -6,7 +6,7 @@
 // import OpenAI from 'openai'; // If using OpenAI
 // import Groq from 'groq-sdk';  // If using Groq
 import { config } from '../../env_config';
-import { Logger } from '@/utils/logger/logger';
+import { Logger } from '@oliver/utils';
 
 // --- Placeholder ---
 // let aiClient: OpenAI | Groq | null = null;
@@ -44,10 +44,6 @@ export async function generateCode(taskDescription: string, existingCodeContext?
     Logger.logInfo(`Task: ${taskDescription.substring(0, 100)}...`); // Log snippet
 
     // --- TODO: Replace this placeholder with your actual AI client call ---
-    if (!config.ai.openaiApiKey && !config.ai.groqApiKey) {
-        Logger.logError("AI Client not configured!");
-        return null;
-    }
 
     try {
         // Example structure for the call (adapt to your chosen SDK)

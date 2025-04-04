@@ -1,4 +1,4 @@
-export default interface CacheInterface {
+export interface CacheInterface {
     get: (cachedKey: string) => Promise<string | null>;
     set: (cacheKey: string, value: string | null, expiresIn: number) => Promise<string | null>;
     del: (cacheKey: string) => Promise<number>;

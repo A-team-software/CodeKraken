@@ -3,7 +3,6 @@ import { serve } from "bun";
 import { DbConnect } from "@oliver/db";
 import { join, relative } from "path"; // Added 'relative'
 import { Glob } from "bun"; // Import Bun's Glob class
-import { config } from "../env_config";
 import { SessionData } from '../features/auth/session';
 import { Logger } from '@oliver/utils';
 // --- Configuration ---
@@ -66,8 +65,8 @@ for await (const relativePath of glob.scan(baseRoutesDir)) {
 }
 
 // Logger.logInfo("Finished loading routes:", Object.keys(apiRoutes));
-
-console.log(config.github.callbackUrl);
+const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL as string;
+console.log(GITHUB_CALLBACK_URL);
 
 
 
@@ -84,7 +83,7 @@ try {
 
 // Start the Bun server
 serve({
-    port: 4009,
+    port: 5001,
     async fetch(req: Request) {
         const url = new URL(req.url);
         const handler = apiRoutes[url.pathname];
@@ -96,4 +95,4 @@ serve({
     }
 });
 
-console.log("🚀 Bun server running at http://localhost:4009");
+console.log("🚀 Bun server running at http://localhost:5001");

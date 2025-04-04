@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import MongooseCache from "./interfaces/cached_connection";
+import { MongooseCache } from "./interfaces/cached_connection";
 import { Logger } from "@oliver/utils";
 
 
@@ -7,6 +7,28 @@ import { Logger } from "@oliver/utils";
 
 // Use a global variable to store the connection
 let cached: MongooseCache = (global as any)._mongooseCache || { cachedConnection: null, connection: null };
+
+
+mongoose.connection.on('connecting', () => {
+    Logger.logInfo('Mongoose: Connecting...');
+});
+
+mongoose.connection.on('connected', () => {
+    Logger.logInfo('Mongoose: Connection established successfully.');
+});
+
+mongoose.connection.on('error', (err) => {
+    Logger.logError('Mongoose: Connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    Logger.logWarn('Mongoose: Connection disconnected.');
+});
+
+mongoose.connection.on('reconnected', () => {
+    Logger.logInfo('Mongoose: Connection re-established.');
+});
+
 
 const retrieveCachedConnection = async (): Promise<mongoose.Connection | null> => {
     if (cached.cachedConnection) {
@@ -17,12 +39,14 @@ const retrieveCachedConnection = async (): Promise<mongoose.Connection | null> =
 }
 
 const initConnection = async (): Promise<boolean> => {
+    console.log(`[DEBUG] Connecting to MongoDB with URI: ${process.env.MONGODB_URI}`);
     try {
         const dbURL = "mongodb://localhost:27017/";
+        const uri = 'mongodb://localhost:27017/'
         const localURL = "mongodb://mongodb:27017/";
         if (!cached.connection) {
             cached.connection = mongoose
-                .connect(dbURL, {
+                .connect(process.env.MONGODB_URI as string, {
 
                     dbName: "mongoTs", // Optional: specify DB name
                     // bufferCommands: false,
@@ -35,11 +59,7 @@ const initConnection = async (): Promise<boolean> => {
         return false;
     }
 }
-// await mongoose
-//                     .connect("mongodb+srv://ben:fkBa8koAe5UWS9jL@cluster0.ojnan.mongodb.net/mongoTs?retryWrites=true&w=majority", {
-//                         // dbName: DB_NAME, // Optional: specify DB name
-//                         // bufferCommands: false,
-//                     });
+
 export async function DbConnect(): Promise<mongoose.Connection | null> {
     const existingConnection = await retrieveCachedConnection();
     if (existingConnection) {

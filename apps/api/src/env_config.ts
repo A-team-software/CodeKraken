@@ -1,73 +1,100 @@
-// server/config.ts
-import { Logger } from '@oliver/utils';
-// import { bun } from 'bun';
-// Bun automatically loads .env in development, but explicit loading is safer for production builds
-// If needed: import 'dotenv/config';
+// src/config/config.ts (adjust path as needed)
+
 import dotenv from 'dotenv';
-import path from 'path'; // Optional, if .env is not in the root
+import path from 'path'; // To reliably locate the .env file
+import { Logger } from '@oliver/utils'; // Assuming Logger is correctly imported
 
-// Load .env file from the project root relative to the current file
-// Adjust the path if necessary
-const envPath = path.resolve(__dirname, '../.env'); // Assumes server/index.ts is two levels down from root
-const environmentVariables = dotenv.config({ path: envPath });
-if (environmentVariables.error) {
-    console.error('Error loading .env file:', environmentVariables.error);
-    // Decide if you should exit if .env is critical
-    // process.exit(1);
+// --- Explicitly load .env file using dotenv ---
+// Determine the path to the root .env file relative to this config file's location.
+// If config.ts is in apps/api/src/config/, then the root is usually two levels up.
+const envPath = path.resolve(__dirname, '../../../.env'); // Adjust '../../.env' if needed
+
+const loadResult = dotenv.config({ path: envPath });
+
+if (loadResult.error) {
+    // Log a warning if the .env file couldn't be loaded.
+    // The getEnvVar function below will handle throwing errors for *required* variables.
+    Logger.logWarn(`Warning: Error loading .env file from ${envPath}: ${loadResult.error.message}`);
+    Logger.logWarn('Will rely on system environment variables.');
 } else {
-    console.log('.env file loaded successfully via dotenv package.');
-    // console.log(result.parsed);
-    // You can optionally log loaded variables (be careful not to log secrets)
-    // console.log('Loaded vars via dotenv:', result.parsed);
+    Logger.logInfo(`.env file loaded successfully from ${envPath}`);
+    // For debugging, uncomment carefully (don't log secrets):
+    // console.log('Parsed dotenv vars:', loadResult.parsed);
 }
+// --- End of dotenv loading ---
 
-if (!environmentVariables.parsed) {
-    process.exit(1);
-}
 
-const env = environmentVariables.parsed;
+/**
+ * Retrieves an environment variable from process.env and optionally throws an error if required and missing.
+ * NOTE: Uses process.env, which dotenv populates by default.
+ *
+ * @param key The name of the environment variable.
+ * @param required If true, throws an error if the variable is missing or empty. Defaults to true.
+ * @returns The value of the environment variable if found and required.
+ * @throws Error if the variable is required but missing or empty.
+ */
+function getEnvVar(key: string, required = true): string {
+    // process.env values are always string | undefined
+    const value = process.env[key];
+    // console.log(`Checking process.env[${key}]:`, value); // Temporary debug log if needed
 
-function getEnvVar(key: string | undefined, required = true): string | undefined {
-
-    if (!key && required) {
-        Logger.logError(`Missing required environment variable: ${key}`);
-        // Depending on severity, you might want to throw or exit
-        // throw new Error(`Missing required environment variable: ${key}`);
-        // process.exit(1); // Exit if critical config is missing
+    if (required && (value === undefined || value === null || value.trim() === '')) {
+        const errorMessage = `Missing or empty required environment variable: ${key}`;
+        Logger.logError(errorMessage);
+        // Throw an error to halt execution if critical config is missing
+        throw new Error(errorMessage);
     }
-    return key;
+    // If required, we know value is a non-empty string here due to the check above.
+    return value as string;
+}
+
+/**
+ * Retrieves an optional environment variable from process.env.
+ *
+ * @param key The name of the environment variable.
+ * @param defaultValue An optional default value to return if the variable is not set.
+ * @returns The value of the environment variable, or the default value, or undefined.
+ */
+function getOptionalEnvVar(key: string, defaultValue?: string): string | undefined {
+    return process.env[key] ?? defaultValue;
 }
 
 
+// Define the configuration object (structure remains the same, functions now use process.env)
 export const config = {
-    trello: {
-        apiKey: env["TRELLO_API_KEY"],
-        apiToken: env["TRELLO_API_TOKEN"],
-    },
+    // GitHub specific config
     github: {
-        baseBranch: env["GITHUB_BASE_BRANCH"] || 'main',
-        // OAuth App credentials for USER authentication
-        clientId: getEnvVar(env["GITHUB_CLIENT_ID"], true),
-        clientSecret: getEnvVar(env["GITHUB_CLIENT_SECRET"], true),
-        callbackUrl: getEnvVar(env["GITHUB_CALLBACK_URL"], true),
-        scopes: getEnvVar(env["GITHUB_SCOPES"], true) || 'repo user:email', // Default scopes
+        baseBranch: getOptionalEnvVar('GITHUB_BASE_BRANCH', 'main'),
+        clientId: getEnvVar('GITHUB_CLIENT_ID'),
+        clientSecret: getEnvVar('GITHUB_CLIENT_SECRET'),
+        callbackUrl: getEnvVar('GITHUB_CALLBACK_URL'),
+        scopes: getOptionalEnvVar('GITHUB_SCOPES', 'repo user:email'),
     },
-    appSecret: getEnvVar(env["APP_SECRET"], true), // For session/cookie signing
-    ai: {
-        // Add logic here to check which key is present if supporting both
-        openaiApiKey: env["OPENAI_API_KEY"],
-        groqApiKey: env["GROQ_API_KEY"],
-        // You might want a check here to ensure at least one AI key is set
+    // App Secret
+    appSecret: getEnvVar('APP_SECRET'),
+    // AI Config - Removed for brevity, add back if needed
+    // db config
+    db: {
+        mongoUri: getEnvVar('MONGODB_URI'),
+        dbName: getEnvVar('DB_NAME'),
     },
-    // Add any other config like temporary directory path if needed
-    tempDir: './server/temp', // Make sure this exists and is writable / .gitignored
+    // redis config
+    redis: {
+        url: getEnvVar('REDIS_URL'),
+    },
+    // auth config
+    auth: {
+        cookieSecret: getEnvVar('COOKIE_SECRET'),
+        sessionCookieName: getEnvVar('SESSION_COOKIE_NAME'),
+        accessTokenCookieName: getEnvVar('ACCESS_TOKEN_COOKIE_NAME'),
+    },
+    // temp dir
+    tempDir: './temp', // Or getOptionalEnvVar('TEMP_DIR', './temp')
 };
 
-// Validate that at least one AI key is present
-// if (!config.ai.openaiApiKey && !config.ai.groqApiKey) {
-//     Logger.logError('Missing AI configuration: Set either OPENAI_API_KEY or GROQ_API_KEY in .env');
-//     process.exit(1);
-// }
+// --- Post-Construction Validations ---
+// Example: Validate AI keys if re-added
+// if (!config.ai.openaiApiKey && !config.ai.groqApiKey) { ... throw ... }
 
-Logger.logInfo("Configuration loaded successfully.");
 
+Logger.logInfo("Configuration loaded and validated successfully using dotenv/process.env.");

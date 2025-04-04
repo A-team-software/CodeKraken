@@ -1,9 +1,8 @@
 // server/services/authService.ts
-import LocalCacheDB from '@/lib/db/cache';
 import { config } from '../../env_config';
-import { Logger } from '@/utils/logger/logger';
+import { Logger } from '@oliver/utils';
 import crypto from 'crypto'; // For generating 'state'
-import safeExecute from '@/utils/errors/error_handler';
+import { SafeExecute } from '@oliver/utils';
 import SessionCookieStore, { sessionCookie } from './session';
 
 // !!! --- WARNING: NON-PRODUCTION STATE STORAGE --- !!!
@@ -29,7 +28,6 @@ export async function getGitHubAuthUrl(): Promise<{ url: string; state: string }
     stateStore.set(state, { timestamp: Date.now() });
 
 
-    const [result, error] = await safeExecute(LocalCacheDB.set, "state", state, (60 * 12));
 
     Logger.logInfo(`Generated state ${state} for GitHub OAuth flow`);
     // Clean up old states periodically (in a real app, sessions handle this)
@@ -38,7 +36,7 @@ export async function getGitHubAuthUrl(): Promise<{ url: string; state: string }
     const params = new URLSearchParams({
         client_id: config.github.clientId || '',
         redirect_uri: config.github.callbackUrl || '',
-        scope: config.github.scopes,
+        scope: config.github.scopes || '',
         state: state,
     });
     console.log(params.toString());
@@ -90,10 +88,6 @@ export async function exchangeCodeForToken(code: string, receivedState: string):
         if (!data.access_token) {
             Logger.logError(`GitHub token response missing access_token:`, data);
             throw new Error('GitHub response did not include access_token');
-        }
-        const [accessToken, failed] = await safeExecute(LocalCacheDB.set, "token", data.access_token, (60 * 12));
-        if (failed) {
-            Logger.logError(`Successfully cached the access token: ${accessToken}`);
         }
 
         Logger.logInfo(`Successfully received access token. Scopes: ${data.scope}`);

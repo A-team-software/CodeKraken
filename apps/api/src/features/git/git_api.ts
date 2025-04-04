@@ -1,6 +1,6 @@
 // server/services/githubService.ts
 
-import { Logger } from "@/utils/logger/logger";
+import { Logger } from "@oliver/utils";
 import { config } from '../../env_config';
 
 
