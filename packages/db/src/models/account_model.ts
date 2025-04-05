@@ -1,24 +1,11 @@
 // import { Account } from '@/entities/account';
 import { Schema, model, models, Model } from 'mongoose'
+import { Account } from '../interfaces/account';
 
-
-export type Account = {
-    id: string,
-    name: string,
-    profilePicture: string,
-    permissions: [],
-    role: string,
-    firstTime: boolean,
-}
 
 
 
 const AccountSchema = new Schema({
-    id: {
-        type: String,
-        required: true,
-        unique: true,
-    },
     name: {
         type: String,
         required: true
@@ -32,8 +19,7 @@ const AccountSchema = new Schema({
         required: true,
     },
     role: {
-        type: ["developer", "admin"],
-        default: "developer",
+        type: Array,
         required: true,
     },
     firstTime: {
@@ -43,6 +29,5 @@ const AccountSchema = new Schema({
 }, { timestamps: true })
 
 
-const AccountModel: Model<Account> =
-    models?.Accounts || model<Account>('Accounts', AccountSchema);
-export default AccountModel;
+export const DBAccount: Model<Account> =
+    models.Accounts || model<Account>('Accounts', AccountSchema);

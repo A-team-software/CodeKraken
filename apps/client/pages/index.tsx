@@ -1,9 +1,10 @@
 // In a React component (Next.js page)
 
-import { parse } from "cookie"; // If needed
 import { GitRepository } from "../features/github_api/github_api";
-
-export async function getServerSideProps(context: any) {
+import type { GetServerSideProps, GetServerSidePropsContext } from "next";
+export const getServerSideProps: GetServerSideProps = async (
+  context: GetServerSidePropsContext
+) => {
   const cookies = context.req.cookies; // Access cookies from the request
   const sessionToken = cookies["accessToken"]; // Reads HttpOnly cookie
 
@@ -15,7 +16,7 @@ export async function getServerSideProps(context: any) {
   }
 
   return { props: { user: null } };
-}
+};
 
 // Button triggering navigation:
 function LoginPageWithButton({ accessToken }: { accessToken: string }) {
