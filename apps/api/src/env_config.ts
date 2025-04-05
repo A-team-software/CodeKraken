@@ -75,7 +75,7 @@ export const config = {
     // AI Config - Removed for brevity, add back if needed
     // db config
     db: {
-        mongoUri: getEnvVar('MONGODB_URI'),
+        mongoUri: getEnvVar('MONGO_DB_URI'),
         dbName: getEnvVar('DB_NAME'),
     },
     // redis config

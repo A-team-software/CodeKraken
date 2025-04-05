@@ -26,7 +26,7 @@ services:
       # puts services on the same default network.
       # Make sure your Mongoose connection uses this URI.
       # IMPORTANT: Add 'authSource=admin' because the root user is created in the 'admin' database.
-      - MONGODB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/${DB_NAME}?authSource=admin
+      - MONGO_DB_URI=mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/${DB_NAME}?authSource=admin
       - DB_NAME=${DB_NAME} # Your application database name
 
       # --- Other App Variables ---

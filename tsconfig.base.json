@@ -29,6 +29,9 @@
             "@oliver/utils/*": [
                 "./packages/utils/src/*"
             ],
+            "@oliver/shared-types/*": [
+                "./packages/shared-types/src/*"
+            ],
             // Add mappings for other packages like @oliver/ui if they exist
             // "@oliver/ui": ["./packages/ui/src/index.ts"],
             // "@/*": ["./*"] // Keep if you use root-relative imports like "@/somefile"

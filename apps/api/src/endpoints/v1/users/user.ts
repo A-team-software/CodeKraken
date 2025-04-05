@@ -1,5 +1,5 @@
 import { Logger } from "@oliver/utils";
-import { DB } from "@oliver/db";
+import { DatabaseClient, DB } from "@oliver/db";
 import { User } from "@oliver/db";
 import { UserInterface } from "@oliver/db";
 import { APIResponse } from "../../../interfaces/api_response";
@@ -21,7 +21,6 @@ export default async function handler(req: Request) {
             return new Response("", { status: StatusCode.BAD_REQUEST });
         }
 
-
         const doc: UserInterface = { name, phoneNumber };
         const result = await DB.create(doc, User);
 
@@ -39,7 +38,7 @@ export default async function handler(req: Request) {
             Ok: true,
             entity: "User",
             message: "Success",
-            data: result[0],
+            data: result,
         };
         console.log(result);
 

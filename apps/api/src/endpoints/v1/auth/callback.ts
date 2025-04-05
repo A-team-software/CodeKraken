@@ -4,7 +4,20 @@ import { Logger } from '@oliver/utils'; // Adjust path
 import { SafeExecute } from '@oliver/utils';
 import { sessionCookie } from '../../../features/auth/session';
 import { serialize } from 'cookie';
+
+
+
+
+
 export default async function handler(req: Request): Promise<Response> {
+
+    const ACCESS_TOKEN_COOKIE_NAME = 'gh_access_token';
+    const SESSION_ID_COOKIE_NAME = 'sid'; // Example session cookie name
+    // TODO:: create an enum for this.
+    const GITHUB_TOKEN_EXPIRY_SECONDS = 30 * 24 * 60 * 60; // 1 hour (use GitHub's value if possible!)
+    const SESSION_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
+    const clientAppRedirect = 'http://localhost:3000/';
+
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
@@ -46,31 +59,17 @@ export default async function handler(req: Request): Promise<Response> {
         // In this example, just show success
         // return new Response(JSON.stringify({ token: tokenInfo.accessToken }), { status: 401 });
         const setTokenInCookie = serialize('accessToken', tokenInfo.accessToken, {
-            httpOnly: true,      // VERY Important: Cookie cannot be accessed via client-side JS
+            httpOnly: true,
             secure: process.env.NODE_ENV === 'production', // Send only over HTTPS in production
             path: '/',           // Cookie is valid for all paths on the domain
             maxAge: 30 * 24 * 60 * 60, // How long the cookie lasts
             sameSite: 'lax',     // Good default for CSRF protection. Might need 'none' if domains differ significantly AND you use HTTPS ('secure: true'). 'strict' is more restrictive.
         });
-        const [sessionId, error] = SafeExecute.noSync(sessionCookie.get, 'sessionId');
-        let setSessionIDCookie: string | null;
-        if (error == null || sessionId !== null) {
-            setSessionIDCookie = serialize('sessionId', tokenInfo.accessToken, {
-                httpOnly: true,      // VERY Important: Cookie cannot be accessed via client-side JS
-                secure: process.env.NODE_ENV === 'production', // Send only over HTTPS in production
-                path: '/',           // Cookie is valid for all paths on the domain
-                maxAge: 30 * 24 * 60 * 60, // How long the cookie lasts
-                sameSite: 'lax',     // Good default for CSRF protection. Might need 'none' if domains differ significantly AND you use HTTPS ('secure: true'). 'strict' is more restrictive.
-            });
-        } else {
-            setSessionIDCookie = null;
-        }
-
 
         return new Response('Login Successful! Redirecting...', {
-            status: 302, // Or 200 with some JSON, depends on your flow
+            status: 302,
             headers: {
-                'Set-Cookie': `${setTokenInCookie}-${setSessionIDCookie}`,
+                'Set-Cookie': `${setTokenInCookie}`,
                 'Location': 'http://localhost:3000/', // Or wherever the user should go in the Next.js app
                 // --- CORS Headers (Essential if domains/ports differ!) ---
                 'Access-Control-Allow-Origin': '*', // Or your Next.js app's origin

@@ -12,6 +12,7 @@
   "dependencies": {
     "@octokit/rest": "^21.1.0",
     "@oliver/db": "workspace:^",
+    "@oliver/shared-types": "workspace:^",
     "@oliver/utils": "workspace:^",
     "cookie": "^0.6.0",
     "dotenv": "^16.4.7",

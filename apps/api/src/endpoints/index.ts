@@ -1,6 +1,6 @@
 import { serve } from "bun";
 
-import { DbConnect } from "@oliver/db";
+import { DatabaseClient } from "@oliver/db";
 import { join, relative } from "path"; // Added 'relative'
 import { Glob } from "bun"; // Import Bun's Glob class
 import { SessionData } from '../features/auth/session';
@@ -72,15 +72,15 @@ console.log(GITHUB_CALLBACK_URL);
 
 
 
+
 try {
-    await DbConnect();
+    await DatabaseClient.connect();
     console.log("Connected to MongoDB");
 
 } catch (e: any) {
     console.log(e);
     console.log("Error connecting to database");
 }
-
 // Start the Bun server
 serve({
     port: 5001,
