@@ -33,7 +33,7 @@ function noSync<T, A extends unknown[]>(
 }
 
 
-function withAsyncAsNoneBlocking<T, A extends unknown[]>(
+function withPromiseAsNoneBlocking<T, A extends unknown[]>(
     fn: (...args: A) => Promise<T>, // fn takes arguments described by tuple A, returns Promise<T>
     ...args: A                      // The actual arguments matching the tuple type A
 ): [T | Promise<T> | null, Error | null] {
@@ -43,7 +43,7 @@ function withAsyncAsNoneBlocking<T, A extends unknown[]>(
         const promiseStatus = peek.status(result)
 
         if (promiseStatus === "pending") {
-            Logger.logInfo("Promise is pending, returning");
+            Logger.logInfo("Promise is pending");
         }
 
         if (promiseStatus === "rejected") {
@@ -65,5 +65,5 @@ function withAsyncAsNoneBlocking<T, A extends unknown[]>(
 export const SafeExecute: SafeExecuteInterface = {
     withSync: withAsync,
     noSync: noSync,
-    withAsyncAsNoneBlocking: withAsyncAsNoneBlocking,
+    withPromiseAsNoneBlocking: withPromiseAsNoneBlocking,
 } as const;

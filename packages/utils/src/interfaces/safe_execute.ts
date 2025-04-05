@@ -36,5 +36,5 @@ export default interface SafeExecuteInterface {
  * @param args The arguments to pass to the function `fn`.
  * @returns A Promise resolving to a tuple `[T | Promise<T> | null, Error | null]`.
  */
-    withAsyncAsNoneBlocking<T, A extends unknown[]>(fn: (...args: A) => Promise<T>, ...args: A): [T | Promise<T> | null, Error | null]
+    withPromiseAsNoneBlocking<T, A extends unknown[]>(fn: (...args: A) => Promise<T>, ...args: A): [T | Promise<T> | null, Error | null]
 }
