@@ -60,7 +60,7 @@ for await (const relativePath of glob.scan(baseRoutesDir)) {
             // Logger.logWarn(`Skipping ${relativePath}: No default export function found.`);
         }
     } catch (error: any) {
-        Logger.logError(`Failed to load route module ${relativePath}:`, error.message);
+        Logger.logError({ message: `Failed to load route module ${relativePath}:`, error: error });
     }
 }
 

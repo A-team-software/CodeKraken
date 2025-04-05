@@ -85,7 +85,7 @@ export default async function handler(req: Request): Promise<Response> {
         // });
         // return Response.redirect('/dashboard', 302); // Redirect to dashboard
     } catch (error: any) {
-        Logger.logError("Error processing GitHub callback:", error.message);
+        Logger.logError(error);
         return new Response(JSON.stringify({ error: "Internal server error during GitHub callback." }), { status: 500 });
     }
 }

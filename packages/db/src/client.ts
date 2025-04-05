@@ -1,6 +1,5 @@
 import mongoose, { Connection, Mongoose } from "mongoose";
-import { z } from "zod";
-import pRetry from "p-retry";
+
 import dotenv from 'dotenv';
 import path from 'path'; // To reliably locate the .env file
 
@@ -22,41 +21,6 @@ if (loadResult.error) {
     // For debugging, uncomment carefully (don't log secrets):
     // console.log('Parsed dotenv vars:', loadResult.parsed);
 }
-// --- Configuration Validation ---
-
-const mongoDBSchema = z.object({
-    MONGO_DB_URI: z.string().url("Invalid MongoDB URI format"),
-    DB_NAME: z.string().min(1).optional(), // Optional, can be in URI
-    // Production specific options (with sensible defaults)
-    POOL_SIZE: z.coerce.number().int().positive().optional().default(5), // Adjust based on expected load
-    SERVER_SELECTION_TIMEOUT_MS: z.coerce.number().int().positive().optional().default(30000), // 30 secs
-    SOCKET_TIMEOUT_MS: z.coerce.number().int().positive().optional().default(45000), // 45 secs
-    HEARTBEAT_FREQUENCY_MS: z.coerce.number().int().positive().optional().default(10000), // 10 secs
-});
-
-// Type derived from the schema
-type MongoDBConfig = Readonly<z.infer<typeof mongoDBSchema>>;
-
-function parseDbConfig(): MongoDBConfig {
-    try {
-        // Use zod's safeParse for better error handling if needed
-        const parsedConfig = mongoDBSchema.parse(process.env);
-        Logger.logInfo("MongoDB configuration loaded successfully.");
-        // Make immutable after parsing
-        return Object.freeze(parsedConfig);
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            Logger.logError("Invalid MongoDB environment variables:", error.format());
-        } else {
-            Logger.logError("Error parsing MongoDB configuration:", error);
-        }
-        // Critical configuration error, likely should terminate
-        process.exit(1);
-    }
-}
-
-// Parse config once on module load
-const dbConfig = parseDbConfig();
 
 // --- Connection Caching (Functional Approach) ---
 
@@ -152,7 +116,7 @@ export async function disconnectFromDatabase(): Promise<void> {
         }
     } catch (error) {
         // Error could be from awaiting connectionPromise if it failed initially
-        Logger.logError("Error during disconnection attempt:", error);
+        Logger.logError({ msg: "Error during disconnection attempt:", error });
     } finally {
         // Clear the cache regardless of success/failure to disconnect
         cache.connectionPromise = null;
@@ -170,7 +134,7 @@ mongoose.connection.on('connected', () => {
 });
 
 mongoose.connection.on('error', (err) => {
-    Logger.logError('Mongoose: Connection error:', err);
+    Logger.logError({ msg: 'Mongoose: Connection error:', err });
 });
 
 mongoose.connection.on('disconnected', () => {

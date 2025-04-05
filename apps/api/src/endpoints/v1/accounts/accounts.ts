@@ -19,7 +19,7 @@ export default async function handler(req: Request) {
         const {
             name, profilePicture, permissions, role, firstTime } = await req.json();
 
-        if (name === undefined || permissions === undefined || role === undefined || firstTime === undefined) {
+        if ((!name) || (!permissions) || (!role) || ((firstTime === undefined) || (firstTime === null))) {
             return Response.json(
                 <APIResponse<null>>{
                     status: StatusCode.BAD_REQUEST,
@@ -33,7 +33,7 @@ export default async function handler(req: Request) {
         const doc: Account = { name, profilePicture, permissions, role, firstTime };
         const [databaseResponse, error] = await SafeExecute.withSync(DB.create, doc, DBAccount);
         if (error !== null) {
-            console.log(inspect(error, { depth: Infinity, colors: true, numericSeparator: true, }));
+            Logger.logError(error);
             return Response.json(
                 {
                     status: StatusCode.INTERNAL_SERVER_ERROR,

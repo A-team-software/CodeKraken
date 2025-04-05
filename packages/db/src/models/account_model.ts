@@ -12,7 +12,8 @@ const AccountSchema = new Schema({
     },
     profilePicture: {
         type: String,
-        required: true
+        required: false,
+        default: "https://www.gravatar.com/avatar",
     },
     permissions: {
         type: Array,
