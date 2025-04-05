@@ -65,7 +65,6 @@ const retrieveCachedConnection = async (): Promise<mongoose.Connection | null> =
 }
 
 const initConnection = async (): Promise<Connection | null> => {
-    console.log(`[DEBUG] Connecting to MongoDB with URI: ${process.env.MONGO_DB_URI}`);
     try {
         let cached = getCache();
         if (!cached.connectionPromise) {

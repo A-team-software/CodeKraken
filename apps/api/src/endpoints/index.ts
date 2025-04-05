@@ -4,7 +4,7 @@ import { DatabaseClient } from "@oliver/db";
 import { join, relative } from "path"; // Added 'relative'
 import { Glob } from "bun"; // Import Bun's Glob class
 import { SessionData } from '../features/auth/session';
-import { Logger } from '@oliver/utils';
+import { Logger, SafeExecute } from '@oliver/utils';
 // --- Configuration ---
 // Load from environment variables in production!
 const COOKIE_SECRET = process.env.COOKIE_SECRET;
@@ -74,7 +74,11 @@ console.log(GITHUB_CALLBACK_URL);
 
 
 try {
-    await DatabaseClient.connect();
+    const [_, error] = SafeExecute.withAsyncAsNoneBlocking(DatabaseClient.connect);
+    if (error) {
+        Logger.logError({ msg: "Error connecting to MongoDB", error });
+    }
+
     console.log("Connected to MongoDB");
 
 } catch (e: any) {
