@@ -1,10 +1,11 @@
-import { serve } from "bun";
+import { peek, serve } from "bun";
 
 import { DatabaseClient } from "@oliver/db";
 import { join, relative } from "path"; // Added 'relative'
 import { Glob } from "bun"; // Import Bun's Glob class
 import { SessionData } from '../features/auth/session';
 import { Logger, SafeExecute } from '@oliver/utils';
+import { inspect } from "util";
 // --- Configuration ---
 // Load from environment variables in production!
 const COOKIE_SECRET = process.env.COOKIE_SECRET;
@@ -64,22 +65,16 @@ for await (const relativePath of glob.scan(baseRoutesDir)) {
     }
 }
 
-// Logger.logInfo("Finished loading routes:", Object.keys(apiRoutes));
-const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL as string;
-console.log(GITHUB_CALLBACK_URL);
-
-
-
-
 
 
 try {
-    const [_, error] = SafeExecute.withAsyncAsNoneBlocking(DatabaseClient.connect);
+    const [promise, error] = SafeExecute.withPromiseAsNoneBlocking(DatabaseClient.connect);
     if (error) {
         Logger.logError({ msg: "Error connecting to MongoDB", error });
     }
 
-    console.log("Connected to MongoDB");
+    console.log(peek(promise));
+
 
 } catch (e: any) {
     console.log(e);
@@ -99,4 +94,4 @@ serve({
     }
 });
 
-console.log("🚀 Bun server running at http://localhost:5001");
+Logger.logInfo("🚀 Bun server running at http://localhost:5001");
