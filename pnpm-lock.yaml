@@ -348,7 +348,11 @@ importers:
         specifier: ^10.1.4
         version: 10.1.4
 
-  packages/shared-types: {}
+  packages/shared-types:
+    dependencies:
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
 
   packages/ui:
     dependencies:

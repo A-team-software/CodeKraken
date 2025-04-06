@@ -68,17 +68,12 @@ for await (const relativePath of glob.scan(baseRoutesDir)) {
 
 
 try {
-    const [promise, error] = SafeExecute.withPromiseAsNoneBlocking(DatabaseClient.connect);
+    const [_, error] = SafeExecute.withPromiseAsNoneBlocking(DatabaseClient.connect);
     if (error) {
         Logger.logError({ msg: "Error connecting to MongoDB", error });
     }
-
-    console.log(peek(promise));
-
-
-} catch (e: any) {
-    console.log(e);
-    console.log("Error connecting to database");
+} catch (err: any) {
+    Logger.logInfo(err);
 }
 // Start the Bun server
 serve({

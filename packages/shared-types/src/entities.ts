@@ -1,4 +1,4 @@
-
+import { z } from "zod";
 
 export interface WebhookServiceInterface {
     getWebhooks: (userName: string, repoName: string, token: string) => Promise<any>;
@@ -11,42 +11,49 @@ export interface GitRepositoryServiceInterface {
 }
 
 
+const PROVIDERS = [
+    "GITHUB",
+    "GITLAB",
+    "BITBUCKET",
+] as const;
+
+const GitProvidersZEnum = z.enum(PROVIDERS);
+export const GitProviders: z.ZodEnum<["GITHUB", "GITLAB", "BITBUCKET"]> = GitProvidersZEnum;
 
 
-/**
- * Enum defining common Git repository hosting providers.
- */
-export enum RepositoryProvider {
-    GITHUB = 'github',
-    GITLAB = 'gitlab',
-    BITBUCKET = 'bitbucket',
-    AZURE_DEVOPS = 'azure_devops',
-    SELF_HOSTED = 'self_hosted', // For custom Git server instances
-    UNKNOWN = 'unknown',
-}
+const VISIBILITY_OPTIONS = [
+    "PUBLIC",
+    "PRIVATE",
+    "INTERNAL", // Some providers like GitHub/GitLab have this concept
+] as const;
+
+
+const RepositoryZVisibility = z.enum(VISIBILITY_OPTIONS)
 
 /**
  * Enum defining the visibility of the repository.
  */
-export enum RepositoryVisibility {
-    PUBLIC = 'public',
-    PRIVATE = 'private',
-    INTERNAL = 'internal', // Some providers like GitHub/GitLab have this concept
-}
+export const REPOSITORY_VISIBILITY: z.ZodEnum<["PUBLIC", "PRIVATE", "INTERNAL"]> = RepositoryZVisibility;
+
+const RepositoryZSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    full_name: z.string(),
+    html_url: z.string(),
+    owner: z.object({
+        login: z.string()
+    }),
+    private: z.boolean(),
+    repositoriesURL: z.string().or(z.null()),
+});
+
+export const RepositoryTypeChecker = RepositoryZSchema;
 
 /**
- * Represents a code repository, typically managed with Git.
+ * Represents a git repository.
  * Contains details needed to locate, clone, and interact with the repo.
  */
-export type Repository = {
-    id: string,
-    name: string, //Repository name
-    full_name: string, // Repositories's name and owner's name
-    html_url: string, //Repository URL
-    owner: {
-        login: string // User name
-    },
-    private: boolean,
-    repositoriesURL: string | any,
-}
+export type Repository = z.infer<typeof RepositoryZSchema>;
+
+
 
