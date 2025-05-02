@@ -1,10 +1,11 @@
 import { Logger, SafeExecute } from "@oliver/utils";
-import { DB } from "@oliver/db";
+import { AccountInput, DB, ZodAccountSchema } from "@oliver/db";
 import { DBAccount, Account } from "@oliver/db";
 import { UserInterface } from "@oliver/db";
-import { APIResponse } from "../../../interfaces/api_response";
+import { APIResponse, parseRequest } from "../../../interfaces/api_response";
 import { StatusCode } from "../../../interfaces/http_status";
 import { inspect } from "util";
+import { typeToFlattenedError, unknown, ZodError, ZodUndefined } from 'zod';
 
 
 export default async function handler(req: Request) {
@@ -16,10 +17,10 @@ export default async function handler(req: Request) {
         }), { status: StatusCode.METHOD_NOT_ALLOWED });
     }
     try {
-        const {
-            name, profilePicture, permissions, role, firstTime } = await req.json();
 
-        if ((!name) || (!permissions) || (!role) || ((firstTime === undefined) || (firstTime === null))) {
+        const [parsedRequest, er] = await SafeExecute.withSync(parseRequest, req);
+        if (er !== null) {
+            Logger.logError(er);
             return Response.json(
                 <APIResponse<null>>{
                     status: StatusCode.BAD_REQUEST,
@@ -29,8 +30,42 @@ export default async function handler(req: Request) {
                     data: null,
                 });
         }
+        if (parsedRequest === null) {
+            return Response.json(
+                <APIResponse<null>>{
+                    status: StatusCode.BAD_REQUEST,
+                    Ok: false,
+                    entity: "Error",
+                    message: "Invalid request body",
+                    data: null,
+                });
+        }
+        const [account, err] = SafeExecute.noSync(ZodAccountSchema.parse, parsedRequest);
+        if (err instanceof ZodError) {
+            return Response.json(
+                <APIResponse<typeToFlattenedError<any, string>>>{
+                    status: StatusCode.BAD_REQUEST,
+                    Ok: false,
+                    entity: "Error",
+                    message: "Invalid request body",
+                    data: err.flatten(),
+                })
+        }
 
-        const doc: Account = { name, profilePicture, permissions, role, firstTime };
+        if ((err !== null) || (account === null)) {
+            Logger.logError(err);
+            return Response.json(
+                <APIResponse<null>>{
+                    status: StatusCode.BAD_REQUEST,
+                    Ok: false,
+                    entity: "Error",
+                    message: "Invalid request body",
+                    data: null,
+                });
+        }
+        const { name, profilePicture, permissions, role, firstTime } = account;
+
+        const doc: AccountInput = { name, profilePicture, permissions, role, firstTime };
         const [databaseResponse, error] = await SafeExecute.withSync(DB.create, doc, DBAccount);
         if (error !== null) {
             Logger.logError(error);

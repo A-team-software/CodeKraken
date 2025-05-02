@@ -7,8 +7,10 @@ import TrelloInterface from './interfaces/trello';
 const TRELLO_API_BASE = 'https://api.trello.com/1';
 
 
-async function getCardDetails(cardId: string): Promise<TrelloCard | null> {
-    const url = `${TRELLO_API_BASE}/cards/${cardId}?key=${"trello.apiKey"}&token=${"trello.apiToken"}`;
+
+
+async function getCardDetails(cardId: string, apiKey: string, apiToken: string): Promise<TrelloCard | null> {
+    const url = `${TRELLO_API_BASE}/cards/${cardId}?key=${apiKey}&token=${apiToken}`;
     Logger.logInfo(`Fetching Trello card details for ID: ${cardId}`);
 
     try {
@@ -22,14 +24,14 @@ async function getCardDetails(cardId: string): Promise<TrelloCard | null> {
         Logger.logInfo(`Successfully fetched Trello card: ${cardData.name}`);
         return cardData;
     } catch (error: any) {
-        Logger.logError(`Error in getCardDetails for ${cardId}:`, error.message);
+        Logger.logError(`Error in getCardDetails for ${cardId}, ${error.message}`);
         return null; // Return null or re-throw depending on desired handling
     }
 }
 
 // Optional: Add function to move card, add comment, etc.
-async function addCommentToCard(cardId: string, text: string): Promise<boolean> {
-    const url = `${TRELLO_API_BASE}/cards/${cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${"trello.apiKey"}&token=${"trello.apiToken"}`;
+async function addCommentToCard(cardId: string, text: string, apiKey: string): Promise<boolean> {
+    const url = `${TRELLO_API_BASE}/cards/${cardId}/actions/comments?text=${encodeURIComponent(text)}&key=${apiKey}&token=${"trello.apiToken"}`;
     Logger.logInfo(`Adding comment to Trello card ID: ${cardId}`);
     try {
         const response = await fetch(url, { method: 'POST' });
@@ -41,7 +43,7 @@ async function addCommentToCard(cardId: string, text: string): Promise<boolean> 
         Logger.logInfo(`Successfully added comment to Trello card: ${cardId}`);
         return true;
     } catch (error: any) {
-        Logger.logError(`Error adding comment to ${cardId}:`, error.message);
+        Logger.logError(`Error adding comment to ${cardId}:, ${error.message}`);
         return false;
     }
 }

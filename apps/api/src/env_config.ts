@@ -64,14 +64,14 @@ function getOptionalEnvVar(key: string, defaultValue?: string): string | undefin
 export const config = {
     // GitHub specific config
     github: {
-        baseBranch: getOptionalEnvVar('GITHUB_BASE_BRANCH', 'main'),
-        clientId: getEnvVar('GITHUB_CLIENT_ID'),
-        clientSecret: getEnvVar('GITHUB_CLIENT_SECRET'),
-        callbackUrl: getEnvVar('GITHUB_CALLBACK_URL'),
-        scopes: getOptionalEnvVar('GITHUB_SCOPES', 'repo user:email'),
+        GITHUB_BASE_BRANCH: getOptionalEnvVar('GITHUB_BASE_BRANCH', 'main'),
+        GITHUB_CLIENT_ID: getEnvVar('GITHUB_CLIENT_ID'),
+        GITHUB_CLIENT_SECRET: getEnvVar('GITHUB_CLIENT_SECRET'),
+        GITHUB_CALLBACK_URL: getEnvVar('GITHUB_CALLBACK_URL'),
+        GITHUB_SCOPES: getOptionalEnvVar('GITHUB_SCOPES', 'repo user:email'),
     },
     // App Secret
-    appSecret: getEnvVar('APP_SECRET'),
+    APP_SECRET: getEnvVar('APP_SECRET'),
     // AI Config - Removed for brevity, add back if needed
     // db config
     db: {

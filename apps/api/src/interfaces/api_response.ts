@@ -6,3 +6,5 @@ export type APIResponse<T> = {
     data?: T;
     status: StatusCode,
 };
+
+export const parseRequest = async (request: Request) => request.json();

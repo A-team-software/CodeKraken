@@ -1,6 +1,6 @@
-import { Repository } from '@oliver/shared-types';
-import { Logger } from '@oliver/utils';
-const getGitHubRepos = async (accessToken: string): Promise<Repository[] | null> => {
+// import { Repository } from '@oliver/shared-types';
+// import { Logger } from '@oliver/utils';
+const getGitHubRepos = async (accessToken: string): Promise<any[] | null> => {
     // const [accessToken, error] = await safeExecute(LocalCacheDB.get, "accessToken");
     // if (error) {
     //     Logger.logError(error);
@@ -15,18 +15,18 @@ const getGitHubRepos = async (accessToken: string): Promise<Repository[] | null>
         });
         const repos = await response.json();
         if (!response.ok) {
-            Logger.logInfo(response);
+            console.log(response);
             return null;
         }
-        const repositories: Repository[] = JSON.parse(JSON.stringify(repos));
+        const repositories: any[] = JSON.parse(JSON.stringify(repos));
         return repositories;
     } catch (e: any) {
-        Logger.logError(e);
+        console.log(e);
         return null;
     }
 }
 
-const getUserRepos = async (serviceProvider = "GitHub", accessToken: string): Promise<Repository[] | null> => {
+const getUserRepos = async (serviceProvider = "GitHub", accessToken: string): Promise<any[] | null> => {
     const repos = await getGitHubRepos(accessToken);
     return repos;
 }

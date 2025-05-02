@@ -86,12 +86,12 @@ export async function exchangeCodeForToken(code: string, receivedState: string):
         }
 
         if (!data.access_token) {
-            Logger.logError(`GitHub token response missing access_token:`, data);
+            Logger.logError(data);
             throw new Error('GitHub response did not include access_token');
         }
 
         Logger.logInfo(`Successfully received access token. Scopes: ${data.scope}`);
-
+        Logger.logInfo(`Received access token: ${data}`);
         const token = data.access_token as string;
         if (token) {
             SessionCookieStore.createSession(token);
@@ -109,7 +109,7 @@ export async function exchangeCodeForToken(code: string, receivedState: string):
         };
 
     } catch (error: any) {
-        Logger.logError('Error exchanging code for token:', error.message);
+        Logger.logError(`Error exchanging code for token: ${error.message}}`);
         return null;
     }
 }
@@ -126,14 +126,14 @@ export async function getGitHubUserDetails(accessToken: string): Promise<{ login
         });
         if (!response.ok) {
             const errorData = await response.json();
-            Logger.logError(`GitHub API error fetching user (${response.status}):`, errorData);
+            Logger.logError(`GitHub API error fetching user (${response.status} ${errorData}`);
             throw new Error(`Failed to fetch GitHub user details. Status: ${response.status}`);
         }
         const userData = await response.json();
         Logger.logInfo(`Fetched GitHub user: ${userData.login} (ID: ${userData.id})`);
         return userData;
     } catch (error: any) {
-        Logger.logError('Error fetching GitHub user details:', error.message);
+        Logger.logError(`Error fetching GitHub user details:  ${error.message}`);
         return null;
     }
 }
