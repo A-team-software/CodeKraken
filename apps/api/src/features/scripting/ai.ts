@@ -1,5 +1,6 @@
 import { SafeExecute } from "@/packages/utils/dist/errors/safe_execute";
 import { promptLLM } from "./dir";
+import { extractJsonFromString } from "./validation";
 
 
 
@@ -30,6 +31,55 @@ const prompt = async (input: string, systemInstructions: string): Promise<any | 
 }
 
 
+const validateLlmResponse = async (input: string, systemInstructions: string): Promise<string | null> => {
+    // prompt LLM
+    const [llmResponse, error] = await SafeExecute.withSync(promptLLM, input, systemInstructions);
 
-const LLM = { prompt: prompt } as const;
+    // Error handling
+    if (error !== null) {
+        console.error(error);
+        return null;
+    }
+
+    if (llmResponse === null) {
+        console.error("Something wrong happened when prompting the LLM.");
+        return null;
+    }
+
+    if (llmResponse["candidates"] === undefined) {
+        console.dir(llmResponse, { depth: Infinity, colors: true });
+        return null
+    }
+    const answer: string = llmResponse["candidates"][0]["content"]["parts"][0]["text"];
+    return answer;
+}
+
+const agent = async <T>(input: string, systemInstructions: string): Promise<T | null> => {
+
+    const answer = await validateLlmResponse(input, systemInstructions);
+
+    if (answer === null) {
+        return null;
+    }
+
+    const formattedData = extractJsonFromString(answer);
+
+    if (formattedData === null) {
+        console.error("Failed to parse LLM response to json. Body mismatch.");
+        return null;
+    }
+
+    try {
+        const parsedAs: T = JSON.parse(formattedData);
+        return parsedAs;
+    } catch (error: any) {
+        console.error(error);
+        return null;
+    }
+}
+
+
+const LLM = {
+    agent: agent,
+} as const;
 export default LLM;

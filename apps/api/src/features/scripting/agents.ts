@@ -2,7 +2,7 @@ import { SafeExecute } from "@/packages/utils/dist";
 import { promptLLM } from './dir';
 import { Logger } from "@/packages/utils/dist/logger/logger";
 import { $ } from "bun";
-import { ActionData, ChatData, Message } from "./intrefaces/agents";
+import { ActionData, ChatData, Message } from "./interfaces/agents";
 import { extractJsonFromString } from "./validation";
 
 
