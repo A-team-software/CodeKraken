@@ -128,17 +128,5 @@ const main = async () => {
     }
 
     const input = `The Large Cards aren't responsive on some screens, there's a bottom over flow. Here is the project structure: ${output}`;
-    const [answer, er] = await SafeExecute.withSync(prompt, input);
-
-    if (er !== null) {
-        Logger.logError(er);
-    }
-
-    if (!answer) {
-        console.log("Something went wrong on the LLM");
-        return;
-    }
-
-    runAgent(answer);
 }
 main();
