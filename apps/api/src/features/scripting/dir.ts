@@ -18,7 +18,7 @@ import { fetch } from "bun";
 //   },
 
 
-const systemInstructions = `
+const sys = `
 [
   {
     "category": "Main instruction",
@@ -46,7 +46,8 @@ const systemInstructions = `
 
 const url: string = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyB20k36AYrDwTkpC8a_IQ0ROMd8qLVLVLg"
 
-export const promptLLM = async (prompt: string): Promise<any | null> => {
+
+export const promptLLM = async (prompt: string, systemInstructions: string): Promise<any | null> => {
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -76,6 +77,4 @@ export const promptLLM = async (prompt: string): Promise<any | null> => {
     console.log(error)
     return null
   }
-  console.log("Failed")
-  return null;
 }
