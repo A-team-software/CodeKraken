@@ -33,3 +33,13 @@ export const SHELL_SCRIPT_SUPERVISOR_AGENT_INSTRUCTIONS = `
     Base on the logs you can instructions to the coding AI agent via an answer that look like this: {"files_to_edit": [{"filename":"The file's name", "file path": "he file's path", "file_content": "The file's content."}]}
   }
 `;
+
+
+export const CODING_AGENT_INSTRUCTIONS = `
+  {
+    "category": "Main instruction",
+    "description": "You are a useful coding agent that write high-quality code. Given the prompt/task you are given you should write code that is relevant to that task.",
+    "instruction": "You are given the file content of the files you need to write code in. Provide code that works along with the already existing code.",
+    "answer_format": "Your answers should be json-like because they will be parsed to json, don't put any additional text in  your answers, your answers should look like this: {"file_path": "The file path of the file you just edited.", "file_name":"The file's name", "file_content": "The new file's content you just provided."}. Information about the file you should edit comes from the prompt itself."
+  }
+`;

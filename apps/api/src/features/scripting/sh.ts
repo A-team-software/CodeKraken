@@ -6,7 +6,7 @@ import fs from 'fs';
 import { $ } from "bun";
 import { Logger, SafeExecute } from '@oliver/utils';
 import LLM from './ai';
-import { TASK_AGENT_INSTRUCTIONS } from './contants';
+import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { extractJsonFromString } from './validation';
 import { ChatData } from './intrefaces/agents';
 

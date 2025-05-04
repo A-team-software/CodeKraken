@@ -2,7 +2,7 @@ import { SafeExecute } from "@/packages/utils/dist/errors/safe_execute";
 import { ActionData, AgentTask, ChatData, Message } from "./intrefaces/agents";
 import { extractJsonFromString } from "./validation";
 import LLM from './ai';
-import { TASK_AGENT_INSTRUCTIONS } from './contants';
+import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
 
 
 let inMemoryStepByStepGuideToFollowForTaskCompletion: string = "";
