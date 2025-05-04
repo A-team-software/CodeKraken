@@ -38,7 +38,6 @@ const sys = `
   {
     "category": "navigate_through_code_base & file_manipulation",
     "description": "To navigate code/files use bash commands like ls, cd, cat to see the code in a file and more. You are given a project structure with all the directories and files use it and don't try to guess too much only use the project structure given to you. Strictly follow the project structure that is being given to you.",
-    "instructions": "Your answers should look like this: {"action_name": "The action you want to operate", "shell_command":"The shell script that goes along."}. You'll be given a response from a server that will run the shell command you send to it and return the output of the shell for you to operate on it. Don't add additional text to your answer as it will be parsed as json."
   }
 ]
 `
