@@ -54,11 +54,12 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
     return answer;
 }
 
-const agent = async <T>(input: string, systemInstructions: string): Promise<T | Error> => {
+const agent = async <T>(input: string, systemInstructions: string): Promise<Error | T> => {
 
     const answer = await validateLlmResponse(input, systemInstructions);
 
     if (answer === null) {
+
         console.error("Failed to validate LLM response.");
 
         return new Error(String("Failed to validate LLM response."));
@@ -76,7 +77,7 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<T | 
         return parsedAs;
     } catch (error: any) {
         console.error(error);
-        return error as Error;
+        return new Error(error);
     }
 }
 

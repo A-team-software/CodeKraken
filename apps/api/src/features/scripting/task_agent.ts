@@ -15,7 +15,7 @@ let cloneRepoDirectory: string | null = null;
 
 
 
-const generateTasks = async (input: string): Promise<AgentTask[] | Error> => {
+const generateTasks = async (input: string): Promise<Error | AgentTask[]> => {
 
     try {
 
