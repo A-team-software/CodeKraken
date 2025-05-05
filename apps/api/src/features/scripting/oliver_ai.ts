@@ -1,8 +1,7 @@
-import { SafeExecute } from "@/packages/utils/dist/errors/safe_execute";
-import { ActionData, AgentTask, ChatData, Message, FileToEdit, TerminatedTask } from './interfaces/agents';
+import { ActionData, AgentTask, ChatData, FileToEdit, TerminatedTask } from './interfaces/agents';
 import { extractJsonFromString } from "./validation";
 import LLM from './ai';
-import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from './agents_instructions';
+import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, SHELL_SCRIPT_AGENT_INSTRUCTIONS } from './agents_instructions';
 
 
 let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = [];
@@ -79,8 +78,30 @@ const agentRouter = async (input: string): Promise<(Error | null) | (TerminatedT
     return formattedData;
 }
 
+const shellScriptingAgent = async (input: string): Promise<ActionData[] | (Error | null)> => {
+    try {
+
+        const tasksPlanerAgentResponse = await LLM.agent<ActionData[]>(input, SHELL_SCRIPT_AGENT_INSTRUCTIONS);
+
+        if (tasksPlanerAgentResponse instanceof Error) {
+            console.error("Something went wrong on the LLM");
+            return tasksPlanerAgentResponse;
+        }
+
+        if (tasksPlanerAgentResponse === null) {
+            console.error("The LLM didn't return a valid JSON");
+            return null;
+        }
 
 
-const OliverAI = { generateTasks: generateTasks, agentRouter: agentRouter } as const;
+        return tasksPlanerAgentResponse;
+
+    } catch (error: any) {
+        console.error(error);
+        return new Error(error);
+    }
+}
+
+const OliverAI = { generateTasks: generateTasks, agentRouter: agentRouter, shellScriptingAgent: shellScriptingAgent } as const;
 
 export default OliverAI;

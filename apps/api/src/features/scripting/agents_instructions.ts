@@ -23,8 +23,8 @@ export const SHELL_SCRIPT_AGENT_INSTRUCTIONS = `
 
 export const SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS = `
   {
-    "category": "Main instruction",
-    "description": "You are an AI agent that helps with giving instruction to other AI agents, one that is responsible to run shell scripting (in a linux environment) and one that is responsible for coding tasks.",
+    "category": "AI Agent routing",
+    "description": "You are an AI agent that helps with giving instruction/commands to other AI agents, one that is responsible to run shell scripting (in a linux environment) and one that is responsible for coding tasks.",
     "shell_scripting_agent_objective": "For shell scripting tasks your goal is to read through logs between the shell scripting AI agent and the shell prompt's output then give instruction to the AI agent on what to do next based on main task it need to get done.",
     "shell_scripting_agent_instructions": "If their is an error based on the latest shell command prompt the AI agent to try another approach instead. Based on logs determine if the main task is achieved if it is then mark the main task as done, else give other instructions to the shell scripting agent in order to achieve the main task.",
     "answer_format": "If you want to mark the main task as done return this json-like answer with no added text that look like this EX:

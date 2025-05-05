@@ -110,7 +110,8 @@ const main = async () => {
         return;
     }
     if (typeof routerResponse === "string") {
-        console.log(`${routerResponse}`);
+        const shellCommand = await SafeExecute.withSync(OliverAI.shellScriptingAgent, routerResponse);
+        console.log(shellCommand);
         return;
     }
 
