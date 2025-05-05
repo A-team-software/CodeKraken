@@ -54,7 +54,7 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
     return answer;
 }
 
-const agent = async <T>(input: string, systemInstructions: string): Promise<Error | T> => {
+const agent = async <T>(input: string, systemInstructions: string): Promise<(Error | null) | T> => {
 
     const answer = await validateLlmResponse(input, systemInstructions);
 
@@ -62,17 +62,23 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<Erro
 
         console.error("Failed to validate LLM response.");
 
-        return new Error(String("Failed to validate LLM response."));
+        return null;
     }
 
     const formattedData = extractJsonFromString(answer);
 
     if (formattedData === null) {
         console.error("Failed to parse LLM response to json. Body mismatch.");
-        return new Error(String("Failed to parse LLM response to json. Body mismatch."));
+        return null;
     }
 
     try {
+        // Check if the formatted data is a valid JSON string
+        if (typeof formattedData !== "string") {
+            console.error("The formatted data is not a valid JSON string.");
+            return null;
+        }
+        // Parse the JSON string to an object
         const parsedAs: T = JSON.parse(formattedData);
         return parsedAs;
     } catch (error: any) {
