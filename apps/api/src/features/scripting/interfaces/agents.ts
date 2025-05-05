@@ -1,9 +1,21 @@
+import { boolean } from "zod";
+
 export type Message = {
     content: string | null,
     sender: string,
     AiAgentName: string
 }
 
+export type FileToEdit = {
+    fileName: string,
+    filePath: string,
+    fileContent: string
+}
+
+export type TerminatedTask = {
+    taskNumber: string,
+    finished: boolean,
+}
 export type ChatData = {
     question: Message | null,
     answer: Message | null,

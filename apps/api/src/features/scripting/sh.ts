@@ -9,7 +9,7 @@ import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { extractJsonFromString } from './validation';
 import { ChatData } from './interfaces/agents';
-import TaskPlanerAgent from './task_agent';
+import TaskPlanerAgent from './oliver_ai';
 
 
 let projectStructure: string | null;
