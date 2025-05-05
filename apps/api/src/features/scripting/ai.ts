@@ -41,8 +41,8 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
         return null;
     }
 
-    if (llmResponse === null) {
-        console.error("Something wrong happened when prompting the LLM.");
+    if (!(llmResponse)) {
+        console.error(`Something wrong happened when prompting the LLM: ${llmResponse}`);
         return null;
     }
 
@@ -54,19 +54,21 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
     return answer;
 }
 
-const agent = async <T>(input: string, systemInstructions: string): Promise<T | null> => {
+const agent = async <T>(input: string, systemInstructions: string): Promise<T | Error> => {
 
     const answer = await validateLlmResponse(input, systemInstructions);
 
     if (answer === null) {
-        return null;
+        console.error("Failed to validate LLM response.");
+
+        return new Error(String("Failed to validate LLM response."));
     }
 
     const formattedData = extractJsonFromString(answer);
 
     if (formattedData === null) {
         console.error("Failed to parse LLM response to json. Body mismatch.");
-        return null;
+        return new Error(String("Failed to parse LLM response to json. Body mismatch."));
     }
 
     try {
@@ -74,7 +76,7 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<T | 
         return parsedAs;
     } catch (error: any) {
         console.error(error);
-        return null;
+        return error as Error;
     }
 }
 

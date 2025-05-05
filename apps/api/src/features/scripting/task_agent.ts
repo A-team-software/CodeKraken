@@ -15,18 +15,22 @@ let cloneRepoDirectory: string | null = null;
 
 
 
-const generateTasks = async (input: string): Promise<AgentTask[] | null> => {
+const generateTasks = async (input: string): Promise<AgentTask[] | Error> => {
 
     try {
+
         const tasksAgentResponse = await LLM.agent<AgentTask[]>(input, TASK_AGENT_INSTRUCTIONS);
-        if (tasksAgentResponse === null) {
+
+        if (tasksAgentResponse instanceof Error) {
             console.error("Something went wrong on the LLM");
-            return null;
+            return tasksAgentResponse;
         }
+
         return tasksAgentResponse;
+
     } catch (error: any) {
         console.error(error);
-        return null;
+        return new Error(error);
     }
 }
 
