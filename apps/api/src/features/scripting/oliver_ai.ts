@@ -1,5 +1,5 @@
 import { SafeExecute } from "@/packages/utils/dist/errors/safe_execute";
-import { ActionData, AgentTask, ChatData, Message } from "./interfaces/agents";
+import { ActionData, AgentTask, ChatData, Message, FileToEdit, TerminatedTask } from './interfaces/agents';
 import { extractJsonFromString } from "./validation";
 import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from './agents_instructions';
@@ -41,32 +41,46 @@ const generateTasks = async (input: string): Promise<(Error | null) | AgentTask[
     }
 }
 
-const agentRouter = async (input: string): Promise<(Error | null) | AgentTask[]> => {
+const agentRouter = async (input: string): Promise<(Error | null) | (TerminatedTask | FileToEdit | string)> => {
+    const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
+
+    if (answer === null) {
+
+        console.error("Failed to validate LLM response.");
+
+        return null;
+    }
+
+    const formattedData = extractJsonFromString(answer);
+
+    if (formattedData === null) {
+        return answer;
+    }
+
+    // Check if the formatted data is a valid JSON string
+    if (typeof formattedData !== "string") {
+        console.error("The formatted data is not a valid JSON string.");
+        return null;
+    }
     try {
-
-        const agentRouterResponse = await LLM.agent<AgentTask[]>(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
-
-        if (agentRouterResponse instanceof Error) {
-            console.error(`${agentRouterResponse}`);
-            return agentRouterResponse;
-        }
-
-        if (agentRouterResponse === null) {
-            console.error("The LLM didn't return a valid JSON");
-            return null;
-        }
-
-
-        return agentRouterResponse;
-
+        // Parse the JSON string to an object
+        const parsedAs: TerminatedTask = JSON.parse(formattedData);
+        return parsedAs;
     } catch (error: any) {
         console.error(error);
-        return new Error(error);
     }
+    try {
+        // Parse the JSON string to an object
+        const parsedAs: FileToEdit = JSON.parse(formattedData);
+        return parsedAs;
+    } catch (error: any) {
+        console.error(error);
+    }
+    return formattedData;
 }
 
 
 
-const TaskPlanerAgent = { generateTasks: generateTasks } as const;
+const OliverAI = { generateTasks: generateTasks, agentRouter: agentRouter } as const;
 
-export default TaskPlanerAgent;
+export default OliverAI;

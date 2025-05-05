@@ -42,7 +42,7 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<(Err
     const formattedData = extractJsonFromString(answer);
 
     if (formattedData === null) {
-        console.error("Failed to parse LLM response to json. Body mismatch.");
+        console.error(`Failed to parse LLM response to json: ${answer}.`);
         return null;
     }
 
@@ -64,5 +64,6 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<(Err
 
 const LLM = {
     agent: agent,
+    validateLlmResponse: validateLlmResponse,
 } as const;
 export default LLM;

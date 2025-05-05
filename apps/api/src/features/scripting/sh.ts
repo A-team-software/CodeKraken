@@ -8,8 +8,9 @@ import { Logger, SafeExecute } from '@oliver/utils';
 import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { extractJsonFromString } from './validation';
-import { ChatData } from './interfaces/agents';
+import { ChatData, AgentShellLogs } from './interfaces/agents';
 import TaskPlanerAgent from './oliver_ai';
+import OliverAI from './oliver_ai';
 
 
 let projectStructure: string | null;
@@ -89,7 +90,30 @@ const main = async () => {
     }
 
     const input = `The Large Cards aren't responsive on some screens, there's a bottom over flow. Here is the project structure: ${output}`;
-    const result = await TaskPlanerAgent.generateTasks(input);
-    console.dir(result, { depth: Infinity, colors: true });
+    const result = await OliverAI.generateTasks(input);
+    if (result instanceof Error) {
+        console.error(result);
+        return;
+    }
+    if (result === null) {
+        console.error("The LLM didn't return a valid JSON");
+        return;
+    }
+    const logs: AgentShellLogs[] = [];
+    const [routerResponse, routerError] = await SafeExecute.withSync(OliverAI.agentRouter, `Main task: ${JSON.stringify(result[0])}, Logs: ${JSON.stringify(logs)}`);
+    if ((routerResponse instanceof Error) || (routerResponse === null)) {
+        console.error(`Something went wrong with the agent router: ${routerResponse}`);
+        return;
+    }
+    if (routerError !== null) {
+        console.error(`Something went wrong with the agent router: ${routerError}`);
+        return;
+    }
+    if (typeof routerResponse === "string") {
+        console.log(`${routerResponse}`);
+        return;
+    }
+
+    console.dir(routerResponse, { depth: Infinity, colors: true });
 }
 main();

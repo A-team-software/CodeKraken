@@ -29,12 +29,14 @@ export const SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS = `
     "shell_scripting_agent_instructions": "If their is an error based on the latest shell command prompt the AI agent to try another approach instead. Based on logs determine if the main task is achieved if it is then mark the main task as done, else give other instructions to the shell scripting agent in order to achieve the main task.",
     "answer_format": "If you want to mark the main task as done return this json-like answer with no added text that look like this EX:
     {"taskNumber": "The task's number", "finished": true}".
+    For shell scripting tasks just return plain text that will serve as prompt to execute the instructions you give it.
     Add no text to your answer as it will be pared to json.
     For coding tasks Base on the logs you can give instructions to the coding AI agent via an answer that look like this: [
     {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The file's content."},
     {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The file's content."},
-    {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The file's content."},
+    {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The file's content."}
     ]
+
   }
 `;
 

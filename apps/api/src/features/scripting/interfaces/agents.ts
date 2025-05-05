@@ -16,6 +16,12 @@ export type TerminatedTask = {
     taskNumber: string,
     finished: boolean,
 }
+
+export type AgentShellLogs = {
+    AgentInput: string,
+    shellOutput: string,
+}
+
 export type ChatData = {
     question: Message | null,
     answer: Message | null,
