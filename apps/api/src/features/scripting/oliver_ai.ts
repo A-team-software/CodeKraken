@@ -13,7 +13,7 @@ let cloneRepoDirectory: string | null = null;
 
 
 
-const generateTasks = async (input: string): Promise<(Error | null) | AgentTask[]> => {
+const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
 
     try {
 
@@ -34,11 +34,11 @@ const generateTasks = async (input: string): Promise<(Error | null) | AgentTask[
 
     } catch (error: any) {
         console.error(error);
-        return new Error(error);
+        return null;
     }
 }
 
-const agentRouter = async (input: string): Promise<(Error | null) | (TerminatedTask | FileToEdit | string)> => {
+const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | string)> => {
     const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
     if (answer === null) {
@@ -72,8 +72,8 @@ const agentRouter = async (input: string): Promise<(Error | null) | (TerminatedT
         return parsedAs;
     } catch (error: any) {
         console.error(error);
+        return null;
     }
-    return formattedData;
 }
 
 const shellScriptingAgent = async (input: string): Promise<ActionData | null> => {

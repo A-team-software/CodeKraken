@@ -25,7 +25,7 @@ let cloneRepoDirectory: string | null = null;
 const scanProjectStructure = async (): Promise<string | null> => {
     const { stdout, stderr, exitCode } = await $`ls -lR ${cloneRepoDirectory} `.nothrow().quiet();
     if (exitCode !== 0) {
-        Logger.logWarn(`Exit code: ${exitCode} `);
+        Logger.logWarn(`Exit code: ${exitCode}, stderr: ${stderr} `);
         return null;
     }
 
@@ -65,50 +65,115 @@ const gitOp = async (repoUrl: string) => {
 
 
 
+const getProjectFileStructure = async (): Promise<string | null> => {
+    const [_, gitCloneError] = await SafeExecute.withSync(gitOp, "https://github.com/ANORAK-MATTFLY/habit_master");
+
+    if (gitCloneError !== null) {
+        console.error(`Something went wrong with the git clone: ${gitCloneError} `);
+        return null;
+    };
+
+    const [projectFileTree, projectScanError] = await SafeExecute.withSync(scanProjectStructure);
+
+    if (projectScanError !== null) {
+        console.error(`Something went wrong while scanning the project: ${projectScanError} `);
+        return null;
+    };
+
+    if (projectFileTree === null) {
+        console.error("Failed to scan the project structure");
+        return null;
+    }
+    return projectFileTree;
+}
 
 
+const createTasks = async (input: string): Promise<null | AgentTask[]> => {
 
-var inMemoryStepByStepGuideToFollowForTaskCompletion: string = "";
+    const [tasksPlanerAgentResponse, taskGenerationError] = await SafeExecute.withSync(OliverAI.generateTasks, input);
 
-var tryCount = 0;
+    if ((taskGenerationError !== null)) {
+        taskGenerationError ? console.error("Something went wrong while generating the tasks: ", taskGenerationError)
+            : console.error(tasksPlanerAgentResponse);
+    }
+    return tasksPlanerAgentResponse;
+}
+
+
+const runShellScript = async (instruction: string): Promise<AgentShellLogs | null | number> => {
+    const [shellCommand, shellCommandError] = await SafeExecute.withSync(OliverAI.shellScriptingAgent, instruction);
+
+    if (shellCommandError !== null) {
+        console.error("The LLM didn't return a valid JSON");
+        return null;
+    }
+
+    if (shellCommand === null) {
+        console.error("The LLM didn't return a valid JSON");
+        return null;
+    }
+    const { exitCode, stderr, stdout, error } = await ShellPrompt.executeShellScriptInChildProcess(shellCommand.shell_command, cloneRepoDirectory || "");
+    let failedLog: string | null = null;
+    if (exitCode !== 0) {
+        failedLog = `Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`;
+        console.log(`Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`);
+        return 2;
+    }
+    if (stderr !== null) {
+        console.log(`stderr: ${stderr} `);
+    }
+
+    if (error !== null) {
+        console.error(`Error: ${error?.message} `);
+    }
+
+    if (stdout !== null) {
+        const log = <AgentShellLogs>{
+            AgentInput: failedLog ? failedLog : shellCommand.shell_command,
+            shellOutput: stdout,
+        };
+        return log;
+    }
+
+    return null;
+}
+
+
 var chatHistory: ChatData[] | null = [];
 
 
 
-const main = async () => {
-    const [_, error] = await SafeExecute.withSync(gitOp, "https://github.com/ANORAK-MATTFLY/habit_master");
+const main = async (): Promise<void> => {
 
-    if (error !== null) return;
-
-    const [output, err] = await SafeExecute.withSync(scanProjectStructure);
-
-    if (err !== null) return;
-
-    if (output === null) {
-        console.log("Failed to scan the project structure");
+    const [projectFileTree, projectError] = await SafeExecute.withSync(getProjectFileStructure)
+    if ((projectError !== null) || (projectFileTree === null)) {
+        console.error(`Something went wrong while setting up the project: ${projectError} `);
         return;
     }
-    let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = [];
 
-    const input = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${output} `;
-    const tasksPlanerAgentResponse = await OliverAI.generateTasks(input);
-    if (tasksPlanerAgentResponse instanceof Error) {
-        console.error(tasksPlanerAgentResponse);
+
+    const assignment = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${projectFileTree} `;
+
+    const [tasksList, taskError] = await SafeExecute.withSync(createTasks, assignment);
+
+    if ((taskError !== null) || (tasksList === null)) {
         return;
     }
-    if (tasksPlanerAgentResponse === null) {
-        console.error("The LLM didn't return a valid JSON");
-        return;
-    }
-    inMemoryStepByStepGuideToFollowForTaskCompletion = tasksPlanerAgentResponse;
-    let isDone = inMemoryStepByStepGuideToFollowForTaskCompletion.length === 0;
+
+
+    let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = tasksList;
+
+    let isDone: boolean = inMemoryStepByStepGuideToFollowForTaskCompletion.length === 0;
 
     const logs: AgentShellLogs[] = [];
+
     let currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+
+    var tryCount = 0;
+
     while (isDone === false) {
-        const [routerResponse, routerError] = await SafeExecute.withSync(OliverAI.agentRouter, `Main task: ${JSON.stringify(currentTask)}, Logs: ${JSON.stringify(logs)} `);
+        let [routerResponse, routerError] = await SafeExecute.withSync(OliverAI.agentRouter, `Main task: ${JSON.stringify(currentTask)}, Logs: ${JSON.stringify(logs)} `);
         if (routerResponse === null) {
-            console.error(`Something went wrong with the agent router: ${routerResponse} `);
             return;
         }
         if (routerError !== null) {
@@ -117,48 +182,35 @@ const main = async () => {
         }
 
         if (typeof routerResponse === "string") {
-            const [shellCommand, shellCommandError] = await SafeExecute.withSync(OliverAI.shellScriptingAgent, routerResponse);
 
-            if (shellCommandError !== null) {
-                console.error("The LLM didn't return a valid JSON");
+            const output = await runShellScript(routerResponse);
+            if (output === null) {
                 return;
             }
-
-            if (shellCommand === null) {
-                console.error("The LLM didn't return a valid JSON");
-                return;
-            }
-            const { exitCode, stderr, stdout, error } = await ShellPrompt.runShellCommandInChild(shellCommand.shell_command, cloneRepoDirectory || "");
-            if ((exitCode !== null) || (exitCode !== 0)) {
-                console.log(`Exit code: ${exitCode}: command: ${shellCommand.shell_command}, : stderr: ${stderr?.message} `);
-                // return;
-            }
-            if (stderr !== null) {
-                console.log(`stderr: ${stderr} `);
+            if ((typeof output === "number")) {
+                console.error("The command failed")
+                tryCount++;
+                continue;
             }
 
-            if (error !== null) {
-                console.error(`Error: ${error?.message} `);
-            }
-
-            if (stdout.length > 0) {
-
-                logs.push(<AgentShellLogs>{
-                    AgentInput: routerResponse,
-                    shellOutput: stdout,
-                });
-            }
-
-            console.log(logs);
-
+            logs.push(output);
 
         } else {
-            currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
-            isDone = true;
-            console.log(`Logs: ${JSON.stringify(logs)} `);
-            console.log(`tasksPlanerAgentResponse size: ${tasksPlanerAgentResponse.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
-
-            console.log(routerResponse);
+            try {
+                routerResponse = routerResponse as TerminatedTask;
+                currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+                isDone = true;
+                console.log(`Logs: ${JSON.stringify(logs)} `);
+                console.log(`tasksPlanerAgentResponse size: ${tasksList.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
+                console.log(routerResponse);
+            } catch (error: any) {
+                console.error(error);
+            }
+            try {
+                routerResponse = routerResponse as FileToEdit;
+            } catch (error: any) {
+                console.error(error);
+            }
         }
 
     }
