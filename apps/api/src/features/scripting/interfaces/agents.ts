@@ -15,6 +15,7 @@ export type FileToEdit = {
 export type TerminatedTask = {
     taskNumber: string,
     finished: boolean,
+    explanation: string,
 }
 
 export type AgentShellLogs = {

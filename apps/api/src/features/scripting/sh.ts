@@ -8,9 +8,10 @@ import { Logger, SafeExecute } from '@oliver/utils';
 import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { extractJsonFromString } from './validation';
-import { ChatData, AgentShellLogs } from './interfaces/agents';
+import { ChatData, AgentShellLogs, AgentTask, TerminatedTask, FileToEdit } from './interfaces/agents';
 import TaskPlanerAgent from './oliver_ai';
 import OliverAI from './oliver_ai';
+import ShellPrompt from './child_process';
 
 
 let projectStructure: string | null;
@@ -67,11 +68,10 @@ const gitOp = async (repoUrl: string) => {
 
 
 
+var inMemoryStepByStepGuideToFollowForTaskCompletion: string = "";
 
-let inMemoryStepByStepGuideToFollowForTaskCompletion: string = "";
-
-let tryCount = 0;
-const chatHistory: ChatData[] | null = [];
+var tryCount = 0;
+var chatHistory: ChatData[] | null = [];
 
 
 
@@ -88,33 +88,131 @@ const main = async () => {
         console.log("Failed to scan the project structure");
         return;
     }
+    let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = [];
 
-    const input = `The Large Cards aren't responsive on some screens, there's a bottom over flow. Here is the project structure: ${output}`;
-    const result = await OliverAI.generateTasks(input);
-    if (result instanceof Error) {
-        console.error(result);
+    const input = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${output} `;
+    const tasksPlanerAgentResponse = await OliverAI.generateTasks(input);
+    if (tasksPlanerAgentResponse instanceof Error) {
+        console.error(tasksPlanerAgentResponse);
         return;
     }
-    if (result === null) {
+    if (tasksPlanerAgentResponse === null) {
         console.error("The LLM didn't return a valid JSON");
         return;
     }
-    const logs: AgentShellLogs[] = [];
-    const [routerResponse, routerError] = await SafeExecute.withSync(OliverAI.agentRouter, `Main task: ${JSON.stringify(result[0])}, Logs: ${JSON.stringify(logs)}`);
-    if ((routerResponse instanceof Error) || (routerResponse === null)) {
-        console.error(`Something went wrong with the agent router: ${routerResponse}`);
-        return;
-    }
-    if (routerError !== null) {
-        console.error(`Something went wrong with the agent router: ${routerError}`);
-        return;
-    }
-    if (typeof routerResponse === "string") {
-        const shellCommand = await SafeExecute.withSync(OliverAI.shellScriptingAgent, routerResponse);
-        console.log(shellCommand);
-        return;
-    }
+    inMemoryStepByStepGuideToFollowForTaskCompletion = tasksPlanerAgentResponse;
+    let isDone = inMemoryStepByStepGuideToFollowForTaskCompletion.length === 0;
 
-    console.dir(routerResponse, { depth: Infinity, colors: true });
+    const logs: AgentShellLogs[] = [];
+    let currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+    while (isDone === false) {
+        const [routerResponse, routerError] = await SafeExecute.withSync(OliverAI.agentRouter, `Main task: ${JSON.stringify(currentTask)}, Logs: ${JSON.stringify(logs)} `);
+        if (routerResponse === null) {
+            console.error(`Something went wrong with the agent router: ${routerResponse} `);
+            return;
+        }
+        if (routerError !== null) {
+            console.error(`Something went wrong with the agent router: ${routerError} `);
+            return;
+        }
+
+        if (typeof routerResponse === "string") {
+            const [shellCommand, shellCommandError] = await SafeExecute.withSync(OliverAI.shellScriptingAgent, routerResponse);
+
+            if (shellCommandError !== null) {
+                console.error("The LLM didn't return a valid JSON");
+                return;
+            }
+
+            if (shellCommand === null) {
+                console.error("The LLM didn't return a valid JSON");
+                return;
+            }
+            const { exitCode, stderr, stdout, error } = await ShellPrompt.runShellCommandInChild(shellCommand.shell_command, cloneRepoDirectory || "");
+            if ((exitCode !== null) || (exitCode !== 0)) {
+                console.log(`Exit code: ${exitCode}: command: ${shellCommand.shell_command}, : stderr: ${stderr?.message} `);
+                // return;
+            }
+            if (stderr !== null) {
+                console.log(`stderr: ${stderr} `);
+            }
+
+            if (error !== null) {
+                console.error(`Error: ${error?.message} `);
+            }
+
+            if (stdout.length > 0) {
+
+                logs.push(<AgentShellLogs>{
+                    AgentInput: routerResponse,
+                    shellOutput: stdout,
+                });
+            }
+
+            console.log(logs);
+
+
+        } else {
+            currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+            isDone = true;
+            console.log(`Logs: ${JSON.stringify(logs)} `);
+            console.log(`tasksPlanerAgentResponse size: ${tasksPlanerAgentResponse.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
+
+            console.log(routerResponse);
+        }
+
+    }
 }
 main();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// try {
+//     const data = routerResponse as TerminatedTask;
+//     if (data.finished) {
+//         isDone = true;
+//         console.log("Task finished");
+//         inMemoryStepByStepGuideToFollowForTaskCompletion.shift()
+//         console.log(data)
+//         currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+//         if (currentTask === undefined) {
+//             console.log("All tasks finished");
+//             isDone = true;
+//             break;
+//         }
+//         return;
+//     }
+// } catch (e) {
+//     console.error(e);
+//     return;
+// }
+// try {
+//     const data = routerResponse as FileToEdit;
+//     const dr = await OliverAI.agentRouter(`Main task: ${ JSON.stringify(currentTask) }, Logs: ${ JSON.stringify(logs) }, Coding agent latest response: ${ JSON.stringify(data) } `)
+//     if (!dr) {
+//         console.error("The LLM didn't return a valid JSON");
+//         return;
+//     }
+// } catch (e) {
+//     console.error(e);
+//     return;
+// }
+

@@ -28,7 +28,7 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
     return answer;
 }
 
-const agent = async <T>(input: string, systemInstructions: string): Promise<(Error | null) | T> => {
+const agent = async <T>(input: string, systemInstructions: string): Promise<null | T> => {
 
     const answer = await validateLlmResponse(input, systemInstructions);
 
@@ -57,7 +57,7 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<(Err
         return parsedAs;
     } catch (error: any) {
         console.error(error);
-        return new Error(error);
+        return null;
     }
 }
 
