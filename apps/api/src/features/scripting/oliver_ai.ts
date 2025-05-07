@@ -38,7 +38,7 @@ const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
     }
 }
 
-const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | string)> => {
+const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit[] | string)> => {
     const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
     if (answer === null) {
@@ -68,7 +68,7 @@ const agentRouter = async (input: string): Promise<null | (TerminatedTask | File
     }
     try {
         // Parse the JSON string to an object
-        const parsedAs: FileToEdit = JSON.parse(formattedData);
+        const parsedAs: FileToEdit[] = JSON.parse(formattedData);
         return parsedAs;
     } catch (error: any) {
         console.error(error);

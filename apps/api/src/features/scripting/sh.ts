@@ -143,6 +143,7 @@ var chatHistory: ChatData[] | null = [];
 
 
 
+let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = [];
 const main = async (): Promise<void> => {
 
     const [projectFileTree, projectError] = await SafeExecute.withSync(getProjectFileStructure)
@@ -161,8 +162,7 @@ const main = async (): Promise<void> => {
     }
 
 
-    let inMemoryStepByStepGuideToFollowForTaskCompletion: AgentTask[] = tasksList;
-
+    inMemoryStepByStepGuideToFollowForTaskCompletion = tasksList;
     let isDone: boolean = inMemoryStepByStepGuideToFollowForTaskCompletion.length === 0;
 
     const logs: AgentShellLogs[] = [];
@@ -184,9 +184,11 @@ const main = async (): Promise<void> => {
         if (typeof routerResponse === "string") {
 
             const output = await runShellScript(routerResponse);
+
             if (output === null) {
                 return;
             }
+
             if ((typeof output === "number")) {
                 console.error("The command failed")
                 tryCount++;
@@ -195,24 +197,18 @@ const main = async (): Promise<void> => {
 
             logs.push(output);
 
+        } else if (Array.isArray(routerResponse)) {
+            console.log(`FileToEdit: ${JSON.stringify(routerResponse)}`);
         } else {
-            try {
-                routerResponse = routerResponse as TerminatedTask;
-                currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
-                isDone = true;
-                console.log(`Logs: ${JSON.stringify(logs)} `);
-                console.log(`tasksPlanerAgentResponse size: ${tasksList.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
-                console.log(routerResponse);
-            } catch (error: any) {
-                console.error(error);
-            }
-            try {
-                routerResponse = routerResponse as FileToEdit;
-            } catch (error: any) {
-                console.error(error);
-            }
-        }
 
+            currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+
+            isDone = true;
+
+            console.log(`Logs: ${JSON.stringify(logs)} `);
+            console.log(`tasksPlanerAgentResponse size: ${tasksList.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
+            console.log(routerResponse);
+        }
     }
 }
 main();
