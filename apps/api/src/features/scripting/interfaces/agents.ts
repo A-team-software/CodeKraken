@@ -18,6 +18,11 @@ export type TerminatedTask = {
     explanation: string,
 }
 
+export type ShellAgentInstruction = {
+    taskName: string,
+    instruction: string,
+}
+
 export type AgentShellLogs = {
     AgentInput: string,
     shellOutput: string,

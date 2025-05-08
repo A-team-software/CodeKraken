@@ -1,4 +1,4 @@
-import { ActionData, AgentTask, ChatData, FileToEdit, TerminatedTask } from './interfaces/agents';
+import { ActionData, AgentTask, ChatData, FileToEdit, TerminatedTask, ShellAgentInstruction } from './interfaces/agents';
 import { extractJsonFromString } from "./validation";
 import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, SHELL_SCRIPT_AGENT_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS } from './agents_instructions';
@@ -38,7 +38,7 @@ const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
     }
 }
 
-const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | string)> => {
+const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | ShellAgentInstruction)> => {
     const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
     if (answer === null) {
@@ -63,12 +63,19 @@ const agentRouter = async (input: string): Promise<null | (TerminatedTask | File
     }
     try {
         // Parse the JSON string to an object
+        const parsedAs: ShellAgentInstruction = JSON.parse(formattedData);
+        return parsedAs;
+    } catch (error: any) {
+        console.error(error);
+    }
+    try {
+        // Parse the JSON string to an object
         const parsedAs: FileToEdit = JSON.parse(formattedData);
         return parsedAs;
     } catch (error: any) {
         console.error(error);
     }
-    return formattedData;
+    return null;
 }
 
 const shellScriptingAgent = async (input: string): Promise<ActionData | null> => {
