@@ -38,12 +38,10 @@ const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
     }
 }
 
-const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit[] | string)> => {
+const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | string)> => {
     const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
     if (answer === null) {
-
-        console.error("Failed to validate LLM response.");
 
         return null;
     }
@@ -51,14 +49,11 @@ const agentRouter = async (input: string): Promise<null | (TerminatedTask | File
     const formattedData = extractJsonFromString(answer);
 
     if (formattedData === null) {
-        return answer;
-    }
-
-    // Check if the formatted data is a valid JSON string
-    if (typeof formattedData !== "string") {
-        console.error("The formatted data is not a valid JSON string.");
+        console.log(`LLM answer: ${answer}`);
         return null;
     }
+
+
     try {
         // Parse the JSON string to an object
         const parsedAs: TerminatedTask = JSON.parse(formattedData);
@@ -68,12 +63,12 @@ const agentRouter = async (input: string): Promise<null | (TerminatedTask | File
     }
     try {
         // Parse the JSON string to an object
-        const parsedAs: FileToEdit[] = JSON.parse(formattedData);
+        const parsedAs: FileToEdit = JSON.parse(formattedData);
         return parsedAs;
     } catch (error: any) {
         console.error(error);
-        return null;
     }
+    return formattedData;
 }
 
 const shellScriptingAgent = async (input: string): Promise<ActionData | null> => {

@@ -6,7 +6,7 @@ import fs from 'fs';
 import { $ } from "bun";
 import { Logger, SafeExecute } from '@oliver/utils';
 import LLM from './ai';
-import { TASK_AGENT_INSTRUCTIONS } from './agents_instructions';
+import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from './agents_instructions';
 import { extractJsonFromString } from './validation';
 import { ChatData, AgentShellLogs, AgentTask, TerminatedTask, FileToEdit } from './interfaces/agents';
 import TaskPlanerAgent from './oliver_ai';
@@ -163,11 +163,12 @@ const main = async (): Promise<void> => {
 
 
     inMemoryStepByStepGuideToFollowForTaskCompletion = tasksList;
-    let isDone: boolean = inMemoryStepByStepGuideToFollowForTaskCompletion.length === 0;
+    let initialNumberOfTasks = tasksList.length;
+    let isDone: boolean = initialNumberOfTasks === 0;
 
     const logs: AgentShellLogs[] = [];
 
-    let currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
+    let currentTask = tasksList.shift();
 
     var tryCount = 0;
 
@@ -180,6 +181,7 @@ const main = async (): Promise<void> => {
             console.error(`Something went wrong with the agent router: ${routerError} `);
             return;
         }
+
 
         if (typeof routerResponse === "string") {
 
@@ -198,15 +200,20 @@ const main = async (): Promise<void> => {
             logs.push(output);
 
         } else if (Array.isArray(routerResponse)) {
-            console.log(`FileToEdit: ${JSON.stringify(routerResponse)}`);
-        } else {
-
-            currentTask = inMemoryStepByStepGuideToFollowForTaskCompletion.shift();
-
+            console.dir(routerResponse, { depth: Infinity, colors: true });
             isDone = true;
+            break;
+        } else {
+            currentTask = tasksList.shift();
+            if (tasksList.length === 0) {
+                console.log("All tasks finished");
+                isDone = true;
+                break;
+            }
+
 
             console.log(`Logs: ${JSON.stringify(logs)} `);
-            console.log(`tasksPlanerAgentResponse size: ${tasksList.length}, inMemoryStepByStepGuideToFollowForTaskCompletion size: ${inMemoryStepByStepGuideToFollowForTaskCompletion.length} `);
+            console.log(`number of task now: ${tasksList.length}, initial number of task: ${initialNumberOfTasks} `);
             console.log(routerResponse);
         }
     }

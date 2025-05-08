@@ -48,13 +48,13 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<null
 
     try {
         // Check if the formatted data is a valid JSON string
-        if (typeof formattedData !== "string") {
-            console.error("The formatted data is not a valid JSON string.");
-            return null;
+        if (typeof formattedData === "string") {
+            // Parse the JSON string to an object
+            const parsedAs: T = JSON.parse(formattedData);
+
+            return parsedAs;
         }
-        // Parse the JSON string to an object
-        const parsedAs: T = JSON.parse(formattedData);
-        return parsedAs;
+        return formattedData;
     } catch (error: any) {
         console.error(error);
         return null;
