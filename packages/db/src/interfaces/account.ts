@@ -1,4 +1,9 @@
 
+
+
+import { z } from 'zod';
+
+// Define the Zod schema corresponding to the Mongoose AccountSchema
 export type Account = {
     name: string,
     profilePicture: string,
@@ -6,11 +11,6 @@ export type Account = {
     role: string,
     firstTime: boolean,
 }
-
-
-import { z } from 'zod';
-
-// Define the Zod schema corresponding to the Mongoose AccountSchema
 export const ZodAccountSchema = z.object({
     // name: Mongoose String, required: true
     name: z.string({

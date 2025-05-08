@@ -1,14 +1,11 @@
-import { ActionData, AgentTask, ChatData, FileToEdit, TerminatedTask, ShellAgentInstruction } from './interfaces/agents';
+import { ActionData, AgentTask, FileToEdit, TerminatedTask, ShellAgentInstruction, TerminatedTaskSchema, ShellAgentInstructionSchema, FileToEditSchema } from './interfaces/agents';
 import { extractJsonFromString } from "./validation";
 import LLM from './ai';
 import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, SHELL_SCRIPT_AGENT_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS } from './agents_instructions';
+import { SafeExecute } from '@/packages/utils/dist/errors/safe_execute';
+import { ZodError, typeToFlattenedError } from 'zod';
 
 
-
-let tryCount = 0;
-const chatHistory: ChatData[] | null = [];
-
-let cloneRepoDirectory: string | null = null;
 
 
 
@@ -54,27 +51,34 @@ const agentRouter = async (input: string): Promise<null | (TerminatedTask | File
     }
 
 
-    try {
-        // Parse the JSON string to an object
-        const parsedAs: TerminatedTask = JSON.parse(formattedData);
-        return parsedAs;
-    } catch (error: any) {
-        console.error(error);
+    const [terminatedTask, parseTaskError] = SafeExecute.noSync(TerminatedTaskSchema.parse, formattedData);
+    if (parseTaskError instanceof ZodError) {
+        console.error(parseTaskError.flatten());
+        return null;
     }
-    try {
-        // Parse the JSON string to an object
-        const parsedAs: ShellAgentInstruction = JSON.parse(formattedData);
-        return parsedAs;
-    } catch (error: any) {
-        console.error(error);
+    if (terminatedTask !== null) {
+        return terminatedTask as TerminatedTask;
     }
-    try {
-        // Parse the JSON string to an object
-        const parsedAs: FileToEdit = JSON.parse(formattedData);
-        return parsedAs;
-    } catch (error: any) {
-        console.error(error);
+
+
+    const [shellAgentInstruction, parseShellAgentInstructionError] = SafeExecute.noSync(ShellAgentInstructionSchema.parse, formattedData);
+    if (parseShellAgentInstructionError instanceof ZodError) {
+        console.error(parseShellAgentInstructionError.flatten());
+        return null;
     }
+    if (shellAgentInstruction !== null) {
+        return shellAgentInstruction as ShellAgentInstruction;
+    }
+
+    const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, formattedData);
+    if (parseFileToEditError instanceof ZodError) {
+        console.error(parseFileToEditError.flatten());
+        return null;
+    }
+    if (fileToEdit !== null) {
+        return fileToEdit as FileToEdit;
+    }
+
     return null;
 }
 

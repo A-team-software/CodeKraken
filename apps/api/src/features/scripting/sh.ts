@@ -5,11 +5,8 @@ import path from 'path';
 import fs from 'fs';
 import { $ } from "bun";
 import { Logger, SafeExecute } from '@oliver/utils';
-import LLM from './ai';
-import { TASK_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from './agents_instructions';
-import { extractJsonFromString } from './validation';
-import { ChatData, AgentShellLogs, AgentTask, TerminatedTask, FileToEdit } from './interfaces/agents';
-import TaskPlanerAgent from './oliver_ai';
+import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs } from './interfaces/agents';
+
 import OliverAI from './oliver_ai';
 import ShellPrompt from './child_process';
 
@@ -139,7 +136,6 @@ const runShellScript = async (instruction: string): Promise<AgentShellLogs | nul
 }
 
 
-var chatHistory: ChatData[] | null = [];
 
 
 
