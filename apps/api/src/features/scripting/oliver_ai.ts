@@ -35,52 +35,52 @@ const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
     }
 }
 
-const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | ShellAgentInstruction)> => {
-    const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
+// const agentRouter = async (input: string): Promise<null | (TerminatedTask | FileToEdit | ShellAgentInstruction)> => {
+//     const answer = await LLM.validateLlmResponse(input, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
-    if (answer === null) {
+//     if (answer === null) {
 
-        return null;
-    }
+//         return null;
+//     }
 
-    const formattedData = extractJsonFromString(answer);
+//     const formattedData = extractJsonFromString(answer);
 
-    if (formattedData === null) {
-        console.log(`LLM answer: ${answer}`);
-        return null;
-    }
-
-
-    const [terminatedTask, parseTaskError] = SafeExecute.noSync(TerminatedTaskSchema.parse, formattedData);
-    if (parseTaskError instanceof ZodError) {
-        console.error(parseTaskError.flatten());
-        return null;
-    }
-    if (terminatedTask !== null) {
-        return terminatedTask as TerminatedTask;
-    }
+//     if (formattedData === null) {
+//         console.log(`LLM answer: ${answer}`);
+//         return null;
+//     }
 
 
-    const [shellAgentInstruction, parseShellAgentInstructionError] = SafeExecute.noSync(ShellAgentInstructionSchema.parse, formattedData);
-    if (parseShellAgentInstructionError instanceof ZodError) {
-        console.error(parseShellAgentInstructionError.flatten());
-        return null;
-    }
-    if (shellAgentInstruction !== null) {
-        return shellAgentInstruction as ShellAgentInstruction;
-    }
+//     const [terminatedTask, parseTaskError] = SafeExecute.noSync(TerminatedTaskSchema.parse, formattedData);
+//     if (parseTaskError instanceof ZodError) {
+//         console.error(parseTaskError.flatten());
+//         return null;
+//     }
+//     if (terminatedTask !== null) {
+//         return terminatedTask as TerminatedTask;
+//     }
 
-    const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, formattedData);
-    if (parseFileToEditError instanceof ZodError) {
-        console.error(parseFileToEditError.flatten());
-        return null;
-    }
-    if (fileToEdit !== null) {
-        return fileToEdit as FileToEdit;
-    }
 
-    return null;
-}
+//     const [shellAgentInstruction, parseShellAgentInstructionError] = SafeExecute.noSync(ShellAgentInstructionSchema.parse, formattedData);
+//     if (parseShellAgentInstructionError instanceof ZodError) {
+//         console.error(parseShellAgentInstructionError.flatten());
+//         return null;
+//     }
+//     if (shellAgentInstruction !== null) {
+//         return shellAgentInstruction as ShellAgentInstruction;
+//     }
+
+//     const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, formattedData);
+//     if (parseFileToEditError instanceof ZodError) {
+//         console.error(parseFileToEditError.flatten());
+//         return null;
+//     }
+//     if (fileToEdit !== null) {
+//         return fileToEdit as FileToEdit;
+//     }
+
+//     return null;
+// }
 
 const shellScriptingAgent = async (input: string): Promise<ActionData | null> => {
     try {
@@ -133,6 +133,6 @@ const codingAgent = async (input: string): Promise<string | null> => {
 
 
 
-const OliverAI = { generateTasks: generateTasks, agentRouter: agentRouter, shellScriptingAgent: shellScriptingAgent, codingAgent: codingAgent } as const;
+const OliverAI = { generateTasks: generateTasks, shellScriptingAgent: shellScriptingAgent, codingAgent: codingAgent } as const;
 
 export default OliverAI;

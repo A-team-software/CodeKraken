@@ -5,7 +5,7 @@ interface ShellScriptResult {
     stdout: string | null;
     stderr: Error | null;
     exitCode: number;
-    error?: Error;
+    error: Error | null;
 }
 
 /**
@@ -50,18 +50,17 @@ async function executeShellScriptInChildProcess(
 
         return {
             stdout: stdout.trim(),
-            stderr: new Error(String(stderr)),
+            stderr: stderr ? new Error(String(stderr)) : null,
             exitCode: exitCode,
+            error: null,
         };
     } catch (error) {
-        // This catch block handles errors from Bun.spawn itself (e.g., if 'sh' is not found)
-        // or other unexpected issues during the spawning/setup process.
         console.error(`Error spawning or managing child process for command "${shellScript}":`, error);
         return {
             stdout: null,
             stderr: error instanceof Error ? new Error(String(error)) : null,
             exitCode: 1, // Indicate failure to get a proper exit code
-            error: error instanceof Error ? error : new Error(String(error)),
+            error: error instanceof Error ? error : new Error(String("Failed to execute command")),
         };
     }
 }

@@ -2,7 +2,7 @@ import { SafeExecute } from "@/packages/utils/dist";
 import { promptLLM } from './dir';
 import { Logger } from "@/packages/utils/dist/logger/logger";
 import { $ } from "bun";
-import { ActionData, ChatData, Message } from "./interfaces/agents";
+import { ActionData } from "./interfaces/agents";
 import { extractJsonFromString } from "./validation";
 
 
@@ -44,7 +44,6 @@ const scriptRunner = async (command: string): Promise<string | null> => {
 let inMemoryStepByStepGuideToFollowForTaskCompletion: string = "";
 
 let tryCount = 0;
-const chatHistory: ChatData[] | null = [];
 
 let cloneRepoDirectory: string | null = null;
 
@@ -64,16 +63,6 @@ const fileAgent = async (input: string): Promise<string | null> => {
         console.dir(parsedLlmAnswer, { depth: Infinity, colors: true });
 
 
-        chatHistory.push({
-            question: <Message>{
-                content: input,
-                sender: "server",
-            },
-            answer: <Message>{
-                content: JSON.stringify(parsedLlmAnswer),
-                sender: "AI",
-            },
-        });
 
         const command = parsedLlmAnswer.shell_command;
         if (cloneRepoDirectory === null) {

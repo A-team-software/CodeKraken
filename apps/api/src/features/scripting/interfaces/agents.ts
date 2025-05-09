@@ -15,10 +15,11 @@ export const ShellAgentInstructionSchema = z.object({
         invalid_type_error: "The taskNumber must be a string",
     }).min(1, { message: "The taskNumber cannot be empty" }), // Enforce non-empty string
 
-    instruction: z.boolean({
-        required_error: "The finished attribute is required",
-        invalid_type_error: "The finished attribute must be a boolean",
-    }),
+    instruction: z.string({
+        required_error: "The instruction is required", // Custom error message
+        invalid_type_error: "The instruction must be a string",
+    }).min(1, { message: "The instruction cannot be empty" }), // Enforce non-empty string
+
 });
 
 export type ShellAgentInstruction = z.infer<typeof ShellAgentInstructionSchema>;
@@ -63,10 +64,10 @@ export const FileToEditSchema = z.object({
         invalid_type_error: "The file path must be a string",
     }).min(1, { message: "The file path cannot be empty" }),
 
-    fileContent: z.string({
-        required_error: "The file's content is required", // Custom error message
-        invalid_type_error: "The file's content must be a string",
-    }).min(1, { message: "The file's content cannot be empty" }),
+    instructions: z.string({
+        required_error: "The instructions attribute is required", // Custom error message
+        invalid_type_error: "Instructions must be as string",
+    }).min(1, { message: "The instructions attribute cannot be empty" }),
 });
 
 export type FileToEdit = z.infer<typeof FileToEditSchema>;

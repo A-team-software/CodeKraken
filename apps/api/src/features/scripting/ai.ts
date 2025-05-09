@@ -16,7 +16,6 @@ const validateLlmResponse = async (input: string, systemInstructions: string): P
     }
 
     if (!(llmResponse)) {
-        console.error(`Something wrong happened when prompting the LLM: ${llmResponse}`);
         return null;
     }
 
@@ -33,9 +32,6 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<null
     const answer = await validateLlmResponse(input, systemInstructions);
 
     if (answer === null) {
-
-        console.error("Failed to validate LLM response.");
-
         return null;
     }
 
@@ -48,13 +44,10 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<null
 
     try {
         // Check if the formatted data is a valid JSON string
-        if (typeof formattedData === "string") {
-            // Parse the JSON string to an object
-            const parsedAs: T = JSON.parse(formattedData);
+        // Parse the JSON string to an object
+        const parsedAs: T = JSON.parse(formattedData);
 
-            return parsedAs;
-        }
-        return formattedData;
+        return parsedAs;
     } catch (error: any) {
         console.error(error);
         return null;
