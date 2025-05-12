@@ -240,11 +240,11 @@ const main = async (): Promise<void> => {
         // const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, routerResponse);
         let filesToEdit = routerResponse as FileToEdit[];
         const file = filesToEdit[0];
-        if (!(file?.filePath)) {
+        if (!(filesToEdit[0])) {
             console.log("Skipped fileToEdit type.");
             continue;
         }
-        if (file?.filePath !== null) {
+        if (filesToEdit[0] !== null) {
             console.log("fileToEdit");
             console.dir(routerResponse, { depth: Infinity, colors: true });
             isDone = true;

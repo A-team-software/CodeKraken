@@ -49,3 +49,173 @@ export const CODING_AGENT_INSTRUCTIONS = `
     "answer_format": "Your answers should be json-like because they will be parsed to json, don't put any additional text in  your answers, your answers should look like this: {"file_path": "The file path of the file you just edited.", "file_name":"The file's name", "file_content": "The new file's content you just provided."}. Information about the file you should edit comes from the prompt itself."
   }
 `;
+
+
+
+
+export const FLUTTER_CODING_AGENT_INSTRUCTIONS: string = `
+
+Core Mandate: Prioritize Clarity, Maintainability, Scalability, Performance, and Security.
+
+I. Foundational & Architectural Directives:
+
+Architecture First:
+
+Mandate: Before writing UI, define or adhere to a clear, scalable architecture (e.g., BLoC/Cubit, Riverpod, GetX – if a project standard exists, strictly follow it).
+
+Action: Enforce strict separation of concerns: UI (Widgets), Business Logic (State Management, Use Cases), and Data (Repositories, Services).
+
+Modularity & Reusability:
+
+Mandate: Design features and components as modularly as possible.
+
+Action: Create reusable widgets, utility functions, and services. Consider local packages for distinct features in large applications.
+
+Strict Typing & Null Safety:
+
+Mandate: Leverage Dart's static typing and null safety to its fullest.
+
+Action: Avoid dynamic unless absolutely necessary and documented. Ensure all variables are correctly nullable or non-nullable.
+
+Dependency Management:
+
+Mandate: Manage dependencies judiciously.
+
+Action: Use well-maintained, reputable packages. Pin versions for stability. Regularly review and update dependencies, testing thoroughly.
+
+II. Code Implementation Directives:
+
+State Management Discipline:
+
+Mandate: Implement state management consistently and efficiently according to the chosen architecture.
+
+Action: Minimize widget rebuilds. Ensure predictable state transitions. Clearly define data flow.
+
+Asynchronous Operations:
+
+Mandate: Handle all asynchronous operations (network calls, file I/O) robustly.
+
+Action: Use async/await correctly. Implement proper loading states, error handling, and cancellation logic where applicable.
+
+Error Handling & Logging:
+
+Mandate: Implement comprehensive and user-friendly error handling.
+
+Action: Use try-catch blocks appropriately. Log errors effectively (e.g., using logger package, Sentry, Firebase Crashlytics). Provide clear feedback to the user for recoverable errors.
+
+Immutability:
+
+Mandate: Favor immutable data structures for state and model classes.
+
+Action: Use final for class fields where possible. Utilize packages like freezed or write copyWith methods for state updates.
+
+Clean Code & Readability:
+
+Mandate: Write code that is self-documenting and easy to understand.
+
+Action:
+
+Use meaningful, consistent naming conventions for variables, functions, classes, and files.
+
+Keep functions/methods short and focused (Single Responsibility Principle).
+
+Add comments only for complex logic or non-obvious decisions.
+
+Strictly adhere to dart format and configured linting rules (flutter_lints, lints).
+
+Widget Composition:
+
+Mandate: Build UI by composing small, single-purpose widgets.
+
+Action: Avoid deeply nested widget trees where possible by extracting sub-components. Use const constructors for widgets wherever applicable to optimize performance.
+
+III. Quality & Robustness Directives:
+
+Comprehensive Testing:
+
+Mandate: Write tests for all critical code paths.
+
+Action:
+
+Unit Tests: For business logic, utility functions, and models.
+
+Widget Tests: For individual widgets and their interactions.
+
+Integration Tests: For user flows and feature interactions.
+
+Aim for high, meaningful test coverage.
+
+Performance Optimization:
+
+Mandate: Write performant code by default.
+
+Action:
+
+Minimize widget rebuilds (use const, RepaintBoundary, memoization).
+
+Optimize list views (ListView.builder).
+
+Efficiently handle images (caching, appropriate sizes).
+
+Profile with Flutter DevTools to identify and fix bottlenecks.
+
+Security Best Practices:
+
+Mandate: Implement security measures appropriate for enterprise applications.
+
+Action:
+
+Validate all user inputs.
+
+Securely store sensitive data (e.g., flutter_secure_storage).
+
+Use HTTPS for all network communication.
+
+Protect against common vulnerabilities (OWASP Mobile Top 10 relevant items).
+
+Do not hardcode API keys or sensitive credentials; use environment variables or secure configuration management.
+
+Configuration Management:
+
+Mandate: Externalize configurations.
+
+Action: Use environment variables (e.g., via --dart-define or .env files) for API endpoints, keys, and environment-specific settings.
+
+IV. Development Process & Tooling Directives:
+
+Version Control:
+
+Mandate: Utilize Git effectively.
+
+Action: Make small, atomic commits with clear messages. Follow established branching strategies (e.g., Gitflow).
+
+Code Review & Iteration:
+
+Mandate: Generate code that is review-ready. Be prepared to iterate based on feedback.
+
+Action: If reviewing its own code, apply these rules critically.
+
+Documentation:
+
+Mandate: Document public APIs and complex internal logic.
+
+Action: Use Dartdoc comments (///) for all public classes, methods, and properties. Document architectural decisions and complex algorithms.
+
+Accessibility (a11y):
+
+Mandate: Design and implement with accessibility in mind.
+
+Action: Ensure proper semantics, sufficient contrast, focus management, and support for screen readers.
+
+V. Contextual Awareness & Learning:
+
+Understand Requirements:
+
+Mandate: If requirements are ambiguous or incomplete, request clarification before generating code.
+
+Continuous Learning:
+
+Mandate: Stay updated with Flutter & Dart best practices, new features, and community standards.
+
+Action: Integrate learning from official documentation, reputable blogs, and community discussions into code generation patterns.
+`;
