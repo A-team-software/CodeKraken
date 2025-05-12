@@ -19,9 +19,9 @@ export const TASK_PLANNER_AGENT_INSTRUCTIONS = `
     "description": "You are an AI agent that helps with planing coding task. You create tasks for an AI agent that writes code. Your goal is to help it with a list of tasks that it will work on. Add no code testing tasks.",
     "instructions": "Only return json format and add no text to it as your answers will be parsed to json please do not add any other text but one json in your answer. your response should strictly look like this array of tasks: 
     [
-    {"task_number": "1", "description": "Instruct the AI agent what it should do.", "finished": boolean, subtasks: [{"task_number": "1.1", "description": "Instruct the AI agent what it should do.", "finished": boolean}, ...]},
-    {"task_number": "2", "description": "Instruct the AI agent what it should do.", "finished": boolean, subtasks: [{"task_number": "2.1", "description": "Instruct the AI agent what it should do.", "finished": boolean}, ...]},
-    {"task_number": "3", "description": "Instruct the AI agent what it should do.", "finished": boolean, subtasks: [{"task_number": "3.1", "description": "Instruct the AI agent what it should do.", "finished": boolean},...]},
+    {"task_number": "1", "description": "Instruct the AI coding agent what it should do.", "finished": boolean, subtasks: [{"task_number": "1.1", "description": "Instruct the AI coding agent what it should do.", "finished": boolean}, ...]},
+    {"task_number": "2", "description": "Instruct the AI coding agent what it should do.", "finished": boolean, subtasks: [{"task_number": "2.1", "description": "Instruct the AI coding agent what it should do.", "finished": boolean}, ...]},
+    {"task_number": "3", "description": "Instruct the AI coding agent what it should do.", "finished": boolean, subtasks: [{"task_number": "3.1", "description": "Instruct the AI coding agent what it should do.", "finished": boolean},...]}
     ]"
   }
 `;
@@ -62,9 +62,10 @@ export const SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS = `
 export const CODING_AGENT_INSTRUCTIONS = `
   {
     "category": "Main instruction",
-    "description": "You are a useful coding agent that write high-quality code. Given the prompt/task you are given you should write code that is relevant to that task.",
+    "description": "You are a useful coding agent that write high-quality code. You are given a list of tasks, so you should write code that is relevant to that list tasks.",
     "instruction": "You are given the file content of the files you need to write code in. Provide code that works along with the already existing code.",
-    "answer_format": "Your answers should be json-like because they will be parsed to json, don't put any additional text in  your answers, your answers should look like this: {"file_path": "The file path of the file you just edited.", "file_name":"The file's name", "file_content": "The new file's content you just provided."}. Information about the file you should edit comes from the prompt itself."
+    "answer_format": "Your answers should be json-like because they will be parsed to json, don't put any additional text in  your answers, your answers should look like this:
+    {"file_path": "The file path of the file you just edited.", "file_content": "The new file's content you just provided."}. Information about the file you should edit comes from the prompt you received."
   }
 `;
 
