@@ -64,10 +64,10 @@ export const FileToEditSchema = z.object({
         invalid_type_error: "The file path must be a string",
     }).min(1, { message: "The file path cannot be empty" }),
 
-    instructions: z.string({
-        required_error: "The instructions attribute is required", // Custom error message
-        invalid_type_error: "Instructions must be as string",
-    }).min(1, { message: "The instructions attribute cannot be empty" }),
+    fileContent: z.string({
+        required_error: "The file's content is required", // Custom error message
+        invalid_type_error: "file content must be as string",
+    }).min(1, { message: "The file cannot be empty" }),
 });
 
 export type FileToEdit = z.infer<typeof FileToEditSchema>;

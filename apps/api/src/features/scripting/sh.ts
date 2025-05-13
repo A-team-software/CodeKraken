@@ -10,7 +10,7 @@ import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSc
 import OliverAI from './oliver_ai';
 import ShellPrompt from './child_process';
 import LLM from './ai';
-import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from './agents_instructions';
+import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
 
 
@@ -245,8 +245,11 @@ const main = async (): Promise<void> => {
             continue;
         }
         if (filesToEdit[0] !== null) {
-            console.log("fileToEdit");
-            console.dir(routerResponse, { depth: Infinity, colors: true });
+            // console.log(`currentTask: ${JSON.stringify(currentTask)}`);
+            console.log(`filesToEdit: ${JSON.stringify(filesToEdit)}`);
+            // console.log("Editing file...");
+            const res = await LLM.agent(`Main task you need to solve: ${JSON.stringify(currentTask)}, File to edit: ${JSON.stringify(filesToEdit[0])}`, `${CODING_AGENT_INSTRUCTIONS}`)
+            console.log(`Codding result: ${JSON.stringify(res)}`);
             isDone = true;
             return;
         }
