@@ -1,5 +1,5 @@
 
-export const TASK_AGENT_INSTRUCTIONS = `
+export const TASK_PLANER_AGENT_SHELL_INSTRUCTIONS = `
   {
     "category": "Task planner agent",
     "description": "You are a task planner AI agent for coding tasks, You interact with an AI agent that runs bash shell script your goal is to help it with a list of tasks that it will work on.",

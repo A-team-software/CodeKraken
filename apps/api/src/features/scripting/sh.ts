@@ -10,7 +10,7 @@ import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSc
 import OliverAI from './oliver_ai';
 import ShellPrompt from './child_process';
 import LLM from './ai';
-import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS } from './agents_instructions';
+import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
 
 
@@ -91,16 +91,7 @@ const getProjectFileStructure = async (): Promise<string | null> => {
 }
 
 
-const createTasks = async (input: string): Promise<null | AgentTask[]> => {
 
-    const [tasksPlanerAgentResponse, taskGenerationError] = await SafeExecute.withSync(OliverAI.generateTasks, input);
-
-    if ((taskGenerationError !== null)) {
-        taskGenerationError ? console.error("Something went wrong while generating the tasks: ", taskGenerationError)
-            : console.error(tasksPlanerAgentResponse);
-    }
-    return tasksPlanerAgentResponse;
-}
 
 
 const runShellScript = async (instruction: string): Promise<AgentShellLogs | null | string> => {
@@ -157,7 +148,7 @@ const main = async (): Promise<void> => {
 
     const assignment = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${projectFileTree} `;
 
-    const [tasksList, taskError] = await SafeExecute.withSync(createTasks, assignment);
+    const [tasksList, taskError] = await SafeExecute.withSync(OliverAI.createListOfTasks, assignment, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS);
 
     if ((taskError !== null) || (tasksList === null)) {
         return;
