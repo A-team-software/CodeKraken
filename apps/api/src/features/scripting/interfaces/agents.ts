@@ -73,6 +73,26 @@ export const FileToEditSchema = z.object({
 export type FileToEdit = z.infer<typeof FileToEditSchema>;
 
 
+export const AgentTaskSchema = z.object({
+    taskNumber: z.number({
+        required_error: "The taskNumber attribute is required", // Custom error message
+        invalid_type_error: "The taskNumber attribute must be a number",
+    }).min(1, { message: "The taskNumber attribute cannot be undefined" }), // Enforce non-empty string
+
+    description: z.string({
+        required_error: "The description is required", // Custom error message
+        invalid_type_error: "The description must be a string",
+    }).min(1, { message: "The description cannot be empty" }),
+
+    finished: z.boolean({
+        required_error: "The finished attribute is required", // Custom error message
+        invalid_type_error: "The finished attribute must be a boolean",
+    }),
+});
+
+export type AgentTask = z.infer<typeof AgentTaskSchema>;
+
+
 export type AgentShellLogs = {
     AgentInput: string,
     shellOutput: string,
@@ -83,10 +103,4 @@ export type AgentShellLogs = {
 export interface ActionData {
     action_name: string;
     shell_command: string;
-}
-export type AgentTask = {
-    task_number: number,
-    description: string,
-    finished: boolean,
-    subtasks: AgentTask[]
 }
