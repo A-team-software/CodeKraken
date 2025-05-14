@@ -12,6 +12,7 @@ import ShellPrompt from './child_process';
 import LLM from './ai';
 import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
+import TaskPlaner from './task/task_agent';
 
 
 let projectStructure: string | null;
@@ -148,7 +149,7 @@ const main = async (): Promise<void> => {
 
     const assignment = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${projectFileTree} `;
 
-    const [tasksList, taskError] = await SafeExecute.withSync(OliverAI.createListOfTasks, assignment, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS, 0);
+    const [tasksList, taskError] = await SafeExecute.withSync(TaskPlaner.generateTasks, assignment, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS, 0);
 
     if ((taskError !== null) || (tasksList === null)) {
         return;
