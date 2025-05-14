@@ -79,11 +79,11 @@ const generateTasks = async (input: string, instructions: string, retry: number)
     if (taskPlanerAgentResponse) {
         const tasks = evaluateTaskPlanerResponse(taskPlanerAgentResponse);
         if (tasks.length === 0) {
+            console.error("Failed to generate a list of tasks.");
             const minutes = 1000 * 60 * 5 // 5 minutes;
             await pauseThread(minutes);
             await generateTasks(input, instructions, retry + 1);
         };
-        console.error("Failed to generate a list of tasks.");
         return tasks;
     }
     return null;

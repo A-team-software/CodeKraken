@@ -156,16 +156,22 @@ const main = async (): Promise<void> => {
     }
 
 
+
     let initialNumberOfTasks = tasksList.length;
     let isDone: boolean = initialNumberOfTasks === 0;
 
     const logs: AgentShellLogs[] = [];
 
-    let currentTask = tasksList.shift();
+    let currentTask
+    // = tasksList.shift();
 
     var tryCount = 0;
 
     while (isDone === false) {
+        if (tasksList) {
+            console.log(tasksList);
+            return;
+        }
         let [routerResponse, routerError] = await SafeExecute.withSync(LLM.agent, `Main task: ${JSON.stringify(currentTask)}, Logs: ${JSON.stringify(logs)}`, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
         if (!(routerResponse)) {
@@ -182,20 +188,20 @@ const main = async (): Promise<void> => {
             console.error("Skipped terminatedTask.");
         }
 
-        if (terminatedTask !== null) {
-            terminatedTask as TerminatedTask;
-            currentTask = tasksList.shift();
-            if (tasksList.length === 0) {
-                console.log("All tasks finished");
-                isDone = true;
-                break;
-            }
+        // if (terminatedTask !== null) {
+        //     terminatedTask as TerminatedTask;
+        //     currentTask = tasksList.shift();
+        //     if (tasksList.length === 0) {
+        //         console.log("All tasks finished");
+        //         isDone = true;
+        //         break;
+        //     }
 
-            console.log(`Logs: ${JSON.stringify(logs)} `);
-            console.log(`number of task now: ${tasksList.length}, initial number of task: ${initialNumberOfTasks} `);
-            console.log(terminatedTask);
+        //     console.log(`Logs: ${JSON.stringify(logs)} `);
+        //     console.log(`number of task now: ${tasksList.length}, initial number of task: ${initialNumberOfTasks} `);
+        //     console.log(terminatedTask);
 
-        }
+        // }
 
 
         const [shellAgentInstruction, shellAgentInstructionError] = SafeExecute.noSync(ShellAgentInstructionSchema.parse, routerResponse);

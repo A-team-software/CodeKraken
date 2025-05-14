@@ -74,9 +74,9 @@ export type FileToEdit = z.infer<typeof FileToEditSchema>;
 
 
 export const AgentTaskSchema = z.object({
-    taskNumber: z.number({
+    taskNumber: z.string({
         required_error: "The taskNumber attribute is required", // Custom error message
-        invalid_type_error: "The taskNumber attribute must be a number",
+        invalid_type_error: "The taskNumber attribute must be a string",
     }).min(1, { message: "The taskNumber attribute cannot be undefined" }), // Enforce non-empty string
 
     description: z.string({

@@ -45,9 +45,12 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<null
     try {
         // Check if the formatted data is a valid JSON string
         // Parse the JSON string to an object
-        const parsedAs: T = JSON.parse(formattedData);
-
-        return parsedAs;
+        if (formattedData) {
+            const parsedAs: T = JSON.parse(formattedData);
+            return parsedAs;
+        }
+        console.error("Something went wrong while parsing the LLM response.");
+        return null;
     } catch (error: any) {
         console.error(error);
         return null;
