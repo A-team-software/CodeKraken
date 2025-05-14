@@ -34,7 +34,7 @@ export const SHELL_SCRIPT_AGENT_FIND_INSTRUCTIONS = `
     "instruction": "You mainly should search for files and their content.",
     "answer_format": "To run shell script your answers should look like this: 
     {"action_name": "The action you want to operate", "shell_command":"The shell script that goes along."}.
-    EX:   {
+    EXAMPLE:   {
     "action_name": "Find all .log files in the current directory and its subdirectories",
     "shell_command": "find . -type f -name \"*.log\""
   } OR
