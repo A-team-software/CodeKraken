@@ -55,25 +55,40 @@ const promptTaskPlanerAgent = async (input: string, instructions: string): Promi
 }
 
 
+const pauseThread = async (duration: number) => {
+    new Promise(() => {
+        setTimeout(async () => {
+        }, duration);
+    });
+}
+
+
 const generateTasks = async (input: string, instructions: string, retry: number): Promise<null | AgentTask[]> => {
+
     if (retry >= 5) {
         return null;
     }
+
     const [taskPlanerAgentResponse, taskPlanerError] = await SafeExecute.withSync(promptTaskPlanerAgent, input, instructions);
+
     if (taskPlanerError !== null) {
         console.error(taskPlanerError);
         return null;
     }
+
     if (taskPlanerAgentResponse) {
         const tasks = evaluateTaskPlanerResponse(taskPlanerAgentResponse);
         if (tasks.length === 0) {
+            const minutes = 1000 * 60 * 5 // 5 minutes;
+            await pauseThread(minutes);
             await generateTasks(input, instructions, retry + 1);
-            console.error("Failed to generate a list of tasks.");
-        }
+        };
+        console.error("Failed to generate a list of tasks.");
         return tasks;
     }
     return null;
 }
+
 
 const TaskPlaner: TaskPlaning = {
     zodSchemaParser: zodSchemaParser,
