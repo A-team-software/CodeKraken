@@ -3,7 +3,7 @@ import { extractJsonFromString } from "./validation";
 import LLM from './ai';
 import { TASK_PLANER_AGENT_SHELL_INSTRUCTIONS, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, SHELL_SCRIPT_AGENT_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANNER_AGENT_INSTRUCTIONS } from './agents_instructions';
 import { SafeExecute } from '@/packages/utils/dist/errors/safe_execute';
-import { ZodError, ZodObject, ZodRawShape, baseObjectOutputType, objectUtil, typeToFlattenedError } from 'zod';
+import { ZodError, typeToFlattenedError } from 'zod';
 
 
 
@@ -85,8 +85,8 @@ const codingAgent = async (input: string): Promise<string | null> => {
 
 
 
-const paresTask = (task: AgentTask) => {
-    const [parseResult, parseError] = SafeExecute.noSync(AgentTaskSchema.parse, task);
+const paresTask = <T>(task: T, schemaParser: any) => {
+    const [parseResult, parseError] = SafeExecute.noSync(schemaParser, task);
 
     if (parseError instanceof ZodError) {
         const error: typeToFlattenedError<any, string> = parseError.flatten();
@@ -109,7 +109,7 @@ const evaluateTaskPlanerResponse = (taskPlanerAgentResponse: AgentTask[]) => {
     const tasks: AgentTask[] = [];
     for (let index = 0; index < taskPlanerAgentResponse.length; index++) {
         const unparsedTask = taskPlanerAgentResponse[index];
-        const parsedTask = paresTask(unparsedTask);
+        const parsedTask = paresTask(unparsedTask, AgentTaskSchema.parse);
         if (!(parsedTask)) break;
         tasks.push(parsedTask);
     }
@@ -135,7 +135,10 @@ const promptTaskPlanerAgent = async (input: string, instructions: string): Promi
 }
 
 
-const generateTasks = async (input: string, instructions: string): Promise<null | AgentTask[]> => {
+const generateTasks = async (input: string, instructions: string, retry: number): Promise<null | AgentTask[]> => {
+    if (retry >= 5) {
+        return null;
+    }
     const [taskPlanerAgentResponse, taskPlanerError] = await SafeExecute.withSync(promptTaskPlanerAgent, input, instructions);
     if (taskPlanerError !== null) {
         console.error(taskPlanerError);
@@ -144,6 +147,7 @@ const generateTasks = async (input: string, instructions: string): Promise<null 
     if (taskPlanerAgentResponse) {
         const tasks = evaluateTaskPlanerResponse(taskPlanerAgentResponse);
         if (tasks.length === 0) {
+            await generateTasks(input, instructions, retry + 1);
             console.error("Failed to generate a list of tasks.");
         }
         return tasks;
