@@ -86,7 +86,7 @@ const codingAgent = async (input: string): Promise<string | null> => {
 
 
 const paresTask = <T>(task: T, schemaParser: any) => {
-    const [parseResult, parseError] = SafeExecute.noSync(schemaParser, task);
+    const [parseResult, parseError] = SafeExecute.noSync(schemaParser.parse, task);
 
     if (parseError instanceof ZodError) {
         const error: typeToFlattenedError<any, string> = parseError.flatten();
@@ -109,7 +109,7 @@ const evaluateTaskPlanerResponse = (taskPlanerAgentResponse: AgentTask[]) => {
     const tasks: AgentTask[] = [];
     for (let index = 0; index < taskPlanerAgentResponse.length; index++) {
         const unparsedTask = taskPlanerAgentResponse[index];
-        const parsedTask = paresTask(unparsedTask, AgentTaskSchema.parse);
+        const parsedTask = paresTask(unparsedTask, AgentTaskSchema);
         if (!(parsedTask)) break;
         tasks.push(parsedTask);
     }
