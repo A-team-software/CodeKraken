@@ -10,25 +10,7 @@ import { ZodError, ZodObject, ZodRawShape, baseObjectOutputType, objectUtil, typ
 
 
 
-const generateTasks = async (input: string): Promise<null | AgentTask[]> => {
 
-    try {
-
-        const tasksPlanerAgentResponse = await LLM.agent<AgentTask[]>(input, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS);
-
-        if (tasksPlanerAgentResponse === null) {
-            console.error("The LLM didn't return a valid JSON");
-            return null;
-        }
-
-
-        return tasksPlanerAgentResponse;
-
-    } catch (error: any) {
-        console.error(error);
-        return null;
-    }
-}
 
 const generateCodingTasks = async (input: string): Promise<null | AgentTask[]> => {
 
@@ -101,21 +83,40 @@ const codingAgent = async (input: string): Promise<string | null> => {
     }
 }
 
-const parser = async <T extends ZodRawShape>(llmAnswer: any): Promise<{ [k in keyof objectUtil.addQuestionMarks<baseObjectOutputType<T>, any>]: objectUtil.addQuestionMarks<baseObjectOutputType<T>, any>[k]; } | null> => {
-    let zData: ZodObject<T> = llmAnswer;
 
-    const [parsedData, parseError] = SafeExecute.noSync(zData.parse, llmAnswer);
-    if (parseError !== null) {
-        console.error(parseError);
+
+const paresTask = (task: AgentTask) => {
+    const [parseResult, parseError] = SafeExecute.noSync(AgentTaskSchema.parse, task);
+
+    if (parseError instanceof ZodError) {
+        const error: typeToFlattenedError<any, string> = parseError.flatten();
+        console.error(`${JSON.stringify(error)}`);
         return null;
     }
-    if (parsedData) {
-        return parsedData;
+
+    if (!(parseError instanceof ZodError) && (parseError != null)) {
+        console.error(parseError);
+        return null;
+
     }
-    return null
+    if (parseResult === null) {
+        return null;
+    }
+    return task;
 }
 
-const createListOfTasks = async (input: string, instructions: string): Promise<null | AgentTask[]> => {
+const evaluateTaskPlanerResponse = (taskPlanerAgentResponse: AgentTask[]) => {
+    const tasks: AgentTask[] = [];
+    for (let index = 0; index < taskPlanerAgentResponse.length; index++) {
+        const unparsedTask = taskPlanerAgentResponse[index];
+        const parsedTask = paresTask(unparsedTask);
+        if (!(parsedTask)) break;
+        tasks.push(parsedTask);
+    }
+    return tasks;
+}
+
+const promptTaskPlanerAgent = async (input: string, instructions: string): Promise<null | AgentTask[]> => {
     let taskPlanerAgentResponse = undefined;
     try {
         taskPlanerAgentResponse = await LLM.agent<AgentTask[]>(input, instructions);
@@ -129,35 +130,28 @@ const createListOfTasks = async (input: string, instructions: string): Promise<n
         console.error(error);
         return null;
     }
-    const tasks: AgentTask[] = [];
-    for (let index = 0; index < taskPlanerAgentResponse.length; index++) {
-        const task = taskPlanerAgentResponse[index];
-        const [parseResult, parseError] = SafeExecute.noSync(AgentTaskSchema.parse, task);
-        if (parseError instanceof ZodError) {
-            const error: typeToFlattenedError<any, string> = parseError.flatten();
-            console.error(`${JSON.stringify(error)}`);
-            break;
-        }
-        if (!(parseError instanceof ZodError) && (parseError != null)) {
-            console.error(parseError);
-            break;
 
-        }
-        if (parseResult === null) {
-            break;
-        }
-        tasks.push(parseResult);
-    }
-    if (tasks.length === 0) {
-        console.error("Failed to generate a list of tasks.");
-        return null;
-    }
-
-    return tasks;
+    return taskPlanerAgentResponse;
 }
 
 
+const generateTasks = async (input: string, instructions: string): Promise<null | AgentTask[]> => {
+    const [taskPlanerAgentResponse, taskPlanerError] = await SafeExecute.withSync(promptTaskPlanerAgent, input, instructions);
+    if (taskPlanerError !== null) {
+        console.error(taskPlanerError);
+        return null;
+    }
+    if (taskPlanerAgentResponse) {
+        const tasks = evaluateTaskPlanerResponse(taskPlanerAgentResponse);
+        if (tasks.length === 0) {
+            console.error("Failed to generate a list of tasks.");
+        }
+        return tasks;
+    }
+    return null;
+}
 
-const OliverAI = { createListOfTasks: createListOfTasks, generateTasks: generateTasks, shellScriptingAgent: shellScriptingAgent, codingAgent: codingAgent, generateCodingTasks: generateCodingTasks } as const;
+
+const OliverAI = { generateTasks: generateTasks, shellScriptingAgent: shellScriptingAgent, codingAgent: codingAgent, generateCodingTasks: generateCodingTasks } as const;
 
 export default OliverAI;

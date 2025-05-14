@@ -148,7 +148,7 @@ const main = async (): Promise<void> => {
 
     const assignment = `The Large Cards aren't responsive on some screens, there's a bottom over flow.Here is the project structure: ${projectFileTree} `;
 
-    const [tasksList, taskError] = await SafeExecute.withSync(OliverAI.createListOfTasks, assignment, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS);
+    const [tasksList, taskError] = await SafeExecute.withSync(OliverAI.createListOfTasks, assignment, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS, 0);
 
     if ((taskError !== null) || (tasksList === null)) {
         return;
@@ -175,7 +175,6 @@ const main = async (): Promise<void> => {
             console.error(`Something went wrong with the agent router: ${routerError} `);
             return;
         }
-
 
         const [terminatedTask, terminatedTaskError] = SafeExecute.noSync(TerminatedTaskSchema.parse, routerResponse);
         if (terminatedTaskError !== null) {
