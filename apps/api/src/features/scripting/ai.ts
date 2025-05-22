@@ -1,6 +1,7 @@
 import { SafeExecute } from "@/packages/utils/dist/errors/safe_execute";
 import { promptLLM } from "./dir";
 import { extractJsonFromString } from "./validation";
+import LlmInterface from './interfaces/llm';
 
 
 
@@ -58,8 +59,20 @@ const agent = async <T>(input: string, systemInstructions: string): Promise<null
 }
 
 
-const LLM = {
-    agent: agent,
+const buildAgent = async <T>(input: string, instructions: string): Promise<T | null> => {
+    try {
+        const tasksPlanerAgentResponse = await agent<T>(input, instructions);
+        return tasksPlanerAgentResponse;
+    } catch (error: any) {
+        console.error(error);
+        return null;
+    }
+}
+
+const LLM: LlmInterface = {
     validateLlmResponse: validateLlmResponse,
+    agent: agent,
+    buildAgent: buildAgent,
 } as const;
+
 export default LLM;

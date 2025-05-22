@@ -7,21 +7,13 @@ import { SHELL_SCRIPT_AGENT_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANNE
 
 
 
-const buildAgent = async <T>(input: string, instructions: string): Promise<T | null> => {
-    try {
-        const tasksPlanerAgentResponse = await LLM.agent<T>(input, instructions);
-        return tasksPlanerAgentResponse;
-    } catch (error: any) {
-        console.error(error);
-        return null;
-    }
-}
 
 
-const shellScriptingAgentRouter = async (input: string) => await buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_INSTRUCTIONS);
-const shellScriptingAgentDeleteAndUpdate = async (input: string) => await buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_INSTRUCTIONS);
-const shellScriptingAgentFind = async (input: string) => await buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_FIND_INSTRUCTIONS);
-const shellScriptingAgentCreate = async (input: string) => await buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_CREATE_INSTRUCTIONS);
+
+const shellScriptingAgentRouter = async (input: string) => await LLM.buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_INSTRUCTIONS);
+const shellScriptingAgentDeleteAndUpdate = async (input: string) => await LLM.buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_INSTRUCTIONS);
+const shellScriptingAgentFind = async (input: string) => await LLM.buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_FIND_INSTRUCTIONS);
+const shellScriptingAgentCreate = async (input: string) => await LLM.buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_CREATE_INSTRUCTIONS);
 
 export const shellScriptingAgent = {
 
@@ -36,7 +28,7 @@ export const shellScriptingAgent = {
 } as const;
 
 
-const generateCodingTasks = async (input: string) => await buildAgent<AgentTask[]>(input, TASK_PLANNER_AGENT_INSTRUCTIONS);
+const generateCodingTasks = async (input: string) => await LLM.buildAgent<AgentTask[]>(input, TASK_PLANNER_AGENT_INSTRUCTIONS);
 
 const OliverAI = {
     generateCodingTasks: generateCodingTasks
