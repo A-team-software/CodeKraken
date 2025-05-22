@@ -178,7 +178,6 @@ export const SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS = `
     {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The content of the file you just edited."},
     {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The content of the file you just edited."},
     ]
-
   }
 `;
 
