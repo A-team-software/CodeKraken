@@ -38,7 +38,7 @@ export async function applyCodeChanges(repoPath: string, changes: CodeGeneration
                 Logger.logInfo(`Wrote/Updated file: ${fullPath}`);
             }
         } catch (error: any) {
-            Logger.logError(`Failed to apply change to ${fileChange.filePath}:`, error.message);
+            Logger.logError(`Failed to apply change to ${fileChange.filePath}: ${error.message}`,);
             // Decide if one failure should stop the whole process
             throw new Error(`Failed to apply code changes to ${fileChange.filePath}`);
         }
@@ -56,7 +56,7 @@ export async function createTempDir(basePath: string): Promise<string> {
         Logger.logInfo(`Created temporary directory: ${tempPath}`);
         return tempPath;
     } catch (error: any) {
-        Logger.logError("Failed to create temporary directory:", error.message);
+        Logger.logError(error.message);
         throw new Error("Could not create temporary directory for cloning.");
     }
 }
@@ -69,6 +69,6 @@ export async function removeDir(dirPath: string): Promise<void> {
         Logger.logInfo(`Successfully removed directory: ${dirPath}`);
     } catch (error: any) {
         // Log error but don't necessarily crash the whole process if cleanup fails
-        Logger.logError(`Failed to remove directory ${dirPath}:`, error.message);
+        Logger.logError(`Failed to remove directory ${dirPath}:  ${error.message}`);
     }
 }
