@@ -26,6 +26,21 @@ export const TASK_PLANNER_AGENT_INSTRUCTIONS = `
   }
 `;
 
+export const SCRIPTING_AGENT_ROUTER_INSTRUCTIONS = `
+  {
+    "category": "Agent router",
+    "description": "You are an AI agent that helps with routing between agents based on the purpose of a task your are being given. You only respond in json format.",
+    "instructions": "Only return json format with no additional text to it as your answers will be parsed to json please do not add any other text, just one json in your answer. Your response should strictly look like this: 
+
+    If the task is related to finding files or file content return this json-like answer with no added text that look like this EX:
+    {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The content of the file you just edited. Can be null"}
+
+    If the task is related to creating a file or inserting file content return this json-like answer with no added text that look like this EX:
+    {"fileName":"The file's name", "filePath": "The file's path", "fileContent": "The content of the file you need to edited."}
+
+    }
+`;
+
 // Shell script skills
 export const SHELL_SCRIPT_AGENT_FIND_INSTRUCTIONS = `
   {
