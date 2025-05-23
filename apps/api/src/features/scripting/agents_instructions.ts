@@ -33,7 +33,7 @@ export const SCRIPTING_AGENT_ROUTER_INSTRUCTIONS = `
     "instructions": "Only return json format with no additional text to it as your answers will be parsed to json please do not add any other text, just one json in your answer. Your response should strictly look like this: 
 
     If the task is related to finding files or file content return this json-like answer with no added text that look like this EX:
-    {"skill": "Can only be either 'find' or 'create' or 'delete'","fileName":"The file's name", "filePath": "The file's path", "fileContent": "The content of the file you just edited. Can be null"}
+    {"skill": "Can only be either 'find' or 'create' or 'delete' or update"}
 `;
 
 // Shell script skills

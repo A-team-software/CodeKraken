@@ -25,10 +25,12 @@ const ShellScriptingAgent: ShellScriptingAgentInterface = {
     insert: function insertHelper(io: AgentIO) {
         insert(io, this.memory)
     },
+
     clear: function () {
         this.memory = [];
         return this.memory.length === 0;
     },
+
     // Agent Router
     router: shellScriptingAgentRouter,
 

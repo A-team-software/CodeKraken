@@ -98,21 +98,6 @@ export const ShellScriptingSchema = z.object({
         required_error: "The skill attribute is required", // Custom error message
         invalid_type_error: "The skill attribute must be a string",
     }).min(1, { message: "The skill attribute cannot be undefined" }), // Enforce non-empty string
-
-    fileName: z.string({
-        required_error: "The file's name is required", // Custom error message
-        invalid_type_error: "The fileName must be a string",
-    }).min(1, { message: "The description cannot be empty" }),
-
-    filePath: z.string({
-        required_error: "The file's path attribute is required", // Custom error message
-        invalid_type_error: "The filePath attribute must be a boolean",
-    }).min(1, { message: "The skill attribute cannot be undefined" }), // Enforce non-empty string,
-
-    fileContent: z.string({
-        required_error: "The fileContent attribute is required", // Custom error message
-        invalid_type_error: "The finished attribute must be a boolean",
-    }).min(1, { message: "The skill attribute cannot be undefined" }), // Enforce non-empty string,
 });
 
 export type ShellScripting = z.infer<typeof ShellScriptingSchema>;
