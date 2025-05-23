@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { $ } from "bun";
 import { Logger, SafeExecute } from '@oliver/utils';
-import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSchema, ShellAgentInstruction, ShellAgentInstructionSchema, FileToEditSchema } from './interfaces/agents';
+import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSchema, ShellAgentInstruction, ShellAgentInstructionSchema, FileToEditSchema, ShellScriptingSchema } from './interfaces/agents';
 
 import OliverAI from './oliver_ai';
 import ShellPrompt from './child_process';
@@ -13,6 +13,7 @@ import LLM from './ai';
 import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
 import TaskPlaner from './task/task_agent';
+import ShellScriptingAgent from './agents/scripting_agent';
 
 
 let projectStructure: string | null;
@@ -95,49 +96,49 @@ const getProjectFileStructure = async (): Promise<string | null> => {
 
 
 
-const runShellScript = async (instruction: string): Promise<AgentShellLogs | null | string> => {
-    const [shellCommand, shellCommandError] = await SafeExecute.withSync(OliverAI.shellScriptingAgent, instruction);
+// const runShellScript = async (shellScriptingAgent: (instruction: string) => null): Promise<AgentShellLogs | null | string> => {
+//     const [shellCommand, shellCommandError] = await SafeExecute.withSync(shellScriptingAgent, instruction);
 
-    if (shellCommandError !== null) {
-        console.error("The LLM didn't return a valid JSON");
-        return null;
-    }
+//     if (shellCommandError !== null) {
+//         console.error("The LLM didn't return a valid JSON");
+//         return null;
+//     }
 
-    if (shellCommand === null) {
-        console.error("The LLM didn't return a valid JSON");
-        return null;
-    }
-    const { exitCode, stderr, stdout, error } = await ShellPrompt.executeShellScriptInChildProcess(shellCommand.shell_command, cloneRepoDirectory || "");
-    let failedLog: string | null = null;
-    if (exitCode !== 0) {
-        failedLog = `Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`;
-        console.log(`Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`);
-        return failedLog;
-    }
-    if (stderr !== null) {
-        console.log(`stderr: ${JSON.stringify(stderr)} shellCommand: ${JSON.stringify(shellCommand.shell_command)}`);
-    }
+//     if (shellCommand === null) {
+//         console.error("The LLM didn't return a valid JSON");
+//         return null;
+//     }
+//     const { exitCode, stderr, stdout, error } = await ShellPrompt.executeShellScriptInChildProcess(shellCommand.shell_command, cloneRepoDirectory || "");
+//     let failedLog: string | null = null;
+//     if (exitCode !== 0) {
+//         failedLog = `Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`;
+//         console.log(`Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`);
+//         return failedLog;
+//     }
+//     if (stderr !== null) {
+//         console.log(`stderr: ${JSON.stringify(stderr)} shellCommand: ${JSON.stringify(shellCommand.shell_command)}`);
+//     }
 
-    if (error !== null) {
-        console.error(`Error: ${error} `);
-    }
+//     if (error !== null) {
+//         console.error(`Error: ${error} `);
+//     }
 
-    if (stdout !== null) {
-        const log = <AgentShellLogs>{
-            AgentInput: failedLog ? failedLog : shellCommand.shell_command,
-            shellOutput: stdout,
-        };
-        return log;
-    }
+//     if (stdout !== null) {
+//         const log = <AgentShellLogs>{
+//             AgentInput: failedLog ? failedLog : shellCommand.shell_command,
+//             shellOutput: stdout,
+//         };
+//         return log;
+//     }
 
-    return null;
-}
-
-
+//     return null;
+// }
 
 
 
-const main = async (): Promise<void> => {
+
+
+const agentFlow = async (): Promise<void> => {
 
     const [projectFileTree, projectError] = await SafeExecute.withSync(getProjectFileStructure)
     if ((projectError !== null) || (projectFileTree === null)) {
@@ -162,19 +163,18 @@ const main = async (): Promise<void> => {
 
     const logs: AgentShellLogs[] = [];
 
-    let currentTask
-    // = tasksList.shift();
+    let currentTask = tasksList.shift();
 
-    var tryCount = 0;
 
     while (isDone === false) {
         if (tasksList) {
-            console.log(tasksList);
-            return;
+            // console.log(tasksList);
+            // return;
         }
         let [routerResponse, routerError] = await SafeExecute.withSync(LLM.agent, `Main task: ${JSON.stringify(currentTask)}, Logs: ${JSON.stringify(logs)}`, SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS);
 
         if (!(routerResponse)) {
+            console.log(routerResponse);
             return;
         }
 
@@ -203,35 +203,55 @@ const main = async (): Promise<void> => {
 
         // }
 
+        const router = await ShellScriptingAgent.router(routerResponse.toString());
 
-        const [shellAgentInstruction, shellAgentInstructionError] = SafeExecute.noSync(ShellAgentInstructionSchema.parse, routerResponse);
+        if (router === null) {
+            console.error("The LLM didn't return a valid JSON");
+            return;
+        }
+        if (router) {
+            if (router.skill === "find") {
+                console.log("res: ", router);
+                console.log(JSON.stringify(routerResponse));
+                return;
+            }
+            console.log("Failed", router, JSON.stringify(routerResponse));
+            return;
+        }
+
+
+
+        const [shellAgentInstruction, shellAgentInstructionError] = SafeExecute.noSync(ShellScriptingSchema.parse, routerResponse);
         if (shellAgentInstructionError !== null) {
             console.error("Skipped shellAgentInstruction type.");
-            // console.error(shellAgentInstructionError);
-
+            console.error(shellAgentInstructionError);
+            break;
         }
 
         if (shellAgentInstruction !== null) {
 
-            shellAgentInstruction as ShellAgentInstruction;
-            const instruction = `${JSON.stringify(shellAgentInstruction)}`;
-            const output = await runShellScript(instruction);
-            if (output === null) {
-                continue;
-            }
+            // shellAgentInstruction;
+            console.log('shellAgentInstruction: ', shellAgentInstruction);
+            break;
 
-            if ((typeof output === "string")) {
-                console.error("The command failed")
-                tryCount++;
-                const log: AgentShellLogs = {
-                    AgentInput: output,
-                    shellOutput: JSON.stringify(shellAgentInstruction),
-                }
-                logs.push(log);
-                continue;
-            }
+            // const instruction = `${JSON.stringify(shellAgentInstruction)}`;
+            // const output = await runShellScript(instruction);
+            // if (output === null) {
+            //     continue;
+            // }
 
-            logs.push(output);
+            // if ((typeof output === "string")) {
+            //     console.error("The command failed")
+            //     tryCount++;
+            //     const log: AgentShellLogs = {
+            //         AgentInput: output,
+            //         shellOutput: JSON.stringify(shellAgentInstruction),
+            //     }
+            //     logs.push(log);
+            //     continue;
+            // }
+
+            // logs.push(output);
         }
 
         // const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, routerResponse);
@@ -247,12 +267,12 @@ const main = async (): Promise<void> => {
             // console.log("Editing file...");
             const res = await LLM.agent(`Main task you need to solve: ${JSON.stringify(currentTask)}, File to edit: ${JSON.stringify(filesToEdit[0])}`, `${CODING_AGENT_INSTRUCTIONS}`)
             console.log(`Codding result: ${JSON.stringify(res)}`);
-            isDone = true;
-            return;
+            // isDone = true;
+            // return;
         }
     }
 }
-main();
+agentFlow();
 
 
 
