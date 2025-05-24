@@ -1,21 +1,22 @@
 import { ActionData, ShellScripting, AgentIO } from '../../interfaces/agents';
 
-
-
-type ShellScriptingAgentInterface = {
+type AgentMemory<T> = {
     // Memory management
-    memory: AgentIO[],
-    insert: (io: AgentIO, mem: AgentIO[]) => void;
+    memory: T,
+    insert: (io: AgentIO, mem: T) => void;
     clear: () => boolean;
+}
 
-    // Agent Router
-    router: (input: string) => Promise<ShellScripting | null>,
-
+export interface ShellAgentInterface extends AgentMemory<AgentIO[]> {
     // Agent Skills
     find: (input: string) => Promise<ActionData | null>,
     create: (input: string) => Promise<ActionData | null>,
     deleteAndUpdate: (input: string) => Promise<ActionData | null>
 }
 
+export interface AgentInterface<T> {
+    // Agent Router
+    router: (input: string) => Promise<ShellScripting | null>,
+    agentSchema: T
+}
 
-export default ShellScriptingAgentInterface;

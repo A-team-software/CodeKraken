@@ -10,11 +10,11 @@ const zodSchemaParser = <T>(task: T, schemaParser: any) => {
 
     if (parseError instanceof ZodError) {
         const error: typeToFlattenedError<any, string> = parseError.flatten();
-        console.error(`${JSON.stringify(error)}`);
+        console.dir(error, { depth: Infinity, color: true });
         return null;
     }
 
-    if (!(parseError instanceof ZodError) && (parseError != null)) {
+    if (parseError != null) {
         console.error(parseError);
         return null;
 

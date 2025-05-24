@@ -13,7 +13,7 @@ import LLM from './ai';
 import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
 import TaskPlaner from './task/task_agent';
-import ShellScriptingAgent from './agents/scripting_agent';
+import ShellScriptingAgent from './agents/shell_agent';
 
 
 let projectStructure: string | null;
@@ -96,44 +96,67 @@ const getProjectFileStructure = async (): Promise<string | null> => {
 
 
 
-// const runShellScript = async (shellScriptingAgent: (instruction: string) => null): Promise<AgentShellLogs | null | string> => {
-//     const [shellCommand, shellCommandError] = await SafeExecute.withSync(shellScriptingAgent, instruction);
+const runShellScript = async (shellScript: string): Promise<null | string> => {
+    if (cloneRepoDirectory === null) return null;
+    const { exitCode, stderr, stdout, error } = await ShellPrompt.executeShellScriptInChildProcess(shellScript, cloneRepoDirectory);
+    let failedLog: string | null = null;
+    if (exitCode !== 0) {
+        failedLog = `Exit code: ${exitCode}, command: ${shellScript}, : stderr: ${stderr?.message}`;
+        console.log(`Exit code: ${exitCode}, command: ${shellScript}, : stderr: ${stderr?.message}`);
+        return failedLog;
+    }
+    if (stderr !== null) {
+        console.log(`stderr: ${JSON.stringify(stderr)} shellCommand: ${JSON.stringify(shellScript)}`);
+    }
 
-//     if (shellCommandError !== null) {
-//         console.error("The LLM didn't return a valid JSON");
-//         return null;
-//     }
+    if (error !== null) {
+        console.error(`Error: ${error} `);
+    }
 
-//     if (shellCommand === null) {
-//         console.error("The LLM didn't return a valid JSON");
-//         return null;
-//     }
-//     const { exitCode, stderr, stdout, error } = await ShellPrompt.executeShellScriptInChildProcess(shellCommand.shell_command, cloneRepoDirectory || "");
-//     let failedLog: string | null = null;
-//     if (exitCode !== 0) {
-//         failedLog = `Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`;
-//         console.log(`Exit code: ${exitCode}, command: ${shellCommand.shell_command}, : stderr: ${stderr?.message}`);
-//         return failedLog;
-//     }
-//     if (stderr !== null) {
-//         console.log(`stderr: ${JSON.stringify(stderr)} shellCommand: ${JSON.stringify(shellCommand.shell_command)}`);
-//     }
+    if (stdout !== null) {
+        const log = <AgentShellLogs>{
+            AgentInput: failedLog ? failedLog : shellScript,
+            shellOutput: stdout,
+        };
+        return JSON.stringify(log);
+    }
+    return null;
+}
 
-//     if (error !== null) {
-//         console.error(`Error: ${error} `);
-//     }
 
-//     if (stdout !== null) {
-//         const log = <AgentShellLogs>{
-//             AgentInput: failedLog ? failedLog : shellCommand.shell_command,
-//             shellOutput: stdout,
-//         };
-//         return log;
-//     }
 
-//     return null;
-// }
+const finder = async (routerResponse: string) => {
+    let shellOutput = ""
+    const [shellScript, error] = await SafeExecute.withSync(ShellScriptingAgent.find, `Task: ${routerResponse}`);
+    if (error !== null) {
+        console.error(error);
+        return null;
+    }
+    if (shellScript !== null) {
+        const [output, outputError] = await SafeExecute.withSync(runShellScript, shellScript.shell_command);
 
+        if (outputError !== null) {
+            console.error(outputError);
+            return null;
+        }
+
+        if (output === null) {
+            return null;
+        }
+        if (output) {
+            console.error("The command failed")
+            const log: AgentShellLogs = {
+                AgentInput: output,
+                shellOutput: JSON.stringify(shellAgentInstruction),
+            }
+            ShellScriptingAgent.insert(log)
+            logs.push(log);
+            continue;
+        }
+
+        logs.push(output);
+    }
+}
 
 
 
@@ -211,9 +234,10 @@ const agentFlow = async (): Promise<void> => {
         }
         if (router) {
             if (router.skill === "find") {
-                console.log("res: ", router);
-                console.log(JSON.stringify(routerResponse));
+
                 return;
+            } else {
+                console.log(router);
             }
             console.log("Failed", router, JSON.stringify(routerResponse));
             return;
@@ -234,24 +258,7 @@ const agentFlow = async (): Promise<void> => {
             console.log('shellAgentInstruction: ', shellAgentInstruction);
             break;
 
-            // const instruction = `${JSON.stringify(shellAgentInstruction)}`;
-            // const output = await runShellScript(instruction);
-            // if (output === null) {
-            //     continue;
-            // }
 
-            // if ((typeof output === "string")) {
-            //     console.error("The command failed")
-            //     tryCount++;
-            //     const log: AgentShellLogs = {
-            //         AgentInput: output,
-            //         shellOutput: JSON.stringify(shellAgentInstruction),
-            //     }
-            //     logs.push(log);
-            //     continue;
-            // }
-
-            // logs.push(output);
         }
 
         // const [fileToEdit, parseFileToEditError] = SafeExecute.noSync(FileToEditSchema.parse, routerResponse);
