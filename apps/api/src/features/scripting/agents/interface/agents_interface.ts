@@ -14,9 +14,9 @@ export interface ShellAgentInterface extends AgentMemory<AgentIO[]> {
     deleteAndUpdate: (input: string) => Promise<ActionData | null>
 }
 
-export interface AgentInterface<T> {
+export type Agent<A> = {
     // Agent Router
     router: (input: string) => Promise<ShellScripting | null>,
-    agentSchema: T
+    agent: A
 }
 

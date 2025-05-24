@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { $ } from "bun";
 import { Logger, SafeExecute } from '@oliver/utils';
-import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSchema, ShellAgentInstruction, ShellAgentInstructionSchema, FileToEditSchema, ShellScriptingSchema } from './interfaces/agents';
+import { AgentTask, TerminatedTask, FileToEdit, AgentShellLogs, TerminatedTaskSchema, ShellAgentInstruction, ShellAgentInstructionSchema, FileToEditSchema, ShellScriptingSchema, AgentIO } from './interfaces/agents';
 
 import OliverAI from './oliver_ai';
 import ShellPrompt from './child_process';
@@ -13,7 +13,7 @@ import LLM from './ai';
 import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRUCTIONS, TASK_PLANER_AGENT_SHELL_INSTRUCTIONS } from './agents_instructions';
 import { ZodError } from 'zod';
 import TaskPlaner from './task/task_agent';
-import ShellScriptingAgent from './agents/shell_agent';
+import ShellAgent from './agents/shell_agent';
 
 
 let projectStructure: string | null;
@@ -126,35 +126,30 @@ const runShellScript = async (shellScript: string): Promise<null | string> => {
 
 
 const finder = async (routerResponse: string) => {
-    let shellOutput = ""
-    const [shellScript, error] = await SafeExecute.withSync(ShellScriptingAgent.find, `Task: ${routerResponse}`);
+    const [shellScript, error] = await SafeExecute.withSync(ShellAgent.agent.find, `Task: ${routerResponse}`);
     if (error !== null) {
         console.error(error);
         return null;
     }
     if (shellScript !== null) {
-        const [output, outputError] = await SafeExecute.withSync(runShellScript, shellScript.shell_command);
+        const [shellOutput, outputError] = await SafeExecute.withSync(runShellScript, shellScript.shell_command);
 
         if (outputError !== null) {
             console.error(outputError);
             return null;
         }
 
-        if (output === null) {
+        if (shellOutput === null) {
             return null;
         }
-        if (output) {
-            console.error("The command failed")
-            const log: AgentShellLogs = {
-                AgentInput: output,
-                shellOutput: JSON.stringify(shellAgentInstruction),
+        if (shellOutput) {
+            const io: AgentIO = {
+                input: shellScript.shell_command,
+                output: shellOutput,
             }
-            ShellScriptingAgent.insert(log)
-            logs.push(log);
-            continue;
+            ShellAgent.agent.insert(io, ShellAgent.agent.memory)
         }
 
-        logs.push(output);
     }
 }
 
@@ -226,7 +221,7 @@ const agentFlow = async (): Promise<void> => {
 
         // }
 
-        const router = await ShellScriptingAgent.router(routerResponse.toString());
+        const router = await ShellAgent.router(routerResponse.toString());
 
         if (router === null) {
             console.error("The LLM didn't return a valid JSON");

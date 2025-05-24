@@ -1,7 +1,7 @@
 import LLM from '../ai';
 import { ActionData, ShellScripting, AgentIO } from '../interfaces/agents';
 import { SHELL_SCRIPT_AGENT_INSTRUCTIONS, SHELL_SCRIPT_AGENT_FIND_INSTRUCTIONS, SHELL_SCRIPT_AGENT_CREATE_INSTRUCTIONS, SCRIPTING_AGENT_ROUTER_INSTRUCTIONS } from '../agents_instructions';
-import { AgentInterface, ShellAgentInterface } from './interface/agents_interface';
+import { Agent, ShellAgentInterface } from './interface/agents_interface';
 
 
 
@@ -15,14 +15,15 @@ const shellScriptingAgentFind = async (input: string) => await LLM.buildAgent<Ac
 const shellScriptingAgentCreate = async (input: string) => await LLM.buildAgent<ActionData>(input, SHELL_SCRIPT_AGENT_CREATE_INSTRUCTIONS);
 
 
-
 const insert = (io: AgentIO, mem: AgentIO[]) => {
     mem.push(io);
 }
 
-const ShellAgent: AgentInterface<ShellAgentInterface> = {
-    agentSchema: {
-        memory: [],
+
+
+const ShellAgent: Agent<ShellAgentInterface> = {
+    agent: {
+        memory: new Array<AgentIO>,
         insert: function insertHelper(io: AgentIO) {
             insert(io, this.memory)
         },
@@ -31,6 +32,7 @@ const ShellAgent: AgentInterface<ShellAgentInterface> = {
             this.memory = [];
             return this.memory.length === 0;
         },
+
         // Agent Skills
         find: shellScriptingAgentFind,
         create: shellScriptingAgentCreate,
