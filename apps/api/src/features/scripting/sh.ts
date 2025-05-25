@@ -14,6 +14,7 @@ import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS, CODING_AGENT_INSTRU
 import { ZodError } from 'zod';
 import TaskPlaner from './task/task_agent';
 import ShellAgent from './agents/shell_agent';
+import { Agent, ShellAgentInterface } from './agents/interface/agents_interface';
 
 
 let projectStructure: string | null;
@@ -114,9 +115,9 @@ const runShellScript = async (shellScript: string): Promise<null | string> => {
     }
 
     if (stdout !== null) {
-        const log = <AgentShellLogs>{
-            AgentInput: failedLog ? failedLog : shellScript,
-            shellOutput: stdout,
+        const log = <AgentIO>{
+            input: failedLog ? failedLog : shellScript,
+            output: stdout,
         };
         return JSON.stringify(log);
     }
@@ -125,8 +126,8 @@ const runShellScript = async (shellScript: string): Promise<null | string> => {
 
 
 
-const finder = async (routerResponse: string) => {
-    const [shellScript, error] = await SafeExecute.withSync(ShellAgent.agent.find, `Task: ${routerResponse}`);
+const finder = async (routerResponse: string, projectFileTree: string): Promise<Agent<ShellAgentInterface> | null> => {
+    const [shellScript, error] = await SafeExecute.withSync(ShellAgent.agent.find, `Task: ${routerResponse}, project file tree: ${projectFileTree}`);
     if (error !== null) {
         console.error(error);
         return null;
@@ -151,6 +152,7 @@ const finder = async (routerResponse: string) => {
         }
 
     }
+    return ShellAgent;
 }
 
 
@@ -229,7 +231,12 @@ const agentFlow = async (): Promise<void> => {
         }
         if (router) {
             if (router.skill === "find") {
-
+                const rs = await finder(routerResponse.toString(), projectFileTree);
+                if (rs === null) {
+                    console.error("Failed to find the file");
+                    break;
+                }
+                console.log(JSON.stringify(rs.agent.memory));
                 return;
             } else {
                 console.log(router);
