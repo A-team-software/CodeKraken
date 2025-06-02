@@ -1,10 +1,10 @@
 import { ActionData, ShellScripting, AgentIO } from '../../interfaces/agents';
 
-type AgentMemory<T> = {
+export type AgentMemory<T> = {
     // Memory management
-    memory: T,
+    memory?: T,
     insert: (io: AgentIO, mem: T) => void;
-    clear: () => boolean;
+    clear: (mem: T) => boolean;
 }
 
 export interface ShellAgentInterface extends AgentMemory<AgentIO[]> {
@@ -14,9 +14,16 @@ export interface ShellAgentInterface extends AgentMemory<AgentIO[]> {
     deleteAndUpdate: (input: string) => Promise<ActionData | null>
 }
 
-export type Agent<A> = {
+export interface ShellAgentSupervisorInterface<E> {
+    // Skills
+    inspectAgentMemory: <K>(input: E, instruction: string) => Promise<K | null>,
+    sendInstruction: (input: string, instruction: string) => Promise<string | null>,
+}
+
+export type Agent<A, S extends unknown> = {
     // Agent Router
-    router: (input: string) => Promise<ShellScripting | null>,
+    router?: (input: string) => Promise<ShellScripting | null>,
     agent: A
+    agentSupervisor?: Agent<A, S>,
 }
 

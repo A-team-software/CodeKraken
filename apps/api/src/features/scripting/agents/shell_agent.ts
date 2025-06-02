@@ -21,11 +21,11 @@ const insert = (io: AgentIO, mem: AgentIO[]) => {
 
 
 
-const ShellAgent: Agent<ShellAgentInterface> = {
+const ShellAgent: Agent<ShellAgentInterface, undefined> = {
     agent: {
-        memory: new Array<AgentIO>,
+        memory: new Array<AgentIO>(),
         insert: function insertHelper(io: AgentIO) {
-            insert(io, this.memory)
+            insert(io, this.memory!)
         },
 
         clear: function () {
