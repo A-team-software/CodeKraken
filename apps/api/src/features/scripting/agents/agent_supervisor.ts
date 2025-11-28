@@ -1,6 +1,4 @@
-import { SHELL_SCRIPT_AND_CODING_AGENTS_ROUTER_INSTRUCTIONS } from '../agents_instructions';
 import LLM from '../ai';
-import { AgentIO } from '../interfaces/agents';
 import { Agent, ShellAgentSupervisorInterface } from './interface/agents_interface';
 import ShellAgent from './shell_agent';
 

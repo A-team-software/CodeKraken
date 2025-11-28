@@ -1,14 +1,14 @@
-
-const obj = {
-    value: this.value || [],
-    updateValue: function updateValue() {
-        logger(this.value);
+Bun.serve({
+    port: 3000,
+    error: (error) => {
+        console.error("Error:", error);
     },
-}
+    routes: {
+        "/user": function () {
+            return Response.json({ "name": "jonathan", "age": "40" })
+        }
+    }
+});
 
-const logger = (val) => {
-    val.push('test');
-    console.log(val);
-}
-const res = obj.updateValue();
 
+console.log("Server is running on http://localhost:3000/user");
