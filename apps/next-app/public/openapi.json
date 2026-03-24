@@ -1,0 +1,621 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OliverAI - SCA API",
+    "description": "Git Provider Integration API for OliverAI AI Coding Assistant. Manage integrations with GitHub, Jira, Linear, Asana, and Trello.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "OliverAI Support",
+      "url": "https://oliveraidocs.com"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.oliveraiapp.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Providers",
+      "description": "Git provider integration endpoints"
+    },
+    {
+      "name": "Authentication",
+      "description": "Provider authentication operations"
+    },
+    {
+      "name": "Repositories",
+      "description": "Repository and project management"
+    },
+    {
+      "name": "Atlassian Connect",
+      "description": "Lifecycle events for Atlassian Connect integrations"
+    },
+    {
+      "name": "AI Agent",
+      "description": "Autonomous task resolution endpoints"
+    }
+  ],
+  "paths": {
+    "/api/providers": {
+      "get": {
+        "tags": ["Providers"],
+        "summary": "List all available providers",
+        "description": "Returns a list of all supported git providers with their metadata, including authentication requirements and capabilities.",
+        "operationId": "listProviders",
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of providers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "providers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProviderMetadata"
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "providers": [
+                        {
+                          "id": "github",
+                          "name": "GitHub",
+                          "supportsOAuth": true,
+                          "tokenPlaceholder": "ghp_xxxxxxxxxxxx",
+                          "tokenDescription": "Personal Access Token (scopes: repo, admin:repo_hook)"
+                        },
+                        {
+                          "id": "jira",
+                          "name": "Jira Software",
+                          "supportsOAuth": true,
+                          "tokenPlaceholder": "domain.atlassian.net|email|api_token",
+                          "tokenDescription": "Format: Domain | Email | API Token"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/providers/{type}": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Authenticate with a provider",
+        "description": "Authenticates with a git provider using the provided token. Returns user information if authentication is successful.",
+        "operationId": "authenticateProvider",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "description": "Provider type (github, jira, linear, asana, trello)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["github", "jira", "linear", "asana", "trello"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Provider authentication token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthToken"
+              },
+              "examples": {
+                "github": {
+                  "summary": "GitHub PAT",
+                  "value": {
+                    "token": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  }
+                },
+                "jira": {
+                  "summary": "Jira API Token",
+                  "value": {
+                    "token": "your-domain.atlassian.net|your-email@company.com|your_api_token_here"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated with provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticationResponse"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "success": true,
+                      "provider": "github",
+                      "user": {
+                        "id": "12345",
+                        "username": "octocat",
+                        "name": "The Octocat",
+                        "email": "octocat@github.com",
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1?v=4",
+                        "profileUrl": "https://github.com/octocat"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed - invalid token or insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "authFailed": {
+                    "value": {
+                      "error": "Invalid authentication token",
+                      "code": "AUTH_FAILED",
+                      "context": "Token validation failed at provider"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Repositories"],
+        "summary": "Get repositories for authenticated provider",
+        "description": "Fetches a paginated list of repositories or projects from the authenticated provider.",
+        "operationId": "getRepositories",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "description": "Provider type",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["github", "jira", "linear", "asana", "trello"]
+            }
+          },
+          {
+            "name": "x-provider-token",
+            "in": "header",
+            "description": "Provider authentication token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination (1-indexed)",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "perPage",
+            "in": "query",
+            "description": "Number of items per page",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoriesResponse"
+                },
+                "examples": {
+                  "github": {
+                    "summary": "GitHub repositories",
+                    "value": {
+                      "repositories": [
+                        {
+                          "id": "123456",
+                          "name": "awesome-project",
+                          "fullName": "username/awesome-project",
+                          "description": "An awesome project",
+                          "url": "https://github.com/username/awesome-project",
+                          "isPrivate": false,
+                          "language": "TypeScript",
+                          "stars": 42,
+                          "forks": 12
+                        }
+                      ],
+                      "provider": "github",
+                      "page": 1,
+                      "perPage": 30
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing provider token header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired provider token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error fetching repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connect/installed": {
+      "post": {
+        "tags": ["Atlassian Connect"],
+        "summary": "Handle app installation",
+        "description": "Endpoint called by Atlassian when the app is installed. Stores tenant credentials.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": { "type": "string" },
+                  "clientKey": { "type": "string" },
+                  "sharedSecret": { "type": "string" },
+                  "baseUrl": { "type": "string" },
+                  "productType": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully handled installation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/connect/uninstalled": {
+      "post": {
+        "tags": ["Atlassian Connect"],
+        "summary": "Handle app uninstallation",
+        "description": "Endpoint called by Atlassian when the app is uninstalled. Removes tenant credentials.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully handled uninstallation"
+          }
+        }
+      }
+    },
+    "/api/solve": {
+      "post": {
+        "tags": ["AI Agent"],
+        "summary": "Solve a coding task",
+        "description": "Triggers the AI agent to solve a specific task in a repository.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["task", "repoUrl", "apiKey"],
+                "properties": {
+                  "task": { "type": "string" },
+                  "repoUrl": { "type": "string" },
+                  "githubToken": { "type": "string" },
+                  "apiKey": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task resolution summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "sessionId": { "type": "string" },
+                    "logs": { "type": "string" },
+                    "diff": { "type": "string" },
+                    "changedFiles": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProviderMetadata": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "supportsOAuth",
+          "tokenPlaceholder",
+          "tokenDescription"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique provider identifier",
+            "enum": ["github", "jira", "linear", "asana", "trello"]
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable provider name"
+          },
+          "supportsOAuth": {
+            "type": "boolean",
+            "description": "Whether provider supports OAuth flow"
+          },
+          "tokenPlaceholder": {
+            "type": "string",
+            "description": "Example format for the token"
+          },
+          "tokenDescription": {
+            "type": "string",
+            "description": "Instructions for obtaining the token"
+          }
+        }
+      },
+      "AuthToken": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Authentication token for the provider"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier"
+          },
+          "username": {
+            "type": "string",
+            "description": "User's username or login"
+          },
+          "name": {
+            "type": "string",
+            "description": "User's full name"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User's email address"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to user's avatar"
+          },
+          "profileUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to user's profile"
+          }
+        }
+      },
+      "AuthenticationResponse": {
+        "type": "object",
+        "required": ["success", "provider", "user"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether authentication was successful"
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider type that was authenticated"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique repository identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Full repository name with owner"
+          },
+          "description": {
+            "type": "string",
+            "description": "Repository description"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Repository URL"
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "description": "Whether repository is private"
+          },
+          "language": {
+            "type": "string",
+            "description": "Primary programming language"
+          },
+          "stars": {
+            "type": "integer",
+            "description": "Number of stars (for GitHub)"
+          },
+          "forks": {
+            "type": "integer",
+            "description": "Number of forks (for GitHub)"
+          }
+        }
+      },
+      "RepositoriesResponse": {
+        "type": "object",
+        "required": ["repositories", "provider", "page", "perPage"],
+        "properties": {
+          "repositories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Repository"
+            }
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider type"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number"
+          },
+          "perPage": {
+            "type": "integer",
+            "description": "Items per page"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "code": {
+            "type": "string",
+            "description": "Error code for programmatic handling",
+            "enum": [
+              "AUTH_FAILED",
+              "PERMISSION_DENIED",
+              "NOT_FOUND",
+              "VALIDATION",
+              "UNKNOWN"
+            ]
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context about the error"
+          }
+        }
+      }
+    }
+  }
+}

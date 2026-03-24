@@ -5,6 +5,8 @@ import * as gitApi from '../../../features/git/git_api';
 import * as gitRunner from '../../../features/git/git_runner';
 import * as ai from '../../../features/ai/code_gen';
 import * as file from '../../../features/file_processing';
+import { TaskContextBuilder } from '../../../features/scripting/task/task_context';
+import { TaskOrchestrator } from '../../../features/scripting/task/task_orchestrator';
 
 // Bun's server setup (if this is the entry point)
 // If you have a central server file, adapt this handler logic.

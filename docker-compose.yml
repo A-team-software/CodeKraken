@@ -15,7 +15,7 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "3000:3000" # Example: Next.js frontend
+      - "3002:3002" # Example: Next.js frontend
       - "5001:5001" # Example: Express API
       # Add other ports your apps/services use
     env_file:

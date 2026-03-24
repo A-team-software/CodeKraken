@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "groq/llama-3.3-70b-versatile",
+  "provider": {
+    "groq": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Groq",
+      "options": {
+        "baseURL": "https://api.groq.com/openai/v1",
+        "apiKey": "{env:GROQ_API_KEY}"
+      },
+      "models": {
+        "llama-3.3-70b-versatile": {
+          "description": "Llama 3.3 70B (Groq)",
+          "maxTokens": 4096
+        },
+        "llama-3.1-8b-instant": {
+          "description": "Llama 3.1 8B (Groq)",
+          "maxTokens": 4096
+        }
+      }
+    }
+  },
+  "permission": {
+    "execution": { "*": "allow" },
+    "filesystem": { "*": "allow" },
+    "network": { "*": "allow" }
+  },
+  "tui": {
+    "mouse": false
+  }
+}

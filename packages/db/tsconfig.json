@@ -2,6 +2,7 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
         "target": "ES2017",
+        "ignoreDeprecations": "6.0",
         "outDir": "./dist",
         "rootDir": "./src",
         "lib": [

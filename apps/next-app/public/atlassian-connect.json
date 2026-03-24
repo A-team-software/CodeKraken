@@ -1,0 +1,40 @@
+{
+  "key": "com.oliverai.jira-integration",
+  "name": "OliverAI - Coding Assistant",
+  "description": "AI-powered coding assistant for Jira issues",
+  "baseUrl": "https://your-app-url.com",
+  "authentication": {
+    "type": "jwt"
+  },
+  "lifecycle": {
+    "installed": "/api/connect/installed",
+    "uninstalled": "/api/connect/uninstalled"
+  },
+  "modules": {
+    "jiraIssuePanels": [
+      {
+        "key": "oliver-ai-panel",
+        "url": "/connect/jira/issue-panel",
+        "name": {
+          "value": "OliverAI Assistant"
+        },
+        "icon": {
+          "width": 24,
+          "height": 24,
+          "url": "/icon.png"
+        }
+      }
+    ],
+    "generalPages": [
+      {
+        "key": "oliver-dashboard",
+        "url": "/dashboard?embedded=true",
+        "name": {
+          "value": "OliverAI Dashboard"
+        }
+      }
+    ]
+  },
+  "scopes": ["READ", "WRITE"],
+  "apiVersion": 1
+}
