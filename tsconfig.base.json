@@ -23,7 +23,6 @@
         "incremental": true,
         "noEmit": false, // Prevent base config from emitting files itself
         // --- Define Base URL and Paths ---
-        "baseUrl": ".", // Explicitly set base relative to this file (root)
         "paths": {
             // Add mappings for your workspace packages
             "@oliver/utils/*": [

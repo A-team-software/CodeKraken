@@ -5,6 +5,7 @@
         "INITDB",
         "modularly",
         "nothrow",
+        "oliverai",
         "Riverpod"
     ]
 }
