@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "bun run --watch src/endpoints/index.ts",
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
-    "start": "bun run dist/index.js",
-    "test": "bun test",
+    "dev": "pnpm run --watch src/endpoints/index.ts",
+    "build": "pnpm build ./src/index.ts --outdir ./dist --target bun",
+    "start": "pnpm run dist/index.js",
+    "test": "pnpm test",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
@@ -32,7 +32,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "@types/cookie": "^0.6.0",
     "@types/mongoose": "^5.11.97",
     "@types/node": "20.5.7",

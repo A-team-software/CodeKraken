@@ -1,4 +1,5 @@
-import { inspect } from 'bun';
+
+
 
 const logInfo = (...args: any[]) => {
     if (process.env.NODE_ENV === "development") {
@@ -7,7 +8,7 @@ const logInfo = (...args: any[]) => {
 }
 const logError = (error: any) => {
     if (process.env.NODE_ENV === "development") {
-        console.log(inspect(error, { depth: Infinity, colors: true, }));
+        console.log(error, { depth: Infinity, colors: true, });
     }
 }
 const logWarn = (args: string) => {

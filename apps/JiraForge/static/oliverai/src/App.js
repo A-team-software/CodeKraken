@@ -121,6 +121,21 @@ function App() {
       setRepos([]);
       return;
     }
+
+    const cacheKey = `repos-${provider}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setRepos(parsed);
+          return;
+        }
+      } catch (e) {
+        console.error('Failed to parse cached repositories:', e);
+      }
+    }
+
     let mounted = true;
     setReposLoading(true);
     (async () => {
@@ -131,7 +146,13 @@ function App() {
           perPage: 50,
         });
         if (!mounted) return;
-        setRepos(Array.isArray(res?.repositories) ? res.repositories : []);
+        const fetchedRepos = Array.isArray(res?.repositories) 
+          ? res.repositories 
+          : Array.isArray(res) 
+            ? res 
+            : [];
+        setRepos(fetchedRepos);
+        sessionStorage.setItem(cacheKey, JSON.stringify(fetchedRepos));
       } catch (e) {
         if (!mounted) return;
         setRepos([]);
@@ -203,7 +224,13 @@ function App() {
     try {
       const { authUrl } = await invoke('getGithubAuthUrl');
       if (authUrl) {
-        await router.open(authUrl);
+        // Use window.open (popup) instead of router.open so that window.opener
+        // is set in the callback page, allowing postMessage back to this panel.
+        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
+        if (!popup) {
+          // Popup was blocked – fall back to same-tab navigation.
+          window.location.href = authUrl;
+        }
       }
     } catch (e) {
       console.error('handleConnectGit failed:', e);

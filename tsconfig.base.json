@@ -3,7 +3,7 @@
     "compilerOptions": {
         "target": "ESNext", // Use consistent modern target
         "types": [
-            "bun"
+            "node"
         ],
         "lib": [
             "ESNext",

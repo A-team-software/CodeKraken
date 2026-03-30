@@ -15,11 +15,12 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "3002:3002" # Example: Next.js frontend
-      - "5001:5001" # Example: Express API
+      - "3002:3002" # Frontend (Next.js)
+      - "5001:5001" # Main API
+
       # Add other ports your apps/services use
     env_file:
-      - ".env"
+      - ".env.local"
     environment:
       # --- Database Connection ---
       # Service name 'mongo' is used as the hostname because Docker Compose
@@ -54,12 +55,14 @@ services:
 
   # MongoDB Service
   mongo:
-    image: mongo:latest # Or specify a version like mongo:6.0
+    image: mongo:6 # Or specify a version like mongo:6.0
     container_name: ${COMPOSE_PROJECT_NAME:-my_monorepo}_mongo
     ports:
       # Expose port 27017 to the host machine (optional, for external tools like MongoDB Compass)
       # Make sure port 27017 is free on your host if you uncomment this.
       - "27017:27017"
+    env_file:
+      - ".env.local"
     environment:
       # These credentials are used to create the initial root user in the 'admin' database.
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
