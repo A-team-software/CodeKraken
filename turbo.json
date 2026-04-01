@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".env"],
+  "globalDependencies": [".env.local", ".env"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -9,7 +9,10 @@
         "!.next/cache/**",
         "apps/api/dist/**",
         "packages/ui/dist/**",
-        "packages/shared-types/dist/**"
+        "packages/shared-types/dist/**",
+        "packages/core/dist/**",
+        "packages/auth/dist/**",
+        "packages/utils/dist/**"
       ]
     },
     "lint": {

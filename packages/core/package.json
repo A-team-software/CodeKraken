@@ -1,0 +1,25 @@
+{
+  "name": "@oliver/core",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.1",
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.17.24",
+    "effect": "^3.21.0",
+    "@oliver/core": "workspace:*",
+    "lodash": "^4.17.21",
+    "zod": "^4.1.13"
+  }
+}

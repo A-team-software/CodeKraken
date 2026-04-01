@@ -1,12 +1,12 @@
 # docker-compose.yml
 
 services:
-  # Your main application development service
-  app:
+  # Server application service (apps/server)
+  server:
     build:
       context: .
-      # dockerfile: Dockerfile.dev
-    container_name: ${COMPOSE_PROJECT_NAME:-my_monorepo}_app
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-my_monorepo}_server
     volumes:
       - .:/app
       # - node_modules:/app/node_modules # See note below about node_modules persistence
@@ -15,8 +15,7 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - "3002:3002" # Frontend (Next.js)
-      - "5001:5001" # Main API
+      - "5000:3000" # Server (Next.js)
 
       # Add other ports your apps/services use
     env_file:
@@ -44,7 +43,7 @@ services:
       - LOG_LEVEL=debug
       - DOCKER_CONTAINER=true
 
-    # Make sure the app service waits for the mongo service to start
+    # Make sure the server service waits for the mongo service to start
     # Note: This only waits for the container to start, not for MongoDB process to be fully ready.
     # Your app should have retry logic for the DB connection.
     depends_on:

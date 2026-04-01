@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { AuthService } from '@/lib/auth/application/AuthService';
 import { GetRepositoriesUseCase } from '@/lib/git/application/use_cases/GetRepositoriesUseCase';
 
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
         const perPage = parseInt(searchParams.get('perPage') || '30');
 
         const authService = AuthService.getInstance();
-        const authData = await authService.getValidTokenAndUserFromRequest(request, provider, 'git');
+        const authData = await authService.getValidTokenAndUserFromRequest(cookies, request, provider, 'git');
 
         if (!authData) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

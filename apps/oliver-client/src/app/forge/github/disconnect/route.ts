@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateForgeRequest } from '@/lib/auth/infrastructure/forgeAuth';
 
 export async function POST(req: NextRequest) {
-    const { isValid, error } = validateForgeRequest(req);
+    const { isValid, error } = validateForgeRequest(req, NextResponse);
     if (!isValid) return error!;
 
     const { accountId } = await req.json();
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     try {
         const { AtlassianConnectService } = await import('@/lib/application/services/AtlassianConnectService');
         const { MongoOAuthTokenRepository } = await import('@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo');
-        
+
         const atlassianService = new AtlassianConnectService();
         const userId = await atlassianService.getUserIdByAtlassianAccountId(accountId);
 

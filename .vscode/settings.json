@@ -1,11 +1,15 @@
 {
     "cSpell.words": [
+        "atlassiantenants",
         "Dartdoc",
         "healthcheck",
         "INITDB",
+        "millis",
         "modularly",
         "nothrow",
+        "oauthtokens",
         "oliverai",
-        "Riverpod"
+        "Riverpod",
+        "usersitaccess"
     ]
 }

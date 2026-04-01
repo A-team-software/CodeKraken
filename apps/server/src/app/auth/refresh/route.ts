@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { AuthService } from '@/lib/auth/application/AuthService';
 import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
 import { ProviderType } from '@/lib/auth/domain';
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Use the AuthService facade to refresh if needed
-        const result = await AuthService.getInstance().getValidTokenAndUserFromRequest(request, provider, providerType as ProviderType);
+        const result = await AuthService.getInstance().getValidTokenAndUserFromRequest(cookies, request, provider, providerType as ProviderType);
 
         if (!result) {
             return NextResponse.json(

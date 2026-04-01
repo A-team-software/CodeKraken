@@ -1,0 +1,23 @@
+{
+  "name": "@oliver/domains",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.1",
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  },
+  "dependencies": {
+    "@oliver/shared": "workspace:*",
+    "@oliver/core": "workspace:*",
+    "zod": "^4.1.13"
+  }
+}

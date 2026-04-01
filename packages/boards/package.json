@@ -1,0 +1,25 @@
+{
+  "name": "@oliver/boards",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.7.1",
+  "dependencies": {
+    "lucide-react": "^0.555.0",
+    "@oliver/shared": "workspace:*",
+    "@oliver/core": "workspace:*",
+    "@oliver/user": "workspace:*",
+    "@oliver/auth": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}
