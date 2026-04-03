@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { flow } from "lodash";
-import { Logger } from "@/src/observability";
+import { Logger } from "../../observability";
 import SafeExecuteInterface, { SafeExecuteBuilder as IBuilder } from "../interfaces/safe_execute";
 import { applyRetry, applyTimeout, applyCatch, SafeRetryOptions } from "../effects/pipeline_steps";
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
+import { Logger } from '@oliver/core';
 
 /**
  * POST /api/forge/github/status

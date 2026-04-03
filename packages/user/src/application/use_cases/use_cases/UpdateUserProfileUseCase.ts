@@ -1,6 +1,5 @@
-import { UserAggregate } from '@/lib/user';
-import { UserRepository } from '@/lib/user/domain/repository/UserRepository.interface';
-import { EventBus } from '@/lib/shared/events';
+import { UserRepository } from '../../../domain/repository/UserRepository.interface';
+import { EventBus } from '@oliver/shared';
 
 export interface UpdateUserProfileCommand {
     userId: string;

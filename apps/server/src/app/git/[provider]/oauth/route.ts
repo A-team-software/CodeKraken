@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/application/AuthService';
-import { GIT_PROVIDER_REGISTRY } from '@/lib/git';
-import { GitHubService } from '@/lib/git/infrastructure/external/GitHubService';
-import { BitbucketService } from '@/lib/git/infrastructure/external/BitbucketService';
+import { AuthService } from '@oliver/auth';
+import { GIT_PROVIDER_REGISTRY } from '@oliver/git';
+import { GitHubService } from '@oliver/git';
+import { BitbucketService } from '@oliver/git';
 
 /**
  * GET /api/git/[provider]/oauth

@@ -7,10 +7,20 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
+      zod:
+        specifier: ^4.1.13
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: latest
-        version: 25.5.0
+        version: 25.5.2
       '@typescript-eslint/eslint-plugin':
         specifier: 8.11.0
         version: 8.11.0(@typescript-eslint/parser@8.11.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
@@ -87,6 +97,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      '@oliver/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.4(@types/react@19.2.14)(react@19.2.4)
@@ -141,7 +154,7 @@ importers:
         version: 9.0.10
       '@types/node':
         specifier: latest
-        version: 25.5.0
+        version: 25.5.2
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.14
@@ -172,6 +185,36 @@ importers:
       '@google/generative-ai':
         specifier: ^0.24.1
         version: 0.24.1
+      '@oliver/application':
+        specifier: workspace:*
+        version: link:../../packages/application
+      '@oliver/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@oliver/boards':
+        specifier: workspace:*
+        version: link:../../packages/boards
+      '@oliver/code-gen':
+        specifier: workspace:*
+        version: link:../../packages/code-gen
+      '@oliver/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@oliver/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@oliver/domains':
+        specifier: workspace:*
+        version: link:../../packages/domains
+      '@oliver/git':
+        specifier: workspace:*
+        version: link:../../packages/git
+      '@oliver/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@oliver/user':
+        specifier: workspace:*
+        version: link:../../packages/user
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.4(@types/react@19.2.14)(react@19.2.4)
@@ -229,7 +272,7 @@ importers:
         version: 9.0.10
       '@types/node':
         specifier: latest
-        version: 25.5.0
+        version: 25.5.2
       '@types/react':
         specifier: ^19.2.7
         version: 19.2.14
@@ -288,9 +331,6 @@ importers:
       '@oliver/domains':
         specifier: workspace:*
         version: link:../domains
-      '@oliver/git':
-        specifier: workspace:*
-        version: link:../git
       '@oliver/shared':
         specifier: workspace:*
         version: link:../shared
@@ -304,6 +344,25 @@ importers:
 
   packages/boards:
     dependencies:
+      '@oliver/core':
+        specifier: workspace:*
+        version: link:../core
+      '@oliver/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@oliver/user':
+        specifier: workspace:*
+        version: link:../user
+      lucide-react:
+        specifier: ^0.555.0
+        version: 0.555.0(react@19.2.4)
+    devDependencies:
+      tsup:
+        specifier: ^8.4.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.8)(typescript@5.8.3)(yaml@2.8.3)
+
+  packages/code-gen:
+    dependencies:
       '@oliver/auth':
         specifier: workspace:*
         version: link:../auth
@@ -316,6 +375,9 @@ importers:
       '@oliver/user':
         specifier: workspace:*
         version: link:../user
+      execa:
+        specifier: ^9.6.0
+        version: 9.6.1
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.4)
@@ -345,18 +407,15 @@ importers:
 
   packages/db:
     dependencies:
-      '@oliver/auth':
-        specifier: workspace:*
-        version: link:../auth
       '@oliver/core':
         specifier: workspace:*
         version: link:../core
       '@oliver/domains':
         specifier: workspace:*
         version: link:../domains
-      '@oliver/user':
-        specifier: workspace:*
-        version: link:../user
+      lodash:
+        specifier: ^4.18.1
+        version: 4.18.1
       mongodb:
         specifier: ^6.16.0
         version: 6.21.0
@@ -383,18 +442,12 @@ importers:
 
   packages/git:
     dependencies:
-      '@oliver/auth':
-        specifier: workspace:*
-        version: link:../auth
       '@oliver/core':
         specifier: workspace:*
         version: link:../core
       '@oliver/shared':
         specifier: workspace:*
         version: link:../shared
-      '@oliver/user':
-        specifier: workspace:*
-        version: link:../user
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.4)
@@ -1292,8 +1345,8 @@ packages:
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
 
-  '@types/node@25.5.0':
-    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
+  '@types/node@25.5.2':
+    resolution: {integrity: sha512-tO4ZIRKNC+MDWV4qKVZe3Ql/woTnmHDr5JD8UI5hn2pwBrHEwOEMZK7WlNb5RKB6EoJ02gwmQS9OrjuFnZYdpg==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -2535,6 +2588,9 @@ packages:
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
 
+  lodash@4.18.1:
+    resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
+
   long@5.3.2:
     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
 
@@ -3762,7 +3818,7 @@ snapshots:
 
   '@forge/i18n@0.0.7':
     dependencies:
-      lodash: 4.17.23
+      lodash: 4.18.1
 
   '@forge/manifest@12.1.1':
     dependencies:
@@ -3772,7 +3828,7 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.18.0)
       cheerio: 1.2.0
       glob: 11.1.0
-      lodash: 4.17.23
+      lodash: 4.18.1
       mime-types: 2.1.35
       yaml: 2.8.3
 
@@ -3784,7 +3840,7 @@ snapshots:
       ajv-formats: 2.1.1(ajv@8.18.0)
       cheerio: 1.2.0
       glob: 13.0.6
-      lodash: 4.17.23
+      lodash: 4.18.1
       mime-types: 2.1.35
       yaml: 2.8.3
 
@@ -4169,7 +4225,7 @@ snapshots:
   '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
 
   '@types/linkify-it@5.0.0': {}
 
@@ -4186,14 +4242,14 @@ snapshots:
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       form-data: 4.0.5
 
   '@types/node@18.19.130':
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@25.5.0':
+  '@types/node@25.5.2':
     dependencies:
       undici-types: 7.18.2
 
@@ -4425,7 +4481,7 @@ snapshots:
   atlassian-jwt@2.0.3:
     dependencies:
       jsuri: 1.3.1
-      lodash: 4.17.23
+      lodash: 4.18.1
 
   autoprefixer@10.4.27(postcss@8.5.8):
     dependencies:
@@ -5671,6 +5727,8 @@ snapshots:
 
   lodash@4.17.23: {}
 
+  lodash@4.18.1: {}
+
   long@5.3.2: {}
 
   loose-envify@1.4.0:
@@ -6096,7 +6154,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 25.5.0
+      '@types/node': 25.5.2
       long: 5.3.2
 
   punycode.js@2.3.1: {}

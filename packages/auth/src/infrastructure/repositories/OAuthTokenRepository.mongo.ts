@@ -2,7 +2,7 @@ import { ObjectId } from '@oliver/db';
 import { ProviderType, OAuthTokenZodSchema, SafeExecute } from '@oliver/core';
 import { OAuthTokenCollection } from '@oliver/db';
 import { OAuthTokenRepository } from '../../domain/repository/OAuthTokenRepository.interface';
-import { OAuthTokenAggregate } from '@/src/domain';
+import { OAuthTokenAggregate } from '../../domain';
 
 /**
  * MongoDB Repository for OAuth Token Management

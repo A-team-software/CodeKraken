@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ProcessOAuthCallbackUseCase } from '@/lib/auth/application/use_cases/ProcessOAuthCallbackUseCase';
-import { MongoOAuthStateRepository } from '@/lib/auth/infrastructure/repositories/OAuthStateRepository.mongo';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { SynchronizeUserUseCase } from '@/lib/user/application/use_cases/SynchronizeUserUseCase';
-import { MongoUserRepository } from '@/lib/user/infrastructure/repositories/UserRepository.mongo';
-import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, FORGE_GITHUB_CALLBACK_URL } from '@/lib/infrastructure/config/oauth.config';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { ProcessOAuthCallbackUseCase } from '@oliver/auth';
+import { MongoOAuthStateRepository } from '@oliver/auth';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
+import { SynchronizeUserUseCase } from '@oliver/user';
+import { MongoUserRepository } from '@oliver/user';
+import { TOKEN_COOKIE_NAME, FORGE_GITHUB_CALLBACK_URL, TOKEN_COOKIE_MAX_AGE, Logger } from '@oliver/core';
 
 /**
  * GET /api/git/[provider]/callback
@@ -107,7 +106,7 @@ export async function GET(
         // For simpler logic, if the request came to this callback but is a Forge flow, we should show the Forge error
         const { searchParams } = request.nextUrl;
         const state = searchParams.get('state');
-        
+
         // If we have no metadata here because use case failed, we might need a fallback check
         // But usually if it's a Forge flow, the error should also be shown in the popup
         return closeWindowResponse(false, message);
@@ -119,7 +118,7 @@ export async function GET(
  */
 function closeWindowResponse(success: boolean, errorMsg?: string) {
     const payload = JSON.stringify({ success, error: errorMsg });
-    
+
     const html = `
         <!DOCTYPE html>
         <html>
@@ -157,7 +156,7 @@ function closeWindowResponse(success: boolean, errorMsg?: string) {
         </body>
         </html>
     `;
-    
+
     return new NextResponse(html, {
         headers: { 'Content-Type': 'text/html' },
     });

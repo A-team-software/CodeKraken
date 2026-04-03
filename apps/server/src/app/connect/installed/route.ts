@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AtlassianConnectService } from '@/lib/application/services/AtlassianConnectService';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { AtlassianConnectService } from '@oliver/application';
+import { Logger } from '@oliver/core';
 
 export async function POST(req: NextRequest) {
     try {

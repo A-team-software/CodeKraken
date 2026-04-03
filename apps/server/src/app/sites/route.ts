@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoAtlassianTenantRepository } from '@/lib/infrastructure/db/mongodb/repositories/AtlassianTenantRepository.mongo';
-import { MongoUserJiraSiteAccessRepository } from '@/lib/infrastructure/db/mongodb/repositories/UserJiraSiteAccessRepository.mongo';
-import { GetUserJiraSitesUseCase } from '@/lib/application/use_cases/atlassian/GetUserJiraSitesUseCase';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { MongoAtlassianTenantRepository } from '@oliver/db';
+import { MongoUserJiraSiteAccessRepository } from '@oliver/db';
+import { GetUserJiraSitesUseCase } from '@oliver/application';
+import { Logger } from '@oliver/core';
 
 /**
  * GET /api/sites

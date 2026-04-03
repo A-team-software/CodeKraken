@@ -1,6 +1,6 @@
-import { UserRepository } from '@/lib/user/domain/repository/UserRepository.interface';
-import { EventBus } from '@/lib/shared/events';
-import { UserProps } from '@/lib/user/domain/entity/user_entity';
+import { UserRepository } from '../../../domain/repository/UserRepository.interface';
+import { EventBus } from '@oliver/shared';
+import { UserProps } from '@oliver/core';
 
 export interface UpdateUserSettingsCommand {
     userId: string;

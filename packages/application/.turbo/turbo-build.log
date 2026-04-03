@@ -1,0 +1,5 @@
+
+
+> @oliver/application@1.0.0 build /app/packages/application
+> tsc -b
+

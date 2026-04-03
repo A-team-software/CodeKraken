@@ -1,4 +1,4 @@
-import { PlainAtlassianTenant } from "@/lib/infrastructure/db/mongodb/models/AtlassianTenant.model";
+import { PlainAtlassianTenant } from "@oliver/core";
 
 export interface AtlassianTenantRepository {
     findByClientKey(clientKey: string): Promise<PlainAtlassianTenant | null>;

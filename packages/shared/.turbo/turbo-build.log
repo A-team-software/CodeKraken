@@ -1,0 +1,5 @@
+
+
+> @oliver/shared@1.0.0 build /app/packages/shared
+> tsc -b
+

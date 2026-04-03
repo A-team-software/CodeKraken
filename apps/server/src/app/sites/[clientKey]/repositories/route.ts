@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoSiteRepositoryRepository } from '@/lib/infrastructure/db/mongodb/repositories/SiteRepositoryRepository.mongo';
-import { MongoAtlassianTenantRepository } from '@/lib/infrastructure/db/mongodb/repositories/AtlassianTenantRepository.mongo';
-import { MongoUserJiraSiteAccessRepository } from '@/lib/infrastructure/db/mongodb/repositories/UserJiraSiteAccessRepository.mongo';
-import { ListSiteReposUseCase } from '@/lib/application/use_cases/site_repository/ListSiteReposUseCase';
-import { AssignRepoToSiteUseCase } from '@/lib/application/use_cases/site_repository/AssignRepoToSiteUseCase';
-import { z } from 'zod';
+import { MongoSiteRepositoryRepository } from '@oliver/db';
+import { MongoAtlassianTenantRepository } from '@oliver/db';
+import { MongoUserJiraSiteAccessRepository } from '@oliver/db';
+import { ListSiteReposUseCase } from '@oliver/application';
+import { AssignRepoToSiteUseCase } from '@oliver/application';
+import { AssignRepoBodySchema } from '@oliver/domains';
 
 // -----------------------------------------------------------------------
 // Singletons (created once per cold-start, reused across requests)
 // -----------------------------------------------------------------------
 const siteRepoRepository = new MongoSiteRepositoryRepository();
 const tenantRepository = new MongoAtlassianTenantRepository();
-
-// -----------------------------------------------------------------------
-// POST body schema
-// -----------------------------------------------------------------------
-const AssignRepoBodySchema = z.object({
-    repoId: z.string(),
-    repoFullName: z.string(),
-    provider: z.enum(['github', 'bitbucket']),
-    htmlUrl: z.string().url(),
-});
 
 // -----------------------------------------------------------------------
 // Shared guard: ensure the clientKey maps to a known Atlassian tenant or access

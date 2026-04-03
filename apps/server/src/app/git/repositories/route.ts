@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { AuthService } from '@/lib/auth/application/AuthService';
-import { GetRepositoriesUseCase } from '@/lib/git/application/use_cases/GetRepositoriesUseCase';
+import { AuthService } from '@oliver/auth';
+import { GetRepositoriesUseCase } from '@oliver/git';
 
 export async function GET(request: NextRequest) {
     try {

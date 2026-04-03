@@ -1,4 +1,4 @@
-import { GitProviderFactory } from "@/src/infrastructure/external/GitProviderFactory";
+import { GitProviderFactory } from "../../infrastructure/external/GitProviderFactory";
 
 export class AuthenticateGitProviderUseCase {
     async execute(params: { providerType: string; token: string }) {

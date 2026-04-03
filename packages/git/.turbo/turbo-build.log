@@ -1,0 +1,5 @@
+
+
+> @oliver/git@1.0.0 build /app/packages/git
+> tsc -b
+

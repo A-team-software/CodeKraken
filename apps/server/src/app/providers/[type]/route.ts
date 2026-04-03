@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthenticateGitProviderUseCase } from '@/lib/git/application/use_cases/AuthenticateGitProviderUseCase';
-import { GitProviderError } from '@/lib/shared/errors/provider.errors';
-import { TOKEN_COOKIE_NAME } from '@/lib/infrastructure/config/oauth.config';
+import { AuthenticateGitProviderUseCase } from '@oliver/git';
+import { GitProviderError } from '@oliver/shared';
+import { TOKEN_COOKIE_NAME } from '@oliver/auth';
 
 /**
  * POST /api/providers/[type]
  * Authenticate with a git provider via a manually supplied token (legacy / PAT flow).
  * For OAuth-based auth, use GET /api/git/[provider]/oauth instead.
- *
+ * AssignedRepoSchema
  * Body: { token: "..." }
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ type: string }> }) {

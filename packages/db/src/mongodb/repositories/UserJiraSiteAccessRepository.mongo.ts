@@ -1,6 +1,7 @@
 import { UserJiraSiteAccessZodSchema, SafeExecute } from '@oliver/core';
 import { UserJiraSiteAccessCollection } from '../collections/UserJiraSiteAccessCollection';
 import { UserJiraSiteAccessAggregate, UserJiraSiteAccessRepository } from '@oliver/domains';
+import { ObjectId } from 'mongodb';
 
 /**
  * MongoDB Repository for User-Jira-Site Access Management
@@ -50,7 +51,7 @@ export class MongoUserJiraSiteAccessRepository implements UserJiraSiteAccessRepo
         if (cleanAccess.id) {
             const [_, error] = await SafeExecute
                 .withSync(() => collection.updateOne(
-                    { _id: cleanAccess.id },
+                    { _id: new ObjectId(cleanAccess.id) },
                     updateDoc,
                     { upsert: true }
                 ))

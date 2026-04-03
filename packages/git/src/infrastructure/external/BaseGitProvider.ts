@@ -1,4 +1,4 @@
-import { IGitProvider } from '@/src/application/domain/services/IGitProvider.interface';
+import { IGitProvider } from '../../application/domain/services/IGitProvider.interface';
 import { UnifiedRepository, ProviderCapabilities, UnifiedWebhook, UnifiedDelivery, UnifiedEvent, WebhookConfigParams, Logger, UserProps, } from '@oliver/core';
 import { GitProviderError } from '@oliver/shared';
 

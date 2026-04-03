@@ -1,0 +1,5 @@
+
+
+> @oliver/db@1.0.0 build /app/packages/db
+> tsc -b
+

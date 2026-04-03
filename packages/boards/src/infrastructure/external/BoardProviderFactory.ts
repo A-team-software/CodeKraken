@@ -3,7 +3,7 @@ import { AsanaService } from './AsanaService';
 import { JiraService } from './JiraService';
 import { LinearService } from './LinearService';
 import { TrelloService } from './TrelloService';
-import { IBoardProvider } from '@/src/domain/services/IBoardProvider.interface';
+import { IBoardProvider } from '../../domain/services/IBoardProvider.interface';
 import { BoardProviderError } from '@oliver/shared';
 
 export interface BoardProviderMetadata {

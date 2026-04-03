@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { Logger } from '@oliver/core';
 // Assuming we have an LLM service, using a placeholder/mock for now as none was found in services
 // In production, import { GeminiService } from '@/services/ai/gemini.service';
 

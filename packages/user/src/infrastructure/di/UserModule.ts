@@ -1,11 +1,10 @@
 import { MongoUserRepository } from '../repositories/UserRepository.mongo';
-import { GetUserProfileUseCase } from '@/lib/user/application/use_cases/use_cases/GetUserProfileUseCase';
-import { UpdateUserProfileUseCase } from '@/lib/user/application/use_cases/use_cases/UpdateUserProfileUseCase';
-import { CreateUserUseCase } from '@/lib/user/application/use_cases/use_cases/CreateUserUseCase';
-import { UpdateUserSettingsUseCase } from '@/lib/user/application/use_cases/use_cases/UpdateUserSettingsUseCase';
-import { UpdateUserOnboardingStepUseCase } from '@/lib/user/application/use_cases/use_cases/UpdateUserOnboardingStepUseCase';
-import { EventBus } from '@/lib/shared/events';
 import { MongoUserReadService } from '../services/MongoUserReadService';
+import { GetUserProfileUseCase } from '../../application/use_cases/use_cases/GetUserProfileUseCase';
+import { CreateUserUseCase, UpdateUserProfileUseCase } from '../../application/use_cases/use_cases';
+import { UpdateUserSettingsUseCase } from '../../application/use_cases/use_cases/UpdateUserSettingsUseCase';
+import { UpdateUserOnboardingStepUseCase } from '../../application/use_cases/use_cases/UpdateUserOnboardingStepUseCase';
+import { EventBus } from '@oliver/shared';
 
 // Create singleton instances or factories for your infrastructure
 const userRepository = new MongoUserRepository();

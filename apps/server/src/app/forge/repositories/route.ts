@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateForgeRequest } from '@/lib/auth/infrastructure/forgeAuth';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { GetRepositoriesUseCase } from '@/lib/git/application/use_cases/GetRepositoriesUseCase';
+import { validateForgeRequest } from '@oliver/auth';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
+import { GetRepositoriesUseCase } from '@oliver/git';
 
-export async function GET(req: NextRequest, res: NextResponse) {
-    const { isValid, error } = validateForgeRequest(req, res);
-    if (!isValid) return error!;
+export async function GET(req: NextRequest) {
+    const { isValid, error, status } = validateForgeRequest(req);
+    if (!isValid) return NextResponse.json({ error }, { status });
 
     const accountId = req.headers.get('X-Forge-Account-Id');
     const cloudId = req.headers.get('X-Forge-Client-Key');

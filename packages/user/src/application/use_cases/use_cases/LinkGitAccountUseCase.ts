@@ -1,6 +1,6 @@
-import { UserRepository } from '@/lib/user/domain/repository/UserRepository.interface';
-import { EventBus } from '@/lib/shared/events';
-import { ConnectedAccount } from '@/lib/git';
+import { UserRepository } from '../../../domain/repository/UserRepository.interface';
+import { EventBus } from '@oliver/shared';
+import { ConnectedAccount } from '@oliver/core';
 
 export interface LinkGitAccountCommand {
     userId: string;

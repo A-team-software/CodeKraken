@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ProcessOAuthCallbackUseCase } from '@/lib/auth/application/use_cases/ProcessOAuthCallbackUseCase';
-import { MongoOAuthStateRepository } from '@/lib/auth/infrastructure/repositories/OAuthStateRepository.mongo';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { SynchronizeUserUseCase } from '@/lib/user/application/use_cases/SynchronizeUserUseCase';
-import { MongoUserRepository } from '@/lib/user/infrastructure/repositories/UserRepository.mongo';
-import { TOKEN_COOKIE_MAX_AGE } from '@/lib/infrastructure/config/oauth.config';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { ProcessOAuthCallbackUseCase } from '@oliver/auth';
+import { MongoOAuthStateRepository } from '@oliver/auth';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
+import { SynchronizeUserUseCase } from '@oliver/user';
+import { MongoUserRepository } from '@oliver/user';
+import { TOKEN_COOKIE_MAX_AGE } from '@oliver/core';
+import { Logger } from '@oliver/core';
 
 /**
  * GET /api/boards/[provider]/callback

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/application/AuthService';
-import { BoardProviderFactory } from '@/lib/board/infrastructure/external/BoardProviderFactory';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { AuthService } from '@oliver/auth';
+import { BoardProviderFactory } from '@oliver/boards';
+import { Logger } from '@oliver/core';
 
 /**
  * GET /api/boards/[provider]/oauth

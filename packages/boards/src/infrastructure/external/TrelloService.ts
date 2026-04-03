@@ -16,11 +16,9 @@ import { BaseBoardProvider } from './BaseBoardProvider';
 
 import { BoardProviderError } from '@oliver/shared';
 
-import {
-    TRELLO_API_KEY,
-    TRELLO_CALLBACK_URL,
-    TRELLO_AUTH_URL,
-} from '@oliver/auth';
+const TRELLO_API_KEY = process.env.NEXT_PUBLIC_TRELLO_CLIENT_ID || '';
+const TRELLO_CALLBACK_URL = process.env.TRELLO_CALLBACK_URL || 'http://localhost:3000/api/boards/trello/callback';
+const TRELLO_AUTH_URL = 'https://trello.com/1/authorize';
 
 
 /**

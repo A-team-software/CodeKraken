@@ -1,0 +1,5 @@
+
+
+> @oliver/code-gen@1.0.0 build /app/packages/code-gen
+> tsc -b
+

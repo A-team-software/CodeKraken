@@ -13,7 +13,7 @@ import {
     Webhook,
 } from '@oliver/core';
 import { GitProviderError } from '@oliver/shared';
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_AUTH_URL, GITHUB_TOKEN_URL } from '@oliver/auth';
+import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_AUTH_URL, GITHUB_TOKEN_URL } from '@oliver/core';
 import { BaseGitProvider } from './BaseGitProvider';
 
 

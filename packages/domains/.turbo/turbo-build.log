@@ -1,0 +1,5 @@
+
+
+> @oliver/domains@1.0.0 build /app/packages/domains
+> tsc -b
+

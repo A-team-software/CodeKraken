@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GetRepositoriesUseCase } from '@/lib/git/application/use_cases/GetRepositoriesUseCase';
-import { TOKEN_COOKIE_NAME } from '@/lib/infrastructure/config/oauth.config';
+import { GetRepositoriesUseCase } from '@oliver/git';
+import { TOKEN_COOKIE_NAME } from '@oliver/auth';
 
 /**
  * GET /api/git/[provider]/repositories

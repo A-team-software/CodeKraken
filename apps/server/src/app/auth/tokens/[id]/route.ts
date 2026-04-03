@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PersonalAccessTokenService } from "@/lib/auth/application/PersonalAccessTokenService";
-import { Logger } from "@/lib/infrastructure/logging/logger";
+import { PersonalAccessTokenService } from "@oliver/auth";
+import { Logger } from "@oliver/core";
 
 export async function DELETE(
     request: NextRequest,

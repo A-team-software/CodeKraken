@@ -1,4 +1,4 @@
-import { EventBus } from '@/lib/shared/events';
+import { EventBus } from '@oliver/shared';
 import { USER_CREATED, ACCOUNT_LINKED } from '../../../domain/events/UserEvents';
 import { onUserCreated } from './OnUserCreated';
 import { onAccountLinked } from './OnAccountLinked';

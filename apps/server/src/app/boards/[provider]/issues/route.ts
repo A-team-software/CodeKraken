@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BoardProviderFactory } from '@/lib/board/infrastructure/external/BoardProviderFactory';
+import { BoardProviderFactory } from '@oliver/boards';
 
 export async function GET(
     request: NextRequest,

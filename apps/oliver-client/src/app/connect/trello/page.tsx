@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useEnvironment } from "@/context/EnvironmentContext";
+import { useEffect } from "react";
 
 export default function TrelloPowerUpPage() {
   useEffect(() => {

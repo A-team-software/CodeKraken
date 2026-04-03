@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ListGitProvidersUseCase } from '@/lib/git/application/use_cases/ListGitProvidersUseCase';
+import { ListGitProvidersUseCase } from '@oliver/git';
 
 /**
  * GET /api/providers - List all available providers

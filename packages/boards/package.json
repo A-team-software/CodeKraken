@@ -16,8 +16,7 @@
     "lucide-react": "^0.555.0",
     "@oliver/shared": "workspace:*",
     "@oliver/core": "workspace:*",
-    "@oliver/user": "workspace:*",
-    "@oliver/auth": "workspace:*"
+    "@oliver/user": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.4.0"

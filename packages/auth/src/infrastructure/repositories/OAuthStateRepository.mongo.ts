@@ -1,4 +1,4 @@
-import { OAuthStateRepository } from "@/src/domain/repository/OAuthStateRepository.interface";
+import { OAuthStateRepository } from "../../domain/repository/OAuthStateRepository.interface";
 
 import { OAuthStateCollection } from "@oliver/db";
 import { OAuthState, OAuthStateZodSchema, SafeExecute } from "@oliver/core";

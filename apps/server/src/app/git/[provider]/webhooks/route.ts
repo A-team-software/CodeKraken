@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GitProviderFactory } from '@/lib/git';
+import { GitProviderFactory } from '@oliver/git';
 
 export async function GET(
     request: NextRequest,

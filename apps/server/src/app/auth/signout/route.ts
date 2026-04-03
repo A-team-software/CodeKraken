@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Logger } from "@/lib/infrastructure/logging/logger";
-import { AuthService } from "@/lib/auth/application/AuthService";
+import { Logger } from "@oliver/core";
+import { AuthService } from "@oliver/auth";
 
 export async function POST(request: NextRequest) {
     try {

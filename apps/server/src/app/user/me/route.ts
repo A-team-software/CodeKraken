@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Logger } from "@/lib/infrastructure/logging/logger";
-import { userModule } from "@/lib/user/infrastructure/di/UserModule";
+import { Logger } from "@oliver/core";
+import { userModule } from "@oliver/user";
 
 export async function GET(request: NextRequest) {
     try {

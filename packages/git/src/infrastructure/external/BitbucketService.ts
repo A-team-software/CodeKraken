@@ -10,7 +10,7 @@ import {
 
 
 import { GitProviderError } from '@oliver/shared';
-import { BITBUCKET_CLIENT_ID, BITBUCKET_CLIENT_SECRET, BITBUCKET_AUTH_URL, BITBUCKET_TOKEN_URL } from '@oliver/auth';
+import { BITBUCKET_CLIENT_ID, BITBUCKET_CLIENT_SECRET, BITBUCKET_AUTH_URL, BITBUCKET_TOKEN_URL } from '@oliver/core';
 import { BaseGitProvider } from './BaseGitProvider';
 
 export class BitbucketService extends BaseGitProvider {

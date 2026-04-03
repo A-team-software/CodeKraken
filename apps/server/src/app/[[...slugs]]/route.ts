@@ -2,15 +2,12 @@ import { Elysia, t } from "elysia";
 import fs, { truncate } from "fs/promises";
 import os from "os";
 import path from "path";
-import { registerHandlers } from "@/lib/user/application/use_cases/event_handlers/registerHandlers";
-import { PersonalAccessTokenService } from "@/lib/auth/application/PersonalAccessTokenService";
-import { encrypt, decrypt } from "@/lib/shared/utils/encryption.util";
-import { GitHubService } from "@/lib/git/infrastructure/external/GitHubService";
-import { BitbucketService } from "@/lib/git/infrastructure/external/BitbucketService";
-import { createSessionId } from "@/lib/agentic_code_gen/session";
-import { cloneRepo } from "@/lib/agentic_code_gen/cloneRepo";
-import { analyzeDiff } from "@/lib/agentic_code_gen/diffAnalysis";
-import { runSolve } from "@/lib/agentic_code_gen/runSolve";
+import { registerHandlers } from "@oliver/user";
+import { PersonalAccessTokenService } from "@oliver/auth";
+import { encrypt, decrypt } from "@oliver/shared";
+import { GitHubService } from "@oliver/git";
+import { BitbucketService } from "@oliver/git";
+import { createSessionId, cloneRepo, analyzeDiff, runSolve } from "@oliver/code-gen";
 
 // Initialize event handlers
 registerHandlers();
@@ -30,7 +27,7 @@ const app = new Elysia({ prefix: "/api" })
 
                     if (forgeAccountId && forgeClientKey) {
                         console.log(`Elysia Auth: Forge check success. Account: ${forgeAccountId}, ClientKey: ${forgeClientKey}`);
-                        const { MongoUserJiraSiteAccessRepository } = await import('@/lib/infrastructure/db/mongodb/repositories/UserJiraSiteAccessRepository.mongo');
+                        const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
                         const accessRepo = new MongoUserJiraSiteAccessRepository();
 
                         // Map Forge context to userId
@@ -95,7 +92,7 @@ const app = new Elysia({ prefix: "/api" })
 
             // If we have a userId from PAT, automatically fetch the provider token
             if (!githubToken && userId) {
-                const { MongoUserRepository } = await import('@/lib/user/infrastructure/repositories/UserRepository.mongo');
+                const { MongoUserRepository } = await import('@oliver/user');
                 const userRepo = new MongoUserRepository();
                 const user = await userRepo.findById(userId);
                 const account = user?.accounts.find(a => a.provider.toLowerCase() === provider.toLowerCase());
@@ -166,7 +163,7 @@ const app = new Elysia({ prefix: "/api" })
 
         const provider = (query?.provider || 'github').toString().toLowerCase();
 
-        const { MongoUserRepository } = await import('@/lib/user/infrastructure/repositories/UserRepository.mongo');
+        const { MongoUserRepository } = await import('@oliver/user');
         const userRepo = new MongoUserRepository();
         const user = await userRepo.findById(userId);
 
@@ -181,7 +178,7 @@ const app = new Elysia({ prefix: "/api" })
             return { error: `No ${provider} connection found. Please connect ${provider} in the SCA dashboard.` };
         }
 
-        const { GetRepositoriesUseCase } = await import('@/lib/git/application/use_cases/GetRepositoriesUseCase');
+        const { GetRepositoriesUseCase } = await import('@oliver/git');
         const useCase = new GetRepositoriesUseCase();
         const repos = await useCase.execute({
             providerType: provider,
@@ -200,7 +197,7 @@ const app = new Elysia({ prefix: "/api" })
 
         const provider = (query?.provider || 'github').toString().toUpperCase();
         console.log(`GET /forge/identity/status: Checking provider ${provider}`);
-        const { MongoUserRepository } = await import('@/lib/user/infrastructure/repositories/UserRepository.mongo');
+        const { MongoUserRepository } = await import('@oliver/user');
         const userRepo = new MongoUserRepository();
         const user = await userRepo.findById(userId);
 
@@ -228,7 +225,7 @@ const app = new Elysia({ prefix: "/api" })
         }
 
         try {
-            const { MongoOAuthTokenRepository } = await import('@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo');
+            const { MongoOAuthTokenRepository } = await import('@oliver/auth');
             const tokenRepo = new MongoOAuthTokenRepository();
 
             const tokens = await tokenRepo.findByUser(userId);
@@ -259,7 +256,7 @@ const app = new Elysia({ prefix: "/api" })
     .get('/user/me', async ({ userId }) => {
         if (!userId) return { authenticated: false };
 
-        const { MongoUserRepository } = await import('@/lib/user/infrastructure/repositories/UserRepository.mongo');
+        const { MongoUserRepository } = await import('@oliver/user');
         const userRepo = new MongoUserRepository();
         const user = await userRepo.findById(userId);
 
@@ -286,7 +283,7 @@ const app = new Elysia({ prefix: "/api" })
             return { ok: false, error: 'Missing accountId or cloudId' };
         }
 
-        const { MongoForgeSessionRepository } = await import('@/lib/auth/infrastructure/repositories/ForgeSessionRepository.mongo');
+        const { MongoForgeSessionRepository } = await import('@oliver/auth');
         const sessionRepo = new MongoForgeSessionRepository();
         const forgeToken = await sessionRepo.create(accountId, cloudId, params.provider);
 
@@ -378,7 +375,7 @@ const app = new Elysia({ prefix: "/api" })
             }
 
             // 3. Associate with Atlassian user
-            const { MongoUserJiraSiteAccessRepository } = await import('@/lib/infrastructure/db/mongodb/repositories/UserJiraSiteAccessRepository.mongo');
+            const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
             const accessRepo = new MongoUserJiraSiteAccessRepository();
             const access = await accessRepo.findByAtlassianAccountId(accountId);
 
@@ -395,7 +392,7 @@ const app = new Elysia({ prefix: "/api" })
             }
 
             // 4. Save token to User record
-            const { MongoUserRepository } = await import('@/lib/user/infrastructure/repositories/UserRepository.mongo');
+            const { MongoUserRepository } = await import('@oliver/user');
             const userRepo = new MongoUserRepository();
             const user = await userRepo.findById(access.userId);
 
@@ -441,7 +438,7 @@ const app = new Elysia({ prefix: "/api" })
         const { state, accountId, cloudId, provider } = query;
 
         if (state) {
-            const { MongoOAuthStateRepository } = await import('@/lib/auth/infrastructure/repositories/OAuthStateRepository.mongo');
+            const { MongoOAuthStateRepository } = await import('@oliver/auth');
             const stateRepo = new MongoOAuthStateRepository();
             const stateDoc = await stateRepo.findByState(state);
             return { pending: !!stateDoc };
@@ -458,7 +455,7 @@ const app = new Elysia({ prefix: "/api" })
         }
 
         try {
-            const { AtlassianConnectService } = await import('@/lib/application/services/AtlassianConnectService');
+            const { AtlassianConnectService } = await import('@oliver/application');
             const atlassianService = new AtlassianConnectService();
 
             const siteUrl = `https://${clientKey}`;

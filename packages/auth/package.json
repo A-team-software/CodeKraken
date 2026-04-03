@@ -19,8 +19,7 @@
     "@oliver/user": "workspace:*",
     "@oliver/domains": "workspace:*",
     "@oliver/db": "workspace:*",
-    "@oliver/application": "workspace:*",
-    "@oliver/git": "workspace:*"
+    "@oliver/application": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.4.0"

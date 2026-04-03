@@ -15,14 +15,12 @@ import {
 
 import { BoardProviderError } from '@oliver/shared';
 
-import {
-    JIRA_CLIENT_ID,
-    JIRA_CLIENT_SECRET,
-    JIRA_CALLBACK_URL,
-    JIRA_AUTH_URL,
-    JIRA_TOKEN_URL,
-    JIRA_SCOPES,
-} from '@oliver/auth';
+const JIRA_CLIENT_ID = process.env.NEXT_PUBLIC_JIRA_CLIENT_ID || '';
+const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET || '';
+const JIRA_CALLBACK_URL = process.env.JIRA_CALLBACK_URL || 'http://localhost:3000/api/boards/jira/callback';
+const JIRA_AUTH_URL = 'https://auth.atlassian.com/authorize';
+const JIRA_TOKEN_URL = 'https://auth.atlassian.com/oauth/token';
+const JIRA_SCOPES = 'read:jira-work read:jira-user offline_access read:me';
 
 import { Logger } from '@oliver/core';
 

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { AuthService } from '@/lib/auth/application/AuthService';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { ProviderType } from '@/lib/auth/domain';
+import { AuthService } from '@oliver/auth';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
+import { ProviderType } from '@oliver/core';
 
 /**
  * POST /api/auth/refresh
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Update cookie with latest access token
-        const { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE } = await import('@/lib/infrastructure/config/oauth.config');
+        const { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE } = await import('@oliver/core');
 
         let cookieName = '';
         if (providerType === 'git') {

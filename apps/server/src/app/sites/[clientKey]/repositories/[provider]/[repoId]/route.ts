@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoSiteRepositoryRepository } from '@/lib/infrastructure/db/mongodb/repositories/SiteRepositoryRepository.mongo';
-import { MongoAtlassianTenantRepository } from '@/lib/infrastructure/db/mongodb/repositories/AtlassianTenantRepository.mongo';
-import { RemoveRepoFromSiteUseCase } from '@/lib/application/use_cases/site_repository/RemoveRepoFromSiteUseCase';
-import { GitProviderEnum } from '@/lib/domains/site_repository';
+import { MongoSiteRepositoryRepository } from '@oliver/db';
+import { MongoAtlassianTenantRepository } from '@oliver/db';
+import { RemoveRepoFromSiteUseCase } from '@oliver/application';
+import { GitProviderEnum } from '@oliver/core';
 
 const siteRepoRepository = new MongoSiteRepositoryRepository();
 const tenantRepository = new MongoAtlassianTenantRepository();

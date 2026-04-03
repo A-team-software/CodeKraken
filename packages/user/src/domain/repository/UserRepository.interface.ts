@@ -1,6 +1,5 @@
-import { GitProvider } from "@/lib/git";
+import { GitProvider, UserProps } from "@oliver/core";
 import { UserAggregate } from "../aggregates/user_aggregate";
-import { UserProps } from "../entity/user_entity";
 
 export interface UserRepository {
     nextIdentity(): string;

@@ -1,6 +1,7 @@
-import { UserAggregate, UserProps } from '@/lib/user';
-import { UserRepository } from '@/lib/user/domain/repository/UserRepository.interface';
-import { EventBus } from '@/lib/shared/events';
+import { UserAggregate } from '../../../domain/aggregates/user_aggregate';
+import { UserRepository } from '../../../domain/repository/UserRepository.interface';
+import { EventBus } from '@oliver/shared';
+import { UserProps } from '@oliver/core';
 
 export interface CreateUserCommand {
     name: string;

@@ -1,5 +1,5 @@
-import { ConnectedAccount } from '@/lib/git';
-import { DomainEvent } from '@/lib/shared/events';
+import { ConnectedAccount } from '@oliver/core';
+import { DomainEvent } from '@oliver/shared';
 
 // ─── Event Names (constants) ────────────────────────────────────
 
