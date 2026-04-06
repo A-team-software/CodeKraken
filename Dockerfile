@@ -2,7 +2,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm
+# Install specific pnpm version
+RUN npm install -g pnpm@10.33.0
+
+# Configure pnpm to work better with registries
+RUN pnpm config set fetch-retry-mintimeout 20000
+RUN pnpm config set fetch-retry-maxtimeout 60000
 
 RUN apk add --no-cache curl unzip ca-certificates bash
 
