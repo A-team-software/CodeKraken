@@ -14,6 +14,7 @@
     "@elysiajs/cors": "^1.4.0",
     "@google/genai": "^1.31.0",
     "@google/generative-ai": "^0.24.1",
+    "@oliver/db": "workspace:*",
     "@radix-ui/react-slot": "^1.2.3",
     "atlassian-jwt": "^2.0.0",
     "class-variance-authority": "^0.7.1",
@@ -24,13 +25,13 @@
     "groq-sdk": "^0.37.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.555.0",
     "next": "^16.0.7",
     "ollama": "^0.6.3",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.0",
-    "zod": "^4.1.13",
-    "@oliver/db": "workspace:*"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

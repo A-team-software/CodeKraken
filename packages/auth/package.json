@@ -18,6 +18,7 @@
     "@oliver/user": "workspace:*",
     "@oliver/domains": "workspace:*",
     "@oliver/db": "workspace:*",
+    "@oliver/git": "workspace:*",
     "@oliver/application": "workspace:*"
   },
   "devDependencies": {

@@ -15,6 +15,7 @@
     "@oliver/db": "workspace:*",
     "@oliver/git": "workspace:*",
     "@oliver/shared": "workspace:*",
+    "@oliver/core": "workspace:*",
     "@types/lodash": "^4.17.24",
     "lodash": "^4.17.23"
   },

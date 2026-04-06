@@ -15,6 +15,7 @@
     "tsup": "^8.4.0"
   },
   "dependencies": {
+    "@oliver/shared": "workspace:*",
     "@types/lodash": "^4.17.24",
     "effect": "^3.21.0",
     "lodash": "^4.17.21",
