@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [
+        "apps/oliver-client/**",
         "apps/oliver-client/.next/**",
         "!apps/oliver-client/.next/cache/**",
         "apps/server/.next/**",
