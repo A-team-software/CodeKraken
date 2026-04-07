@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd apps/oliver-client && pnpm install && pnpm build",
-  "outputDirectory": "apps/oliver-client/.next",
-  "framework": "nextjs"
-}
