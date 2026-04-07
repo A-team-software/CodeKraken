@@ -4,8 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Button } from "components/ui/button";
-import { LoginModal } from "components/auth/LoginModal";
+import { Button } from "../../../../components/ui/button";
+import { LoginModal } from "../../../../components/auth/LoginModal";
 
 /**
  * Forge Connect Popup
@@ -29,7 +29,12 @@ function ConnectionContent() {
   const providerParam = searchParams.get("provider") || "github";
 
   const [status, setStatus] = useState<
-    "verifying" | "resolving" | "associating" | "git_connecting" | "complete" | "error"
+    | "verifying"
+    | "resolving"
+    | "associating"
+    | "git_connecting"
+    | "complete"
+    | "error"
   >("verifying");
   const [error, setError] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -47,23 +52,33 @@ function ConnectionContent() {
 
   const bootstrap = async () => {
     // 1. Get identity from URL or session
-    let identity: { clientKey: string; accountId: string; provider: string } | null = null;
+    let identity: {
+      clientKey: string;
+      accountId: string;
+      provider: string;
+    } | null = null;
     if (clientKeyParam && accountIdParam) {
-      identity = { clientKey: clientKeyParam, accountId: accountIdParam, provider: providerParam };
+      identity = {
+        clientKey: clientKeyParam,
+        accountId: accountIdParam,
+        provider: providerParam,
+      };
       sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(identity));
     } else {
       const cached = sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (cached) {
         try {
-            identity = JSON.parse(cached);
+          identity = JSON.parse(cached);
         } catch {
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
         }
       }
     }
 
     if (!identity?.clientKey || !identity?.accountId) {
-      setError("Missing connection parameters (clientKey or accountId). Please verify your Jira app configuration or try again.");
+      setError(
+        "Missing connection parameters (clientKey or accountId). Please verify your Jira app configuration or try again.",
+      );
       setStatus("error");
       return;
     }
@@ -78,12 +93,14 @@ function ConnectionContent() {
         clientKey: identity.clientKey,
         provider: identity.provider,
       });
-      const resolveRes = await fetch(`/api/forge/connect/resolve-user?${qs.toString()}`);
+      const resolveRes = await fetch(
+        `/api/forge/connect/resolve-user?${qs.toString()}`,
+      );
       if (resolveRes.ok) {
         const resolveData = await resolveRes.json();
         if (resolveData.found && resolveData.hasGitToken) {
-           completeFlow(identity);
-           return;
+          completeFlow(identity);
+          return;
         }
       }
 
@@ -112,7 +129,9 @@ function ConnectionContent() {
           }
 
           // Start Git OAuth if needed, or if the user we just associated ALREADY has a git token, we complete.
-          const reResolve = await fetch(`/api/forge/connect/resolve-user?${qs.toString()}`);
+          const reResolve = await fetch(
+            `/api/forge/connect/resolve-user?${qs.toString()}`,
+          );
           if (reResolve.ok) {
             const reData = await reResolve.json();
             if (reData.found && reData.hasGitToken) {
@@ -128,7 +147,6 @@ function ConnectionContent() {
       // 4. Not fully connected, and not logged in.
       // Show login modal.
       setIsLoginModalOpen(true);
-
     } catch (e: any) {
       console.error(e);
       setError(e.message || "Failed to resolve connection.");
@@ -149,7 +167,7 @@ function ConnectionContent() {
         clientKey: identity.clientKey,
       });
       const res = await fetch(
-        `/api/git/${identity.provider}/oauth?metadata=${encodeURIComponent(metadata)}`
+        `/api/git/${identity.provider}/oauth?metadata=${encodeURIComponent(metadata)}`,
       );
 
       if (!res.ok) {
@@ -186,7 +204,7 @@ function ConnectionContent() {
           provider: identity.provider,
           integrationId: identity.accountId,
         },
-        "*"
+        "*",
       );
       setTimeout(() => window.close(), 2000);
     }
@@ -241,11 +259,26 @@ function ConnectionContent() {
   }
 
   const statusLabels: Record<string, { heading: string; sub: string }> = {
-    verifying:      { heading: "Checking connection...",    sub: "Reading your connection details." },
-    resolving:      { heading: "Checking account...",       sub: "Looking up your OliverAI account." },
-    associating:    { heading: "Linking Jira Account...",   sub: "Connecting your Atlassian identity to OliverAI." },
-    git_connecting: { heading: "Connecting to Git...",      sub: "Redirecting you to complete Git authentication." },
-    complete:       { heading: "Success!",                  sub: "Your accounts are now linked. You can go back to Jira." },
+    verifying: {
+      heading: "Checking connection...",
+      sub: "Reading your connection details.",
+    },
+    resolving: {
+      heading: "Checking account...",
+      sub: "Looking up your OliverAI account.",
+    },
+    associating: {
+      heading: "Linking Jira Account...",
+      sub: "Connecting your Atlassian identity to OliverAI.",
+    },
+    git_connecting: {
+      heading: "Connecting to Git...",
+      sub: "Redirecting you to complete Git authentication.",
+    },
+    complete: {
+      heading: "Success!",
+      sub: "Your accounts are now linked. You can go back to Jira.",
+    },
   };
 
   const label = statusLabels[status] ?? { heading: "Working...", sub: "" };
@@ -258,11 +291,21 @@ function ConnectionContent() {
         className="flex items-center gap-4"
       >
         <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-          <Image src="/flat_icon.jpeg" alt="Logo" width={48} height={48} className="rounded-lg" />
+          <Image
+            src="/flat_icon.jpeg"
+            alt="Logo"
+            width={48}
+            height={48}
+            className="rounded-lg"
+          />
         </div>
         <div className="h-0.5 w-12 bg-blue-500/50" />
         <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
-          <svg className="w-10 h-10 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-10 h-10 text-blue-500"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M2.6 2h18.8l-2.9 18.2h-13L2.6 2z M13.8 14.6l1.3-7.5H8.9l1.1 7.5h3.8z" />
           </svg>
         </div>
@@ -289,7 +332,9 @@ function ConnectionContent() {
           animate={{ y: 0, opacity: 1 }}
           className="p-6 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-400"
         >
-          <p className="font-medium">Everything is set up! This window will close automatically.</p>
+          <p className="font-medium">
+            Everything is set up! This window will close automatically.
+          </p>
         </motion.div>
       )}
 
