@@ -5,14 +5,11 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": [
-        "apps/client/.next/**",
-        "!.next/cache/**",
-        "apps/api/dist/**",
-        "packages/ui/dist/**",
-        "packages/shared-types/dist/**",
-        "packages/core/dist/**",
-        "packages/auth/dist/**",
-        "packages/utils/dist/**"
+        "apps/oliver-client/.next/**",
+        "!apps/oliver-client/.next/cache/**",
+        "apps/server/.next/**",
+        "!apps/server/.next/cache/**",
+        "packages/*/dist/**"
       ]
     },
     "lint": {
