@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm install && pnpm turbo run build --filter=@app/oliver-client",
+  "outputDirectory": "apps/oliver-client/.next",
+  "framework": "nextjs"
+}

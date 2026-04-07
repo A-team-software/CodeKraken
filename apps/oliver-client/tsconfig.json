@@ -1,7 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": "./",
     "target": "ES2022",
     "lib": [
       "DOM",
@@ -22,7 +21,7 @@
     "incremental": true,
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     },
     "plugins": [
