@@ -447,6 +447,11 @@ const app = new Elysia({ prefix: "/api" })
         return { pending: false, error: 'Missing polling parameters' };
     })
 
+    .get('/', async () => {
+
+        return { success: true, message: 'Your Request Has Been Received' };
+    })
+
     .post('/forge/connect/associate', async ({ body, set }: { body: any, set: any }) => {
         const { accountId, clientKey, userId } = body;
         if (!accountId || !clientKey || !userId) {
