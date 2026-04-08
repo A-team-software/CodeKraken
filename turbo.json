@@ -4,14 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "apps/oliver-client/**",
-        "apps/oliver-client/.next/**",
-        "!apps/oliver-client/.next/cache/**",
-        "apps/server/.next/**",
-        "!apps/server/.next/cache/**",
-        "packages/*/dist/**"
-      ]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^build"]
