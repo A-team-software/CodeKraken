@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateForgeRequest } from '@oliver/auth';
-import { MongoOAuthTokenRepository } from '@oliver/auth';
-import { GetRepositoriesUseCase } from '@oliver/git';
+import { validateForgeRequest } from '@/lib/auth/infrastructure/forgeAuth';
+import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
+import { GetRepositoriesUseCase } from '@/lib/git/application/use_cases/GetRepositoriesUseCase';
 
 export async function GET(req: NextRequest) {
-    const { isValid, error, status } = validateForgeRequest(req);
-    if (!isValid) return NextResponse.json({ error }, { status });
+    const { isValid, error } = validateForgeRequest(req);
+    if (!isValid) return error!;
 
     const accountId = req.headers.get('X-Forge-Account-Id');
     const cloudId = req.headers.get('X-Forge-Client-Key');
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     try {
         const tokenRepo = new MongoOAuthTokenRepository();
-
+        
         // Match the strategy used in getGithubStatus: bypassing user indirection.
         const oauthToken = await tokenRepo.findByAtlassianAccountIdAndCloudId(
             accountId,

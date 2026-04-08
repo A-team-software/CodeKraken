@@ -1,77 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoOAuthTokenRepository } from '@oliver/auth';
-import { Logger } from '@oliver/core';
+import { MongoOAuthTokenRepository, validateForgeRequest } from '@oliver/auth';
 
-/**
- * POST /api/forge/github/status
- * Called by the Forge `getGithubStatus` resolver.
- *
- * Body: { accountId: string, cloudId: string, clientKey?: string }
- *
- * Queries the oauthtokens collection directly by atlassianAccountId + cloudId —
- * the exact fields saved during the OAuth callback — avoiding a slow two-step lookup.
- *
- * Returns:
- *   { connected: true,  provider: string, scope: string | null }
- *   { connected: false }
- */
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+    const { isValid, error } = validateForgeRequest(req);
+    if (!isValid) return error!;
+
+    const body = await req.json().catch(() => ({}));
+    const { accountId, cloudId, clientKey } = body;
+
+    if (!accountId || !cloudId) {
+        return new NextResponse('Missing accountId or cloudId in request body', { status: 400 });
+    }
+
     try {
-        // ── Bearer auth ────────────────────────────────────────────────────────
-        const authHeader = request.headers.get('authorization') ?? '';
-        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-        const expectedSecret =
-            process.env.API_SECRET ??
-            (process.env.FORGE_APP_ID?.includes('/')
-                ? process.env.FORGE_APP_ID.split('/').pop()
-                : undefined);
-
-        if (!expectedSecret || token !== expectedSecret) {
-            return NextResponse.json({ connected: false, error: 'Unauthorized' }, { status: 401 });
-        }
-
-        // ── Parse body ────────────────────────────────────────────────────────
-        const body = await request.json().catch(() => ({}));
-        const accountId: string | undefined = body.accountId;
-        const cloudId: string | undefined = body.cloudId ?? body.clientKey;
-        const provider: string | undefined = body.provider;
-
-        if (!accountId || !cloudId) {
-            return NextResponse.json(
-                { connected: false, error: 'Missing accountId or cloudId' },
-                { status: 400 }
-            );
-        }
-
-        // ── Query oauthtokens ────────────────────────────────────────────────
         const tokenRepo = new MongoOAuthTokenRepository();
+
+        // Query oauthtokens directly by atlassianAccountId + cloudId.
+        // This bypasses the fragile two-step userId indirection via userjirasite access
+        // which can fail when storeUserSiteAccess throws during the OAuth callback.
         const oauthToken = await tokenRepo.findByAtlassianAccountIdAndCloudId(
             accountId,
             cloudId,
             'git',
-            provider
+            'github'
         );
 
         if (!oauthToken) {
+            console.log(`Forge github status: No GitHub token found for atlassianAccountId=${accountId}, cloudId=${cloudId}`);
             return NextResponse.json({ connected: false });
         }
 
-        // Treat as disconnected if the token has a known expiry that has passed
-        if (oauthToken.expiresAt && oauthToken.expiresAt.getTime() < Date.now()) {
-            return NextResponse.json({ connected: false, reason: 'token_expired' });
+        const isExpired = oauthToken.expiresAt && oauthToken.expiresAt.getTime() <= Date.now();
+        if (isExpired) {
+            console.log(`Forge github status: GitHub token expired for atlassianAccountId=${accountId}`);
+            return NextResponse.json({ connected: false });
         }
 
-        return NextResponse.json({
-            connected: true,
-            provider: oauthToken.provider,
-            scope: oauthToken.scope ?? null,
-        });
-    } catch (error: any) {
-        Logger.error('Forge github/status failed', error);
-        return NextResponse.json(
-            { connected: false, error: error.message ?? 'Internal error' },
-            { status: 500 }
-        );
+        console.log(`Forge github status: connected=true for atlassianAccountId=${accountId}`);
+        return NextResponse.json({ connected: true });
+    } catch (e: any) {
+        console.error('Forge github status check failed:', e);
+        return NextResponse.json({ connected: false, error: e.message }, { status: 500 });
     }
 }

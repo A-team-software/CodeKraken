@@ -34,7 +34,7 @@ resolver.define('getGithubAuthUrl', async (req) => {
 
   console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/forge/github/auth-url', {
+  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/auth-url', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -60,7 +60,7 @@ resolver.define('getGithubStatus', async (req) => {
 
   console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/forge/github/status', {
+  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/status', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -87,7 +87,7 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/forge/github/disconnect', {
+  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/disconnect', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
