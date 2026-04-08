@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
-import { AtlassianConnectService } from '@/lib/application/services/AtlassianConnectService';
-import { Logger } from '@/lib/infrastructure/logging/logger';
+import { Logger } from '@oliver/core';
+import { AtlassianConnectService } from '@oliver/application';
+import { MongoOAuthTokenRepository } from '@oliver/auth';
 
 /**
  * GET /api/forge/identity/status
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     try {
         const accountId = request.headers.get('x-forge-account-id');
         const cloudId = request.headers.get('x-forge-client-key');
-        
+
         const { searchParams } = new URL(request.url);
         const provider = searchParams.get('provider'); // Optional: check specific provider
 
@@ -23,26 +23,26 @@ export async function GET(request: NextRequest) {
         // we can query the Atlassian site access records or query user accounts directly.
         // The most robust way since we store AccountID in the Atlassian site access mapping:
         const atlassianService = new AtlassianConnectService();
-        
+
         // Find the system user ID associated with this Atlassian account ID
         const userId = await atlassianService.getUserIdByAtlassianAccountId(accountId);
-        
+
         if (!userId) {
             return NextResponse.json({ connected: false });
         }
 
         const tokenRepo = new MongoOAuthTokenRepository();
-        
+
         // Now check if this user has active OAuth tokens for Git providers
         const tokens = await tokenRepo.findByUser(userId);
-        
+
         if (!tokens || tokens.length === 0) {
             return NextResponse.json({ connected: false, userId });
         }
 
         // Filter valid Git tokens
-        const validGitTokens = tokens.filter(t => 
-            t.providerType === 'git' && 
+        const validGitTokens = tokens.filter(t =>
+            t.providerType === 'git' &&
             (!provider || t.provider === provider) &&
             (!t.expiresAt || t.expiresAt.getTime() > Date.now())
         );
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
         // Optional: Return which providers are connected
         const connectedProviders = [...new Set(validGitTokens.map(t => t.provider))];
 
-        return NextResponse.json({ 
-            connected: true, 
+        return NextResponse.json({
+            connected: true,
             userId,
             providers: connectedProviders
         });

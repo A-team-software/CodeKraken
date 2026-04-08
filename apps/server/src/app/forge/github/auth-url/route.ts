@@ -3,8 +3,8 @@ import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  const { isValid, error } = validateForgeRequest(req);
-  if (!isValid) return error!;
+  const { isValid, error, status } = validateForgeRequest(req);
+  if (!isValid) return new NextResponse(error!, { status: status || 400 });
 
   const { accountId, cloudId } = await req.json();
   if (!accountId || !cloudId) {

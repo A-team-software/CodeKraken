@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoOAuthTokenRepository, validateForgeRequest } from '@oliver/auth';
 
 export async function POST(req: NextRequest) {
-    const { isValid, error } = validateForgeRequest(req);
-    if (!isValid) return error!;
+    const { isValid, error, status } = validateForgeRequest(req);
+    if (!isValid) return new NextResponse(error!, { status: status || 400 });
 
     const body = await req.json().catch(() => ({}));
     const { accountId, cloudId, clientKey } = body;
