@@ -3,6 +3,8 @@
         "atlassiantenants",
         "Dartdoc",
         "Elysia",
+        "elysiajs",
+        "genai",
         "healthcheck",
         "INITDB",
         "millis",

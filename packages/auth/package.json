@@ -14,7 +14,6 @@
   "dependencies": {
     "@oliver/shared": "workspace:*",
     "@oliver/core": "workspace:*",
-    "@oliver/di": "workspace:*",
     "@oliver/boards": "workspace:*",
     "@oliver/user": "workspace:*",
     "@oliver/domains": "workspace:*",

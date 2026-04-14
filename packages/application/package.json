@@ -14,7 +14,6 @@
     "atlassian-jwt": "^2.0.0",
     "@oliver/db": "workspace:*",
     "@oliver/core": "workspace:*",
-    "@oliver/di": "workspace:*",
     "@oliver/domains": "workspace:*",
     "@oliver/shared": "workspace:*"
   },

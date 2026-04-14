@@ -14,6 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head />
       <body className="bg-slate-950">{children}</body>
     </html>
   );

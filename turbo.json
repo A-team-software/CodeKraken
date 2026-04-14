@@ -16,10 +16,9 @@
         "FORGE_SHARED_SECRET",
         "MONGO_ROOT_USER",
         "MONGO_ROOT_PASSWORD",
-        "DB_NAME",
-        "NODE_ENV"
+        "DB_NAME"
       ],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "**/*.tsbuildinfo"]
     },
     "lint": {
       "dependsOn": ["^build"]
