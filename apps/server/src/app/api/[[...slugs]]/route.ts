@@ -139,9 +139,7 @@ const app = new Elysia({ prefix: "/api" })
             })
         }
     )
-    .get('/', async () => {
-        return { success: true, message: 'Your Request Has Been Received' };
-    })
+
 
 
 export const GET = app.fetch;
