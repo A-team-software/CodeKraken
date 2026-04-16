@@ -26,6 +26,14 @@ const nextConfig = {
             },
         ],
     },
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: 'https://oliver-server-qw6b.vercel.app/api/:path*',
+            },
+        ];
+    },
     async headers() {
         return [
             {

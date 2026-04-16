@@ -1,4 +1,5 @@
 import { Elysia, t } from "elysia";
+import { cors } from "@elysiajs/cors";
 import fs, { truncate } from "fs/promises";
 import os from "os";
 import path from "path";
@@ -14,6 +15,7 @@ import { BitbucketService, GitHubService } from "@oliver/git";
 registerHandlers();
 
 const app = new Elysia({ prefix: "/api" })
+    .use(cors())
     .derive(async ({ headers }) => {
         try {
             const authHeader = headers['authorization'];
@@ -267,6 +269,37 @@ const app = new Elysia({ prefix: "/api" })
         };
     })
 
+    .get('/forge/connect/resolve-user', async ({ query, set }) => {
+        const { accountId, clientKey, provider = 'github' } = query;
+        if (!accountId || !clientKey) {
+            set.status = 400;
+            return { error: 'Missing accountId or clientKey' };
+        }
+
+        const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
+        const { MongoUserRepository } = await import('@oliver/user');
+        
+        const accessRepo = new MongoUserJiraSiteAccessRepository();
+        const access = await accessRepo.findByClientKeyAndAccountId(clientKey as string, accountId as string);
+
+        if (!access) return { found: false };
+
+        const userRepo = new MongoUserRepository();
+        const user = await userRepo.findById(access.userId);
+        if (!user) return { found: false };
+
+        const gitAccount = user.accounts.find(a => 
+            a.provider?.toString().toLowerCase() === (provider as string).toLowerCase()
+        );
+        
+        return {
+            found: true,
+            hasGitToken: !!gitAccount?.accessToken,
+            username: gitAccount?.username,
+            userId: access.userId
+        };
+    })
+
     .get('/forge/github/token', async ({ userId, set }) => {
         if (!userId) {
             set.status = 401;
@@ -299,6 +332,31 @@ const app = new Elysia({ prefix: "/api" })
             set.status = 500;
             return { error: error.message || 'Failed to retrieve token' };
         }
+    })
+
+    .get('/git/:provider/oauth', async ({ params, query, set }) => {
+        const { provider } = params;
+        const { returnTo } = query;
+
+        // Create secure state
+        const stateData = JSON.stringify({
+            timestamp: Date.now(),
+            provider,
+            returnTo
+        });
+        const state = await encrypt(stateData);
+
+        let loginUrl: string;
+        if (provider === 'github') {
+            loginUrl = GitHubService.getLoginUrl(state);
+        } else if (provider === 'bitbucket') {
+            loginUrl = BitbucketService.getLoginUrl(state);
+        } else {
+            set.status = 400;
+            return { error: `Unsupported provider: ${provider}` };
+        }
+
+        return { loginUrl, state, provider };
     })
 
 
