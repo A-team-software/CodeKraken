@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   const { isValid, error } = validateForgeRequest(req);
-  if (!isValid) return error!;
+  if (!isValid) return new NextResponse(error!, { status: 400 });
 
   const { accountId, cloudId } = await req.json();
   if (!accountId || !cloudId) {
