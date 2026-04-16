@@ -2,7 +2,6 @@ import Resolver from '@forge/resolver';
 import { fetch } from '@forge/api';
 
 const resolver = new Resolver();
-const baseUrl = process.env.BASE_URL;
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
 
 /**
@@ -29,6 +28,8 @@ function getApiSecret() {
 }
 
 resolver.define('getGithubAuthUrl', async (req) => {
+  const baseUrl = process.env.BASE_URL;
+
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
 
@@ -54,6 +55,8 @@ resolver.define('getGithubAuthUrl', async (req) => {
 });
 
 resolver.define('getGithubStatus', async (req) => {
+  const baseUrl = process.env.BASE_URL;
+
   const { accountId, cloudId } = req.context;
   const provider = req.payload?.provider;
   const secret = getApiSecret();
@@ -82,6 +85,8 @@ resolver.define('getGithubStatus', async (req) => {
 });
 
 resolver.define('disconnect', async (req) => {
+  const baseUrl = process.env.BASE_URL;
+
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
 
@@ -112,6 +117,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
+  const baseUrl = process.env.BASE_URL;
   const url = `${baseUrl}${path}`;
   const secret = getApiSecret();
   const headers = {
