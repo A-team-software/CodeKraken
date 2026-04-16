@@ -8,37 +8,37 @@ export const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'Iv2
 // CLIENT_SECRET is server-only, never exposed to frontend
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 // Callback URL for OAuth redirect
-export const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/api/git/github/callback';
+export const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/git/github/callback';
 // Forge now uses the same registered callback to avoid "redirect_uri" mismatches
 export const FORGE_GITHUB_CALLBACK_URL = GITHUB_CALLBACK_URL;
 
 export const JIRA_CLIENT_ID = process.env.NEXT_PUBLIC_JIRA_CLIENT_ID || '';
 export const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET || '';
-export const JIRA_CALLBACK_URL = process.env.JIRA_CALLBACK_URL || 'http://localhost:3000/api/boards/jira/callback';
+export const JIRA_CALLBACK_URL = process.env.JIRA_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/jira/callback';
 export const JIRA_SCOPES = 'read:jira-work read:jira-user offline_access read:me';
 
 export const BITBUCKET_CLIENT_ID = process.env.NEXT_PUBLIC_BITBUCKET_CLIENT_ID || '';
 export const BITBUCKET_CLIENT_SECRET = process.env.BITBUCKET_CLIENT_SECRET || '';
-export const BITBUCKET_CALLBACK_URL = process.env.BITBUCKET_CALLBACK_URL || 'http://localhost:3000/api/git/bitbucket/callback';
-export const FORGE_BITBUCKET_CALLBACK_URL = process.env.FORGE_BITBUCKET_CALLBACK_URL || 'http://localhost:3000/api/forge/oauth/bitbucket/callback';
+export const BITBUCKET_CALLBACK_URL = process.env.BITBUCKET_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/git/bitbucket/callback';
+export const FORGE_BITBUCKET_CALLBACK_URL = process.env.FORGE_BITBUCKET_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/forge/oauth/bitbucket/callback';
 
 // Trello OAuth Configuration
 export const TRELLO_CLIENT_ID = process.env.NEXT_PUBLIC_TRELLO_CLIENT_ID || '';
 export const TRELLO_API_KEY = TRELLO_CLIENT_ID; // Alias for consistency
 export const TRELLO_CLIENT_SECRET = process.env.TRELLO_CLIENT_SECRET || '';
-export const TRELLO_CALLBACK_URL = process.env.TRELLO_CALLBACK_URL || 'http://localhost:3000/api/boards/trello/callback';
+export const TRELLO_CALLBACK_URL = process.env.TRELLO_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/trello/callback';
 export const TRELLO_SCOPES = 'read,write,account';
 
 // Asana OAuth Configuration
 export const ASANA_CLIENT_ID = process.env.NEXT_PUBLIC_ASANA_CLIENT_ID || '';
 export const ASANA_CLIENT_SECRET = process.env.ASANA_CLIENT_SECRET || '';
-export const ASANA_CALLBACK_URL = process.env.ASANA_CALLBACK_URL || 'http://localhost:3000/api/boards/asana/callback';
+export const ASANA_CALLBACK_URL = process.env.ASANA_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/asana/callback';
 export const ASANA_SCOPES = 'default offline_access';
 
 // Linear OAuth Configuration
 export const LINEAR_CLIENT_ID = process.env.NEXT_PUBLIC_LINEAR_CLIENT_ID || '';
 export const LINEAR_CLIENT_SECRET = process.env.LINEAR_CLIENT_SECRET || '';
-export const LINEAR_CALLBACK_URL = process.env.LINEAR_CALLBACK_URL || 'http://localhost:3000/api/boards/linear/callback';
+export const LINEAR_CALLBACK_URL = process.env.LINEAR_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/linear/callback';
 export const LINEAR_SCOPES = 'read,write,offline_access';
 
 // OAuth Authorization URLs

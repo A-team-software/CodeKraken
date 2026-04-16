@@ -10,6 +10,7 @@ import { Result } from "execa";
 import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
+import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from "@oliver/core";
 
 // Initialize event handlers
 registerHandlers();
@@ -348,9 +349,9 @@ const app = new Elysia({ prefix: "/api" })
 
         let loginUrl: string;
         if (provider === 'github') {
-            loginUrl = GitHubService.getLoginUrl(state);
+            loginUrl = GitHubService.getLoginUrl(state, GITHUB_CALLBACK_URL);
         } else if (provider === 'bitbucket') {
-            loginUrl = BitbucketService.getLoginUrl(state);
+            loginUrl = BitbucketService.getLoginUrl(state, BITBUCKET_CALLBACK_URL);
         } else {
             set.status = 400;
             return { error: `Unsupported provider: ${provider}` };

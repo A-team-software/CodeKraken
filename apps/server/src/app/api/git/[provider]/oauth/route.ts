@@ -3,6 +3,7 @@ import { AuthService } from '@oliver/auth';
 import { GIT_PROVIDER_REGISTRY } from '@oliver/git';
 import { GitHubService } from '@oliver/git';
 import { BitbucketService } from '@oliver/git';
+import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from '@oliver/core';
 
 /**
  * GET /api/git/[provider]/oauth
@@ -50,9 +51,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         let loginUrl: string;
 
         if (provider === 'github') {
-            loginUrl = GitHubService.getLoginUrl(state);
+            loginUrl = GitHubService.getLoginUrl(state, GITHUB_CALLBACK_URL);
         } else if (provider === 'bitbucket') {
-            loginUrl = BitbucketService.getLoginUrl(state);
+            loginUrl = BitbucketService.getLoginUrl(state, BITBUCKET_CALLBACK_URL);
         } else {
             return NextResponse.json(
                 { error: `OAuth not implemented for git provider: ${provider}` },

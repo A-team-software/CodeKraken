@@ -17,7 +17,7 @@ import { BoardProviderError } from '@oliver/shared';
 
 const LINEAR_CLIENT_ID = process.env.NEXT_PUBLIC_LINEAR_CLIENT_ID || '';
 const LINEAR_CLIENT_SECRET = process.env.LINEAR_CLIENT_SECRET || '';
-const LINEAR_CALLBACK_URL = process.env.LINEAR_CALLBACK_URL || 'http://localhost:3000/api/boards/linear/callback';
+const LINEAR_CALLBACK_URL = process.env.LINEAR_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/linear/callback';
 const LINEAR_AUTH_URL = 'https://linear.app/oauth/authorize';
 const LINEAR_TOKEN_URL = 'https://api.linear.app/oauth/token';
 const LINEAR_SCOPES = 'read,write,offlline_access';

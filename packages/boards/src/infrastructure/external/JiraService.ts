@@ -17,7 +17,7 @@ import { BoardProviderError } from '@oliver/shared';
 
 const JIRA_CLIENT_ID = process.env.NEXT_PUBLIC_JIRA_CLIENT_ID || '';
 const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET || '';
-const JIRA_CALLBACK_URL = process.env.JIRA_CALLBACK_URL || 'http://localhost:3000/api/boards/jira/callback';
+const JIRA_CALLBACK_URL = process.env.JIRA_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/jira/callback';
 const JIRA_AUTH_URL = 'https://auth.atlassian.com/authorize';
 const JIRA_TOKEN_URL = 'https://auth.atlassian.com/oauth/token';
 const JIRA_SCOPES = 'read:jira-work read:jira-user offline_access read:me';
