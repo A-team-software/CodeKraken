@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
     const { isValid, error } = validateForgeRequest(req);
-    if (!isValid) return error!;
+    if (!isValid) return new NextResponse(error!, { status: 400 });
 
     const body = await req.json().catch(() => ({}));
     const { accountId, cloudId, clientKey } = body;
