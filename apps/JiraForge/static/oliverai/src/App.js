@@ -163,7 +163,11 @@ function App() {
   // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data?.type === 'GITHUB_CONNECTED') {
+      if (
+        event.data?.type === 'GITHUB_CONNECTED' || 
+        event.data?.type === 'oliverai:forge:oauth_complete' ||
+        event.data?.type === 'SCA_AUTH_SUCCESS'
+      ) {
         refreshAuthStatus();
         setConnecting(false);
       }
@@ -221,13 +225,9 @@ function App() {
     try {
       const { authUrl } = await invoke('getGithubAuthUrl');
       if (authUrl) {
-        // Use window.open (popup) instead of router.open so that window.opener
-        // is set in the callback page, allowing postMessage back to this panel.
-        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
-        if (!popup) {
-          // Popup was blocked – fall back to same-tab navigation.
-          window.location.href = authUrl;
-        }
+        // Use router.open (standard in Forge) which opens a new tab.
+        // Standard window.open/window.location are blocked in the Forge sandbox.
+        await router.open(authUrl);
       }
     } catch (e) {
       console.error('handleConnectGit failed:', e);

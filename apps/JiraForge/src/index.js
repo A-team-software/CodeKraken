@@ -29,79 +29,41 @@ function getApiSecret() {
 
 resolver.define('getGithubAuthUrl', async (req) => {
   const { accountId, cloudId } = req.context;
-  const secret = getApiSecret();
+  const qs = new URLSearchParams({ accountId, cloudId });
 
-  console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
+  console.log(`getGithubAuthUrl (aligned): accountId=${accountId}, cloudId=${cloudId}`);
 
-  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url", {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getApiSecret()}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId })
-  });
-
-  console.log(`Forge: getGithubAuthUrl response status: ${res.status}`);
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Forge: getGithubAuthUrl failed: ${text}`);
-    throw new Error(`Failed to get auth URL: ${res.status}`);
-  }
-
-  return res.json();
+  // Calls Elysia: GET /api/forge/git/github/oauth
+  const data = await backendFetch(`api/forge/git/github/oauth?${qs.toString()}`, { context: req.context });
+  
+  // The Elysia route returns { loginUrl: "..." }
+  // Mapping loginUrl to authUrl for frontend compatibility if needed, 
+  // but we'll also update the frontend.
+  return {
+    authUrl: data.loginUrl,
+    loginUrl: data.loginUrl
+  };
 });
 
 resolver.define('getGithubStatus', async (req) => {
-  const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider;
-  const secret = getApiSecret();
+  const provider = req.payload?.provider || 'github';
 
-  console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
+  console.log(`getGithubStatus (aligned): provider=${provider}`);
 
-  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/status", {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getApiSecret()}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
-  });
-
-  console.log(`Forge: getGithubStatus response status: ${res.status}`);
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Forge: getGithubStatus failed: ${text}`);
-    throw new Error(`Failed to get github status: ${res.status}`);
-  }
-
-  const data = await res.json();
-  console.log(`Forge: getGithubStatus result: connected=${data.connected}`);
-  return data;
+  // Calls Elysia: GET /api/forge/identity/status
+  const qs = new URLSearchParams({ provider });
+  return await backendFetch(`api/forge/identity/status?${qs.toString()}`, { context: req.context });
 });
 
 resolver.define('disconnect', async (req) => {
-  const { accountId, cloudId } = req.context;
-  const secret = getApiSecret();
-
-  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
-
-  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect", {
+  // Calls Elysia: POST /api/forge/github/disconnect (If it exists) 
+  // Fallback to manual if needed, but let's try to standardize.
+  // For now keeping manual but using backendFetch utility.
+  return await backendFetch('api/forge/github/disconnect', { 
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId })
+    body: { clientKey: req.context.cloudId },
+    context: req.context 
   });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(`disconnect failed: status=${res.status}, error=${errorText}`);
-    throw new Error(`Failed to disconnect: ${res.status} (${errorText})`);
-  }
-
-  return res.json();
 });
 
 
@@ -146,11 +108,11 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
 }
 
 resolver.define('getGitProviders', async ({ context }) => {
-  return await backendFetch('/api/forge/git/providers', { context });
+  return await backendFetch('api/forge/git/providers', { context });
 });
 
 resolver.define('getGithubToken', async ({ context }) => {
-  return await backendFetch('/api/forge/github/token', { context });
+  return await backendFetch('api/forge/github/token', { context });
 });
 
 resolver.define('getRepositories', async ({ payload, context }) => {
@@ -160,7 +122,7 @@ resolver.define('getRepositories', async ({ payload, context }) => {
 
   const qs = new URLSearchParams({ page: String(page), perPage: String(perPage), provider });
   return await backendFetch(
-    `/api/forge/repositories?${qs.toString()}`,
+    `api/forge/repositories?${qs.toString()}`,
     { context }
   );
 });
@@ -174,7 +136,7 @@ resolver.define('solveTask', async ({ payload, context }) => {
     throw new Error('Missing task or repoUrl');
   }
 
-  return await backendFetch('/api/solve', {
+  return await backendFetch('api/solve', {
     method: 'POST',
     body: {
       task,

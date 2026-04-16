@@ -432,10 +432,22 @@ const app = new Elysia({ prefix: "/api" })
             if (!access) {
                 return `
                     <html>
-                        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                            <h2>Identity record not found</h2>
-                            <p>No SCA account found for this Jira user. Please sign in to SCA first.</p>
-                            <button onclick="window.close()">Close</button>
+                        <head>
+                            <title>Account Not Found</title>
+                            <style>
+                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #000; color: #fff; text-align: center; padding-top: 100px; }
+                                .card { background: #111; border: 1px solid #333; border-radius: 12px; padding: 40px; display: inline-block; max-width: 400px; }
+                                h2 { color: #ff4d4d; }
+                                p { color: #888; line-height: 1.5; }
+                                button { background: #fff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="card">
+                                <h2>Identity record not found</h2>
+                                <p>No OliverAI account was found for this Jira user. Please sign in to the SCA dashboard first.</p>
+                                <button onclick="window.close()">Close Window</button>
+                            </div>
                         </body>
                     </html>
                 `;
@@ -464,14 +476,28 @@ const app = new Elysia({ prefix: "/api" })
             // 5. Success UI
             return `
                 <html>
-                    <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                        <h2>Connected Successfully!</h2>
-                        <p>You can close this window now.</p>
+                    <head>
+                        <title>Connected Successfully</title>
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #000; color: #fff; text-align: center; padding-top: 100px; }
+                            .card { background: #111; border: 1px solid #333; border-radius: 12px; padding: 40px; display: inline-block; max-width: 400px; }
+                            h2 { color: #4ade80; }
+                            p { color: #888; line-height: 1.5; }
+                            .instruction { margin-top: 24px; font-size: 0.9em; color: #555; border-top: 1px solid #222; padding-top: 20px; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="card">
+                            <h2>Connected Successfully!</h2>
+                            <p>You can now return to the Jira tab to continue.</p>
+                            <div class="instruction">You may close this window.</div>
+                        </div>
                         <script>
                             if (window.opener) {
-                                window.opener.postMessage({ type: 'SCA_AUTH_SUCCESS', provider: '${provider}' }, "*");
+                                window.opener.postMessage({ type: 'oliverai:forge:oauth_complete', ok: true, provider: '${provider}' }, "*");
                             }
-                            setTimeout(() => window.close(), 2000);
+                            // Auto-close attempt (might be blocked in standard tabs)
+                            setTimeout(() => window.close(), 3000);
                         </script>
                     </body>
                 </html>
