@@ -2,7 +2,7 @@ import Resolver from '@forge/resolver';
 import { fetch } from '@forge/api';
 
 const resolver = new Resolver();
-
+const baseUrl = process.env.BASE_URL;
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
 
 /**
@@ -34,7 +34,7 @@ resolver.define('getGithubAuthUrl', async (req) => {
 
   console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/auth-url', {
+  const res = await fetch(`${baseUrl}/api/forge/github/auth-url`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -60,7 +60,7 @@ resolver.define('getGithubStatus', async (req) => {
 
   console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/status', {
+  const res = await fetch(`${baseUrl}/api/forge/github/status`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -87,7 +87,7 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://sca-pi.vercel.app/api/forge/github/disconnect', {
+  const res = await fetch(`${baseUrl}/api/forge/github/disconnect`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -112,7 +112,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const url = `https://sca-pi.vercel.app${path}`;
+  const url = `${baseUrl}${path}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',

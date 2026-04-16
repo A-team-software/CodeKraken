@@ -2,11 +2,13 @@ import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/aut
 import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(req: NextRequest) {
-  const { isValid, error, status } = validateForgeRequest(req);
+export async function POST(request: NextRequest) {
+  const { isValid, error, status } = validateForgeRequest(request);
+
   if (!isValid) return new NextResponse(error!, { status: status || 400 });
 
-  const { accountId, cloudId } = await req.json();
+  const { accountId, cloudId } = await request.json();
+
   if (!accountId || !cloudId) {
     return new NextResponse('Missing accountId or cloudId', { status: 400 });
   }
