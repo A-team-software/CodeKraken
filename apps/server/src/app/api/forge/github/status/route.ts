@@ -1,4 +1,4 @@
-import { MongoOAuthTokenRepository, validateForgeRequest } from '@oliver/auth';
+import { validateForgeRequest } from '@oliver/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -13,6 +13,8 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        const { MongoOAuthTokenRepository } = await import('@oliver/auth');
+
         const tokenRepo = new MongoOAuthTokenRepository();
 
         // Query oauthtokens directly by atlassianAccountId + cloudId.
@@ -26,18 +28,16 @@ export async function POST(req: NextRequest) {
         );
 
         if (!oauthToken) {
-            console.log(`Forge github status: No GitHub token found for atlassianAccountId=${accountId}, cloudId=${cloudId}`);
-            return NextResponse.json({ connected: false });
+            return NextResponse.json({ connected: false, message: `Forge github status: No GitHub token found for atlassianAccountId=${accountId}, cloudId=${cloudId}` });
         }
 
         const isExpired = oauthToken.expiresAt && oauthToken.expiresAt.getTime() <= Date.now();
         if (isExpired) {
-            console.log(`Forge github status: GitHub token expired for atlassianAccountId=${accountId}`);
-            return NextResponse.json({ connected: false });
+            return NextResponse.json({ connected: false, message: `Forge github status: GitHub token expired for atlassianAccountId=${accountId}` });
         }
 
-        console.log(`Forge github status: connected=true for atlassianAccountId=${accountId}`);
-        return NextResponse.json({ connected: true });
+
+        return NextResponse.json({ connected: true, message: `Forge github status: connected=true for atlassianAccountId=${accountId}` });
     } catch (e: any) {
         console.error('Forge github status check failed:', e);
         return NextResponse.json({ connected: false, error: e.message }, { status: 500 });

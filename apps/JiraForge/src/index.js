@@ -28,14 +28,12 @@ function getApiSecret() {
 }
 
 resolver.define('getGithubAuthUrl', async (req) => {
-  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
-
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
 
   console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${baseUrl}/api/forge/github/auth-url`, {
+  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url", {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -55,15 +53,13 @@ resolver.define('getGithubAuthUrl', async (req) => {
 });
 
 resolver.define('getGithubStatus', async (req) => {
-  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
-
   const { accountId, cloudId } = req.context;
   const provider = req.payload?.provider;
   const secret = getApiSecret();
 
   console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${baseUrl}/api/forge/github/status`, {
+  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/status", {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -85,14 +81,12 @@ resolver.define('getGithubStatus', async (req) => {
 });
 
 resolver.define('disconnect', async (req) => {
-  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
-
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${baseUrl}/api/forge/github/disconnect`, {
+  const res = await fetch("https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect", {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -117,8 +111,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
-  const url = `${baseUrl}${path}`;
+  const url = `https://oliver-server-qw6b.vercel.app/${path}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',
