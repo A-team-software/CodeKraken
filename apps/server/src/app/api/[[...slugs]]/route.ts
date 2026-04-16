@@ -338,7 +338,7 @@ const app = new Elysia({ prefix: "/api" })
         const forgeToken = await sessionRepo.create(accountId, cloudId, params.provider);
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oliver-oliver-client.vercel.app';
-        const connectUrl = `${baseUrl}/connect/forge?forgeToken=${encodeURIComponent(forgeToken)}&provider=${encodeURIComponent(params.provider)}`;
+        const connectUrl = `${baseUrl}/connect/forge?forgeToken=${encodeURIComponent(forgeToken)}&provider=${encodeURIComponent(params.provider)}&accountId=${encodeURIComponent(accountId as string)}&clientKey=${encodeURIComponent(cloudId as string)}`;
 
         return { loginUrl: connectUrl };
     })
