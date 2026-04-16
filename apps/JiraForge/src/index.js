@@ -28,7 +28,7 @@ function getApiSecret() {
 }
 
 resolver.define('getGithubAuthUrl', async (req) => {
-  const baseUrl = process.env.BASE_URL;
+  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
 
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
@@ -55,7 +55,7 @@ resolver.define('getGithubAuthUrl', async (req) => {
 });
 
 resolver.define('getGithubStatus', async (req) => {
-  const baseUrl = process.env.BASE_URL;
+  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
 
   const { accountId, cloudId } = req.context;
   const provider = req.payload?.provider;
@@ -85,7 +85,7 @@ resolver.define('getGithubStatus', async (req) => {
 });
 
 resolver.define('disconnect', async (req) => {
-  const baseUrl = process.env.BASE_URL;
+  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
 
   const { accountId, cloudId } = req.context;
   const secret = getApiSecret();
@@ -117,7 +117,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const baseUrl = process.env.BASE_URL;
+  const baseUrl = process.env.BASE_URL || "https://oliver-server-qw6b.vercel.app";
   const url = `${baseUrl}${path}`;
   const secret = getApiSecret();
   const headers = {
