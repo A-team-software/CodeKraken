@@ -9,8 +9,6 @@ export const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'Iv2
 export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
 // Callback URL for OAuth redirect
 export const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/git/github/callback';
-// Forge now uses the same registered callback to avoid "redirect_uri" mismatches
-export const FORGE_GITHUB_CALLBACK_URL = GITHUB_CALLBACK_URL;
 
 export const JIRA_CLIENT_ID = process.env.NEXT_PUBLIC_JIRA_CLIENT_ID || '';
 export const JIRA_CLIENT_SECRET = process.env.JIRA_CLIENT_SECRET || '';
