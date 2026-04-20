@@ -43,5 +43,3 @@ permissions:
         - "https://bitbucket.org"
       client:
         - "https://oliver-oliver-client.vercel.app"
-        - "https://github.com"
-        - "https://bitbucket.org"

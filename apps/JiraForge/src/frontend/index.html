@@ -284,7 +284,16 @@
                     btn.disabled = true;
                     const response = await invoke('getGithubAuthUrl', { provider });
                     if (response?.loginUrl) {
-                        const oauthWindow = window.open(response.loginUrl, 'GitAuth', 'width=600,height=800');
+                        try {
+                            const oauthWindow = window.open(response.loginUrl, 'GitAuth', 'width=600,height=800');
+                            if (!oauthWindow) {
+                                console.warn('window.open returned null, trying direct navigation');
+                                window.location.href = response.loginUrl;
+                            }
+                        } catch (err) {
+                            console.error('window.open failed:', err, 'trying direct navigation');
+                            window.location.href = response.loginUrl;
+                        }
                         updateProviderStatusUI(provider, 'checking');
                         if (pollInterval) clearInterval(pollInterval);
                         pollInterval = setInterval(async () => {

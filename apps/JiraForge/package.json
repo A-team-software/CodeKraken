@@ -5,9 +5,13 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "cd static/oliverai && pnpm run build"
+    "lint": "eslint src/**/*",
+    "build": "bun --bun --cwd static/oliverai run build"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0"
+  },
   "dependencies": {
     "@forge/api": "7.0.2",
     "@forge/bridge": "5.13.0",

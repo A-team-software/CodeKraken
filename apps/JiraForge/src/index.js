@@ -2,6 +2,7 @@ import Resolver from '@forge/resolver';
 import { fetch } from '@forge/api';
 
 const resolver = new Resolver();
+
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
 
 /**
@@ -29,41 +30,79 @@ function getApiSecret() {
 
 resolver.define('getGithubAuthUrl', async (req) => {
   const { accountId, cloudId } = req.context;
-  const qs = new URLSearchParams({ accountId, cloudId });
+  const secret = getApiSecret();
 
-  console.log(`getGithubAuthUrl (aligned): accountId=${accountId}, cloudId=${cloudId}`);
+  console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  // Calls Elysia: GET /api/forge/git/github/oauth
-  const data = await backendFetch(`api/forge/git/github/oauth?${qs.toString()}`, { context: req.context });
-  
-  // The Elysia route returns { loginUrl: "..." }
-  // Mapping loginUrl to authUrl for frontend compatibility if needed, 
-  // but we'll also update the frontend.
-  return {
-    authUrl: data.loginUrl,
-    loginUrl: data.loginUrl
-  };
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getApiSecret()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ accountId, cloudId })
+  });
+
+  console.log(`Forge: getGithubAuthUrl response status: ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`Forge: getGithubAuthUrl failed: ${text}`);
+    throw new Error(`Failed to get auth URL: ${res.status}`);
+  }
+
+  return res.json();
 });
 
 resolver.define('getGithubStatus', async (req) => {
-  const provider = req.payload?.provider || 'github';
+  const { accountId, cloudId } = req.context;
+  const provider = req.payload?.provider;
+  const secret = getApiSecret();
 
-  console.log(`getGithubStatus (aligned): provider=${provider}`);
+  console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  // Calls Elysia: GET /api/forge/identity/status
-  const qs = new URLSearchParams({ provider });
-  return await backendFetch(`api/forge/identity/status?${qs.toString()}`, { context: req.context });
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/status', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getApiSecret()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
+  });
+
+  console.log(`Forge: getGithubStatus response status: ${res.status}`);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error(`Forge: getGithubStatus failed: ${text}`);
+    throw new Error(`Failed to get github status: ${res.status}`);
+  }
+
+  const data = await res.json();
+  console.log(`Forge: getGithubStatus result: connected=${data.connected}`);
+  return data;
 });
 
 resolver.define('disconnect', async (req) => {
-  // Calls Elysia: POST /api/forge/github/disconnect (If it exists) 
-  // Fallback to manual if needed, but let's try to standardize.
-  // For now keeping manual but using backendFetch utility.
-  return await backendFetch('api/forge/github/disconnect', { 
+  const { accountId, cloudId } = req.context;
+  const secret = getApiSecret();
+
+  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
+
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect', {
     method: 'POST',
-    body: { clientKey: req.context.cloudId },
-    context: req.context 
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId })
   });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error(`disconnect failed: status=${res.status}, error=${errorText}`);
+    throw new Error(`Failed to disconnect: ${res.status} (${errorText})`);
+  }
+
+  return res.json();
 });
 
 
@@ -73,7 +112,8 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const url = `https://oliver-server-qw6b.vercel.app/${path}`;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const url = `https://oliver-server-qw6b.vercel.app/${cleanPath}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',

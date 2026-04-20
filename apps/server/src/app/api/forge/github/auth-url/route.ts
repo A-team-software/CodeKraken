@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     redirect_uri: FORGE_GITHUB_CALLBACK_URL
   });
 
-  const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+  const loginUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
 
-  return NextResponse.json({ authUrl });
+  return NextResponse.json({ loginUrl });
 }

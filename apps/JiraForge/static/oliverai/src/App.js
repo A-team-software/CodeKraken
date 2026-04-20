@@ -45,6 +45,7 @@ function App() {
   const [reposLoading, setReposLoading] = useState(false);
 
   const [auth, setAuth] = useState({ connected: false, loading: true });
+  const [tokenInput, setTokenInput] = useState('');
   const [connecting, setConnecting] = useState(false);
 
   const [running, setRunning] = useState(false);
@@ -52,6 +53,8 @@ function App() {
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
 
+  const cloudId = useMemo(() => ctx?.cloudId || ctx?.extension?.cloudId, [ctx]);
+  const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
 
   // ─── Auth check — checks for stored token ──────────────────────────────────
   async function refreshAuthStatus() {
@@ -143,10 +146,10 @@ function App() {
           perPage: 50,
         });
         if (!mounted) return;
-        const fetchedRepos = Array.isArray(res?.repositories)
-          ? res.repositories
-          : Array.isArray(res)
-            ? res
+        const fetchedRepos = Array.isArray(res?.repositories) 
+          ? res.repositories 
+          : Array.isArray(res) 
+            ? res 
             : [];
         setRepos(fetchedRepos);
         sessionStorage.setItem(cacheKey, JSON.stringify(fetchedRepos));
@@ -163,11 +166,7 @@ function App() {
   // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
     const handleMessage = (event) => {
-      if (
-        event.data?.type === 'GITHUB_CONNECTED' || 
-        event.data?.type === 'oliverai:forge:oauth_complete' ||
-        event.data?.type === 'SCA_AUTH_SUCCESS'
-      ) {
+      if (event.data?.type === 'GITHUB_CONNECTED') {
         refreshAuthStatus();
         setConnecting(false);
       }
@@ -191,10 +190,10 @@ function App() {
       try {
         const status = await invoke('getGithubStatus');
         if (status.connected) {
-          setAuth({
-            connected: true,
-            loading: false,
-            username: status.username || 'GitHub User'
+          setAuth({ 
+            connected: true, 
+            loading: false, 
+            username: status.username || 'GitHub User' 
           });
           setConnecting(false);
           clearInterval(interval);
@@ -225,9 +224,13 @@ function App() {
     try {
       const { authUrl } = await invoke('getGithubAuthUrl');
       if (authUrl) {
-        // Use router.open (standard in Forge) which opens a new tab.
-        // Standard window.open/window.location are blocked in the Forge sandbox.
-        await router.open(authUrl);
+        // Use window.open (popup) instead of router.open so that window.opener
+        // is set in the callback page, allowing postMessage back to this panel.
+        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
+        if (!popup) {
+          // Popup was blocked – fall back to same-tab navigation.
+          window.location.href = authUrl;
+        }
       }
     } catch (e) {
       console.error('handleConnectGit failed:', e);
