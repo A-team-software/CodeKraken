@@ -163,20 +163,7 @@ function App() {
     return () => { mounted = false; };
   }, [auth.connected, provider]);
 
-  // ─── Post-message listener for OAuth success ──────────────────────────────
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data?.type === 'GITHUB_CONNECTED') {
-        refreshAuthStatus();
-        setConnecting(false);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ─── Polling fallback if connection is pending ────────────────────────────
+  // ─── Polling fallback: detect auth completion while connecting ───────────
   useEffect(() => {
     if (!connecting) return;
 
@@ -222,16 +209,16 @@ function App() {
     setConnecting(true);
     setError(null);
     try {
-      const { authUrl } = await invoke('getGithubAuthUrl');
-      if (authUrl) {
-        // Use window.open (popup) instead of router.open so that window.opener
-        // is set in the callback page, allowing postMessage back to this panel.
-        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
-        if (!popup) {
-          // Popup was blocked – fall back to same-tab navigation.
-          window.location.href = authUrl;
-        }
+      const data = await invoke('getGithubAuthUrl');
+      // Backend may return `loginUrl` or `authUrl` — accept either.
+      const url = data?.loginUrl || data?.authUrl;
+      if (!url) {
+        throw new Error('No auth URL returned from server. Check backend logs.');
       }
+      // Forge apps run in a sandboxed iframe — window.open() is blocked.
+      // router.open() opens the URL in a new browser tab.
+      // The 2-second polling loop (connecting state) will detect auth completion.
+      await router.open(url);
     } catch (e) {
       console.error('handleConnectGit failed:', e);
       setError(`Failed to start OAuth: ${e.message || String(e)}`);

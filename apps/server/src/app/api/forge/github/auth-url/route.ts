@@ -1,5 +1,4 @@
 import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
-import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -20,12 +19,13 @@ export async function POST(req: NextRequest) {
   });
   const state = await authService.generateState('github', metadata);
 
-  // Use the standard registered callback URL to avoid registration issues
+  // Do NOT pass redirect_uri — let GitHub use the URL registered in the OAuth App.
+  // Passing a mismatched redirect_uri causes GitHub's "not associated" error.
+  // The GITHUB_CALLBACK_URL env var on Vercel must match whatever is registered.
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     scope: 'repo',
     state: state,
-    redirect_uri: FORGE_GITHUB_CALLBACK_URL
   });
 
   const loginUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;

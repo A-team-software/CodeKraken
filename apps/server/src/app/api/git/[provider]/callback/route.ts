@@ -4,7 +4,7 @@ import { MongoOAuthStateRepository } from '@oliver/auth';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { SynchronizeUserUseCase } from '@oliver/user';
 import { MongoUserRepository } from '@oliver/user';
-import { TOKEN_COOKIE_NAME, FORGE_GITHUB_CALLBACK_URL, TOKEN_COOKIE_MAX_AGE, Logger } from '@oliver/core';
+import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger } from '@oliver/core';
 
 /**
  * GET /api/git/[provider]/callback
@@ -48,12 +48,13 @@ export async function GET(
         const processCallbackUseCase = new ProcessOAuthCallbackUseCase(stateRepo, tokenRepo, syncUserUseCase);
 
         // Execute Use Case
+        // Do NOT pass redirectUri — the authorize step does not send redirect_uri either,
+        // and GitHub requires both steps to match (both omit or both identical).
         const result = await processCallbackUseCase.execute({
             provider,
             providerType: 'git',
             code,
             state,
-            redirectUri: FORGE_GITHUB_CALLBACK_URL // Ensure we use the same URI as authorize step
         });
 
         const { systemUserId, onboardingStep, accessToken, metadata } = result;
