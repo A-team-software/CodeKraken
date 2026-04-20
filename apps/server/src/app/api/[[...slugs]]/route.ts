@@ -421,9 +421,9 @@ const app = new Elysia({ prefix: "/api" })
 
         let authUrl: string;
         if (provider === 'github') {
-            authUrl = GitHubService.getLoginUrl(state);
+            authUrl = GitHubService.getLoginUrl(state, GITHUB_CALLBACK_URL);
         } else if (provider === 'bitbucket') {
-            authUrl = BitbucketService.getLoginUrl(state);
+            authUrl = BitbucketService.getLoginUrl(state, BITBUCKET_CALLBACK_URL);
         } else {
             set.status = 400;
             return { error: `Unsupported provider: ${provider}` };
