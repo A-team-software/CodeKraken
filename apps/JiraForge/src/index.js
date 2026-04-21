@@ -3,6 +3,10 @@ import { fetch } from '@forge/api';
 
 const resolver = new Resolver();
 
+// The backend URL is driven by an env var so each environment (dev/staging/prod)
+// can point to the right server without code changes.
+const BACKEND_URL = process.env.BACKEND_URL || 'https://oliver-server-qw6b.vercel.app';
+
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
 
 /**
@@ -34,7 +38,7 @@ resolver.define('getGithubAuthUrl', async (req) => {
 
   console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url', {
+  const res = await fetch(`${BACKEND_URL}/api/forge/github/auth-url`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -60,7 +64,7 @@ resolver.define('getGithubStatus', async (req) => {
 
   console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/status', {
+  const res = await fetch(`${BACKEND_URL}/api/forge/github/status`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -87,7 +91,7 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect', {
+  const res = await fetch(`${BACKEND_URL}/api/forge/github/disconnect`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -112,8 +116,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  const url = `https://oliver-server-qw6b.vercel.app/${cleanPath}`;
+  const url = `${BACKEND_URL}${path}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',
@@ -148,11 +151,11 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
 }
 
 resolver.define('getGitProviders', async ({ context }) => {
-  return await backendFetch('api/forge/git/providers', { context });
+  return await backendFetch('/api/forge/git/providers', { context });
 });
 
 resolver.define('getGithubToken', async ({ context }) => {
-  return await backendFetch('api/forge/github/token', { context });
+  return await backendFetch('/api/forge/github/token', { context });
 });
 
 resolver.define('getRepositories', async ({ payload, context }) => {
@@ -162,7 +165,7 @@ resolver.define('getRepositories', async ({ payload, context }) => {
 
   const qs = new URLSearchParams({ page: String(page), perPage: String(perPage), provider });
   return await backendFetch(
-    `api/forge/repositories?${qs.toString()}`,
+    `/api/forge/repositories?${qs.toString()}`,
     { context }
   );
 });
@@ -176,7 +179,7 @@ resolver.define('solveTask', async ({ payload, context }) => {
     throw new Error('Missing task or repoUrl');
   }
 
-  return await backendFetch('api/solve', {
+  return await backendFetch('/api/solve', {
     method: 'POST',
     body: {
       task,

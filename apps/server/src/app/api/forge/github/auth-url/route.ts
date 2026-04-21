@@ -28,7 +28,9 @@ export async function POST(req: NextRequest) {
     redirect_uri: GITHUB_CALLBACK_URL,
   });
 
-  const loginUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+  const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
 
-  return NextResponse.json({ loginUrl });
+  // Return as `authUrl` — matches both the SCA pattern and what the Forge frontend
+  // destructures from invoke('getGithubAuthUrl').
+  return NextResponse.json({ authUrl });
 }
