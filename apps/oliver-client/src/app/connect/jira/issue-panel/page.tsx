@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
+import { useEnvironment } from "@/context/EnvironmentContext";
 import { Button } from "../../../../../components/ui/button";
 import { Code, GitBranch, Zap } from "lucide-react";
-import { useEnvironment } from "@/app/context/EnvironmentContext";
 
 export default function JiraIssuePanelPage() {
   const { context, isLoading } = useEnvironment();

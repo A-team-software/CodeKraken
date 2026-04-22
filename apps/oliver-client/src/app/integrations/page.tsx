@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Github,
+  Trello,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
-import { GitProviderFactory } from "@oliver/git";
+import { GitProviderFactory } from "@/lib/git";
 import { Button } from "../../../components/ui/button";
 
 export default function IntegrationsPage() {

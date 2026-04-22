@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Home } from "lucide-react";
