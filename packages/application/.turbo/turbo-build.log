@@ -1,5 +1,5 @@
 
 
-> @oliver/application@1.0.0 build /app/packages/application
+> @oliver/application@1.0.0 build /home/anorak/oliver/packages/application
 > tsc -b
 

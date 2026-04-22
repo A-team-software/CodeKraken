@@ -3,6 +3,7 @@
 /next-app
 ./sca
 sca
+.turbo
 /sca
 # dependencies
 /node_modules

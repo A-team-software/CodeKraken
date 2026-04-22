@@ -1,5 +1,5 @@
 
 
-> @oliver/db@1.0.0 build /app/packages/db
+> @oliver/db@1.0.0 build /home/anorak/oliver/packages/db
 > tsc -b
 

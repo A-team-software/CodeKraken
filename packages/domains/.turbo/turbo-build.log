@@ -1,5 +1,5 @@
 
 
-> @oliver/domains@1.0.0 build /app/packages/domains
+> @oliver/domains@1.0.0 build /home/anorak/oliver/packages/domains
 > tsc -b
 

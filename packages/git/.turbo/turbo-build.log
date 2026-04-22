@@ -1,5 +1,5 @@
 
 
-> @oliver/git@1.0.0 build /app/packages/git
+> @oliver/git@1.0.0 build /home/anorak/oliver/packages/git
 > tsc -b
 

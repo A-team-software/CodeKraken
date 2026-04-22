@@ -1,5 +1,5 @@
 
 
-> @oliver/boards@1.0.0 build /app/packages/boards
+> @oliver/boards@1.0.0 build /home/anorak/oliver/packages/boards
 > tsc -b
 
