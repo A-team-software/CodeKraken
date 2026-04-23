@@ -51,7 +51,8 @@ export class LocalhostInfrastructure implements Infrastructure {
                 cwd,
                 env,
                 reject: false,
-                cleanup: true
+                cleanup: true,
+                stdin: "ignore"
             });
 
             this.process = child;
