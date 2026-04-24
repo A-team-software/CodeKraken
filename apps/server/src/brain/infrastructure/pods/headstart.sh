@@ -64,33 +64,49 @@ url_encode() {
 	node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$1"
 }
 
+build_git_auth_header() {
+	local git_user="$1"
+	local git_pass="$2"
+	local git_token="$3"
+
+	if [[ -n "$git_token" ]]; then
+		printf "Authorization: Basic %s" "$(printf "x-access-token:%s" "$git_token" | base64 | tr -d '\n')"
+		return 0
+	fi
+
+	if [[ -n "$git_user" && -n "$git_pass" ]]; then
+		printf "Authorization: Basic %s" "$(printf "%s:%s" "$git_user" "$git_pass" | base64 | tr -d '\n')"
+		return 0
+	fi
+
+	return 1
+}
+
+configure_git_auth() {
+	local git_user="$1"
+	local git_pass="$2"
+	local git_token="$3"
+	local auth_header
+	local git_config_count
+
+	if ! auth_header="$(build_git_auth_header "$git_user" "$git_pass" "$git_token")"; then
+		return 0
+	fi
+
+	git_config_count="${GIT_CONFIG_COUNT:-0}"
+	export GIT_CONFIG_COUNT=$((git_config_count + 1))
+	export GIT_CONFIG_KEY_"${git_config_count}"="http.extraHeader"
+	export GIT_CONFIG_VALUE_"${git_config_count}"="${auth_header}"
+}
+
 build_remote_url() {
 	local remote_url="$1"
 	local git_user="$2"
 	local git_pass="$3"
 	local git_token="$4"
-	local protocol
-	local remote_without_scheme
 
-	if [[ "$remote_url" =~ ^(https?)://(.+)$ ]]; then
-		protocol="${BASH_REMATCH[1]}"
-		remote_without_scheme="${BASH_REMATCH[2]}"
-
-		if [[ -n "$git_token" ]]; then
-			local enc_token
-			enc_token="$(url_encode "$git_token")"
-			printf "%s" "${protocol}://${enc_token}@${remote_without_scheme}"
-			return 0
-		fi
-
-		if [[ -n "$git_user" && -n "$git_pass" ]]; then
-			local enc_user
-			local enc_pass
-			enc_user="$(url_encode "$git_user")"
-			enc_pass="$(url_encode "$git_pass")"
-			printf "%s" "${protocol}://${enc_user}:${enc_pass}@${remote_without_scheme}"
-			return 0
-		fi
+	if [[ "$remote_url" =~ ^https?://.+$ ]]; then
+		configure_git_auth "$git_user" "$git_pass" "$git_token"
 	fi
 
 	printf "%s" "$remote_url"
