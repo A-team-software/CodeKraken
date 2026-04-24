@@ -26,7 +26,7 @@ export class LocalhostInfrastructure implements Infrastructure {
         if (!command) {
             return {
                 success: false,
-                message: "Missing local command. Provide it in vars.command."
+                message: "Missing local command. Provide it in options.command."
             };
         }
 
