@@ -189,15 +189,18 @@ apply_commit_if_present() {
 }
 
 ensure_pr_md_ignored() {
-	local gitignore_file=".gitignore"
-	if [[ -f "$gitignore_file" ]]; then
-		if ! grep -qxF "PR.md" "$gitignore_file"; then
-			echo "PR.md" >> "$gitignore_file"
+	local exclude_file=".git/info/exclude"
+	mkdir -p "$(dirname "$exclude_file")"
+
+	if [[ -f "$exclude_file" ]]; then
+		if ! grep -qxF "PR.md" "$exclude_file"; then
+			echo "PR.md" >> "$exclude_file"
 		fi
 	else
-		echo "PR.md" > "$gitignore_file"
+		echo "PR.md" > "$exclude_file"
 	fi
-	log "Ensured PR.md is git-ignored."
+
+	log "Ensured PR.md is git-ignored via .git/info/exclude."
 }
 
 detect_git_platform() {
