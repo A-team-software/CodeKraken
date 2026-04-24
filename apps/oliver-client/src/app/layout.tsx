@@ -1,7 +1,6 @@
 import React from "react";
 import "./styles/globals.css";
-import { Providers } from "./providers";
-import { initializeAppDatabase } from "@/lib/infrastructure/initialization";
+import { initializeAppDatabase } from "@oliver/db";
 
 export const metadata = {
   title: "OliverAI - AI Coding Assistant for Project Management",

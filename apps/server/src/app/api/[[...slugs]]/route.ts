@@ -6,7 +6,6 @@ import path from "path";
 import { registerHandlers, UserAggregate } from "@oliver/user";
 import { SafeExecute } from "@oliver/core";
 import { createSessionId, cloneRepo, analyzeDiff, runSolve } from "@oliver/code-gen";
-import { Result } from "execa";
 import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
@@ -279,7 +278,7 @@ const app = new Elysia({ prefix: "/api" })
 
         const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
         const { MongoUserRepository } = await import('@oliver/user');
-        
+
         const accessRepo = new MongoUserJiraSiteAccessRepository();
         const access = await accessRepo.findByClientKeyAndAccountId(clientKey as string, accountId as string);
 
@@ -289,10 +288,10 @@ const app = new Elysia({ prefix: "/api" })
         const user = await userRepo.findById(access.userId);
         if (!user) return { found: false };
 
-        const gitAccount = user.accounts.find(a => 
+        const gitAccount = user.accounts.find(a =>
             a.provider?.toString().toLowerCase() === (provider as string).toLowerCase()
         );
-        
+
         return {
             found: true,
             hasGitToken: !!gitAccount?.accessToken,
