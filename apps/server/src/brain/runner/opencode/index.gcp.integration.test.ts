@@ -10,6 +10,11 @@ type MockFetchResponseOptions = {
     body?: unknown;
 };
 
+type GcpResultData = {
+    operationName?: string;
+    response?: unknown;
+};
+
 const ORIGINAL_ENV = { ...process.env };
 
 describe("OpenCodeRunner with GcpInfrastructure", () => {
@@ -104,7 +109,8 @@ describe("OpenCodeRunner with GcpInfrastructure", () => {
                 { name: "GIT_PASSWORD", value: "git-password" }
             ])
         );
-        expect(result.data?.operationName).toBe("projects/demo-project/locations/europe-west1/operations/op-123");
+        const startData = (result.data ?? {}) as GcpResultData;
+        expect(startData.operationName).toBe("projects/demo-project/locations/europe-west1/operations/op-123");
     });
 
     it("starts a Cloud Run job successfully using short job name plus project and location", async () => {
@@ -194,7 +200,8 @@ describe("OpenCodeRunner with GcpInfrastructure", () => {
 
         expect(result.success).toBe(false);
         expect(result.message).toContain("HTTP 403");
-        expect(result.data?.response).toEqual({ error: { message: "permission denied" } });
+        const startErrorData = (result.data ?? {}) as GcpResultData;
+        expect(startErrorData.response).toEqual({ error: { message: "permission denied" } });
     });
 
     it("stops a Cloud Run operation successfully using the operation returned by start", async () => {
@@ -294,7 +301,8 @@ describe("OpenCodeRunner with GcpInfrastructure", () => {
 
         expect(stopResult.success).toBe(false);
         expect(stopResult.message).toContain("HTTP 404");
-        expect(stopResult.data?.response).toEqual({ error: { message: "operation not found" } });
+        const stopErrorData = (stopResult.data ?? {}) as GcpResultData;
+        expect(stopErrorData.response).toEqual({ error: { message: "operation not found" } });
     });
 });
 
