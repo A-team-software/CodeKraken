@@ -9,7 +9,7 @@
 #
 # What this script does
 # 1. Reads runtime configuration from environment variables.
-# 2. Clones the target remote repository into /workspace/repo (or custom dir).
+# 2. Clones the target remote repository into /workspace/app (or custom dir).
 # 3. Checks out an existing local/remote branch, or creates the branch if it
 #    does not exist.
 # 4. Optionally checks out a target commit when provided.
@@ -142,6 +142,16 @@ build_push_url() {
 	esac
 
 	build_remote_url "$remote_url" "$auth_user" "$git_token" ""
+}
+
+is_network_git_remote() {
+	local remote_url="$1"
+	[[ "$remote_url" =~ ^https?:// ]] || [[ "$remote_url" =~ ^git@ ]]
+}
+
+has_embedded_http_credentials() {
+	local remote_url="$1"
+	[[ "$remote_url" =~ ^https?://[^/@]+@ ]]
 }
 
 ensure_branch() {
@@ -379,11 +389,24 @@ post_opencode_success() {
 		return 0
 	fi
 
+	if ! is_network_git_remote "$remote_url"; then
+		log "Remote '${remote_url}' is not a network git URL. Skipping push and PR creation."
+		return 0
+	fi
+
 	local platform
 	platform="$(detect_git_platform "$remote_url")"
 
+	if [[ -z "$git_token" && ! "$remote_url" =~ ^git@ ]] && ! has_embedded_http_credentials "$clone_url"; then
+		log "No git credentials available for remote push. Skipping push and PR creation."
+		return 0
+	fi
+
 	local push_url
 	push_url="$(build_push_url "$remote_url" "$platform" "$git_token")"
+	if has_embedded_http_credentials "$clone_url"; then
+		push_url="$clone_url"
+	fi
 	if [[ -z "$push_url" ]]; then
 		push_url="$clone_url"
 	fi

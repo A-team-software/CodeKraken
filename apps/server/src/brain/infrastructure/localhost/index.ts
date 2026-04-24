@@ -39,9 +39,9 @@ export class LocalhostInfrastructure implements Infrastructure {
         const stdoutChunks: string[] = [];
         const stderrChunks: string[] = [];
         const imageTag = this.resolveImageTag();
-        const runConfig = await this.buildDockerRunConfig(options);
 
         try {
+            const runConfig = await this.buildDockerRunConfig(options);
             await this.ensureDockerAvailable();
             await this.ensureImageAvailable(imageTag);
 
