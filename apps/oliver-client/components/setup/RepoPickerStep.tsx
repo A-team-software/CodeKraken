@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Search, Loader2 } from "lucide-react";
-import { UnifiedRepository } from "@/lib/git/domain/types";
+import { UnifiedRepository } from "@oliver/core";
 
 interface RepoPickerStepProps {
   provider: "github" | "bitbucket";

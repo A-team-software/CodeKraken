@@ -2,16 +2,11 @@ import { Elysia, t } from "elysia";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import { cloneRepo } from "../../../lib/agentic_code_gen/cloneRepo";
-import { analyzeDiff } from "../../../lib/agentic_code_gen/diffAnalysis";
-import { truncate } from "../../../lib/agentic_code_gen/truncate";
-import { createSessionId } from "../../../lib/agentic_code_gen/session";
-import { runSolve } from "../../../lib/agentic_code_gen/runSolve";
-import { registerHandlers } from "@/lib/user/application/use_cases/event_handlers/registerHandlers";
-import { PersonalAccessTokenService } from "@/lib/auth/application/PersonalAccessTokenService";
-import { encrypt, decrypt } from "@/lib/shared/utils/encryption.util";
-import { GitHubService } from "@/lib/git/infrastructure/external/GitHubService";
-import { BitbucketService } from "@/lib/git/infrastructure/external/BitbucketService";
+import { analyzeDiff, cloneRepo, createSessionId, runSolve, truncate } from '@oliver/code-gen';
+import { registerHandlers } from '@oliver/user';
+import { PersonalAccessTokenService } from '@oliver/auth';
+import { decrypt, encrypt } from '@oliver/shared';
+import { GitHubService, BitbucketService } from '@oliver/git';
 
 // Initialize event handlers
 registerHandlers();

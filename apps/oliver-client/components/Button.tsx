@@ -9,7 +9,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export default function Button({
   variant = "primary",
   size = "md",
-  className = "",
   children,
   ...props
 }: ButtonProps) {
@@ -31,7 +30,7 @@ export default function Button({
 
   return (
     <button
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
+      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]}`}
       {...props}
     >
       {children}
