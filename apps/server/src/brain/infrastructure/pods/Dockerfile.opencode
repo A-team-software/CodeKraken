@@ -1,0 +1,26 @@
+FROM node:20-slim
+
+ARG OPENCODE_VERSION=1.14.22
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	bash \
+	ca-certificates \
+	curl \
+	git \
+	&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+COPY headstart.sh /usr/local/bin/headstart.sh
+RUN chmod +x /usr/local/bin/headstart.sh
+
+RUN curl -fsSL https://opencode.ai/install -o /tmp/opencode-install.sh \
+	&& chmod +x /tmp/opencode-install.sh \
+	&& /tmp/opencode-install.sh --version "$OPENCODE_VERSION" --no-modify-path \
+	&& rm -f /tmp/opencode-install.sh
+
+ENV PATH="/root/.opencode/bin:${PATH}"
+
+RUN git --version && node -v && opencode -v
+
+ENTRYPOINT ["/usr/local/bin/headstart.sh"]
