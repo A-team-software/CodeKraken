@@ -176,8 +176,9 @@ start_opencode() {
 	log "Starting OpenCode with agent mode: ${agent}"
 
 	if [[ -n "$extra_flags" ]]; then
-		# shellcheck disable=SC2086
-		exec bash -lc "opencode run --format json --agent '${agent}' ${extra_flags} \"${task}\""
+		local -a extra_flags_array
+		read -r -a extra_flags_array <<< "$extra_flags"
+		exec opencode run --format json --agent "$agent" "${extra_flags_array[@]}" "$task"
 	fi
 
 	exec opencode run --format json --agent "$agent" "$task"
