@@ -18,15 +18,10 @@ const MODEL_CANDIDATE_PATTERNS = [
     /gpt-oss/i
 ];
 
-const opencodeAvailable = await isCommandAvailable("opencode");
+const dockerAvailable = await isCommandAvailable("docker");
 const ollamaAvailable = await isCommandAvailable("ollama");
-const localModel = opencodeAvailable && ollamaAvailable ? await resolveLocalModel() : null;
-const integrationTest = opencodeAvailable && ollamaAvailable && localModel ? test : test.skip;
-
-type ModelProbeResult = {
-    supported: boolean;
-    reason?: string;
-};
+const localModel = dockerAvailable && ollamaAvailable ? await resolveLocalModel() : null;
+const integrationTest = dockerAvailable && ollamaAvailable && localModel ? test : test.skip;
 
 function buildProbeDebugExcerpt(output: string): string {
     const excerpt = output
@@ -83,7 +78,9 @@ integrationTest("OpenCodeRunner creates a runnable hello world Node app in an em
 
         expect(result.success, result.message).toBe(true);
 
-        const output = `${result.data?.stdout ?? ""}\n${result.data?.stderr ?? ""}`;
+        const runData = (result.data ?? {}) as { stdout?: string; stderr?: string };
+
+        const output = `${runData.stdout ?? ""}\n${runData.stderr ?? ""}`;
 
         const entryPath = path.join(repoPath, "index.js");
 
@@ -141,15 +138,8 @@ async function resolveLocalModel(): Promise<string | null> {
     const configuredModel = process.env.OPENCODE_TEST_OLLAMA_MODEL?.trim();
 
     if (configuredModel) {
-        const probe = await probeModelSupport(configuredModel);
-
-        if (probe.supported) {
-            console.log(`Using configured Ollama model for testing: ${configuredModel}`);
-            return configuredModel;
-        }
-
-        console.warn(`Configured Ollama model was rejected: ${configuredModel}${probe.reason ? ` (${probe.reason})` : ""}`);
-        return null;
+        console.log(`Using configured Ollama model for testing: ${configuredModel}`);
+        return configuredModel;
     }
 
     const result = await execa("ollama", ["list"], {
@@ -177,97 +167,12 @@ async function resolveLocalModel(): Promise<string | null> {
         return MODEL_CANDIDATE_PATTERNS.some((pattern) => pattern.test(modelName)) ? [modelName] : [];
     });
 
-    const rejectedModels: string[] = [];
-
-    for (const model of candidateModels) {
-        const probe = await probeModelSupport(model);
-
-        if (probe.supported) {
-            return model;
-        }
-
-        rejectedModels.push(probe.reason ? `${model} (${probe.reason})` : model);
-    }
-
     if (candidateModels.length === 0) {
         console.warn("No suitable Ollama model found.");
-    } else {
-        console.warn(`No OpenCode tool-capable Ollama model found among candidates: ${rejectedModels.join(", ")}`);
+        return null;
     }
 
-    return null;
-}
-
-async function probeModelSupport(model: string): Promise<ModelProbeResult> {
-    const repoPath = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-model-probe-"));
-
-    try {
-        await initializeRepository(repoPath);
-        await writeOpenCodeConfig(repoPath, model);
-
-        const result = await execa(
-            "opencode",
-            [
-                "run",
-                "--format",
-                "json",
-                "--agent",
-                "build",
-                "Write a file named probe.txt in the repository root containing exactly OK."
-            ],
-            {
-                cwd: repoPath,
-                reject: false,
-                stdin: "ignore",
-                stdout: "pipe",
-                stderr: "pipe"
-            }
-        );
-
-        const output = `${result.stdout}\n${result.stderr}`;
-        const debugExcerpt = buildProbeDebugExcerpt(output);
-
-        if (/does not support tools/i.test(output)) {
-            return {
-                supported: false,
-                reason: `provider reported that the model does not support tools; ${debugExcerpt}`
-            };
-        }
-
-        if (result.exitCode !== 0) {
-            return {
-                supported: false,
-                reason: `probe exited with code ${result.exitCode}; ${debugExcerpt}`
-            };
-        }
-
-        const probePath = path.join(repoPath, "probe.txt");
-
-        try {
-            await fs.access(probePath);
-            return {
-                supported: true
-            };
-        } catch {
-            if (emittedFileWriteToolCall(output)) {
-                return {
-                    supported: true
-                };
-            }
-
-            return {
-                supported: false,
-                reason: `probe completed but did not create probe.txt; ${debugExcerpt}`
-            };
-        }
-    } catch {
-        return {
-            supported: false,
-            reason: "probe execution threw an unexpected error"
-        };
-    } finally {
-        await fs.rm(repoPath, { recursive: true, force: true });
-    }
+    return candidateModels[0] ?? null;
 }
 
 async function initializeRepository(repoPath: string): Promise<void> {

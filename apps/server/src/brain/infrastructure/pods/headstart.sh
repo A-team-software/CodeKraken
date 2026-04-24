@@ -230,6 +230,12 @@ main() {
 	log "Parsed env: mode=${mode}, provider=${ai_provider:-unset}, branch=${branch:-unset}, commit=${commit_hash:-unset}"
 	configure_ai_env "$ai_provider" "$ai_api_key"
 
+	if [[ ! "$remote_repo" =~ ^[a-zA-Z][a-zA-Z0-9+.-]*:// && ! "$remote_repo" =~ ^git@ ]]; then
+		# Local mounts can appear with different UID/GID ownership in the container.
+		git config --global --add safe.directory "$remote_repo" || true
+		git config --global --add safe.directory "${remote_repo}/.git" || true
+	fi
+
 	mkdir -p "$workspace_root"
 	repo_dir="${workspace_root}/repo"
 	rm -rf "$repo_dir"

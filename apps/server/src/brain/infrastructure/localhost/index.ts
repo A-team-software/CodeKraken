@@ -1,15 +1,29 @@
 import { execa } from "execa";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Infrastructure } from "../infrastructure";
 import { JobConfig, JobResult } from "../../shared";
 
 type LocalProcessState = "idle" | "running" | "paused";
 
+type DockerRunConfig = {
+    repoUrl: string;
+    mounts: string[];
+    usesMountedLocalRepo: boolean;
+};
+
+const localRepoMountPath = "/workspace/local-repo-src";
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const podsDir = path.resolve(moduleDir, "../pods");
+const dockerfilePath = path.join(podsDir, "Dockerfile.opencode");
+
 export class LocalhostInfrastructure implements Infrastructure {
     private process?: ReturnType<typeof execa>;
     private state: LocalProcessState = "idle";
+    private containerName?: string;
 
     async startProcess(options: JobConfig & { command: string }): Promise<JobResult> {
         if (this.process && this.state !== "idle") {
@@ -22,34 +36,18 @@ export class LocalhostInfrastructure implements Infrastructure {
             };
         }
 
-        const command = options.command.trim();
-        if (!command) {
-            return {
-                success: false,
-                message: "Missing local command. Provide it in options.command."
-            };
-        }
-
-        let cwd: string;
-
-        try {
-            cwd = await this.resolveRepositoryPath(options.repoUrl);
-            await this.prepareRepository(cwd, options);
-        } catch (error) {
-            return {
-                success: false,
-                message: error instanceof Error ? error.message : "Failed to prepare local repository."
-            };
-        }
-
-        const env = this.buildEnv(options);
         const stdoutChunks: string[] = [];
         const stderrChunks: string[] = [];
+        const imageTag = this.resolveImageTag();
+        const runConfig = await this.buildDockerRunConfig(options);
 
         try {
-            const child = execa("sh", ["-lc", command], {
-                cwd,
-                env,
+            await this.ensureDockerAvailable();
+            await this.ensureImageAvailable(imageTag);
+
+            const containerName = this.generateContainerName();
+            const dockerArgs = this.buildDockerRunArgs(containerName, imageTag, options, runConfig);
+            const child = execa("docker", dockerArgs, {
                 reject: false,
                 cleanup: true,
                 stdin: "ignore"
@@ -57,6 +55,7 @@ export class LocalhostInfrastructure implements Infrastructure {
 
             this.process = child;
             this.state = "running";
+            this.containerName = containerName;
 
             child.stdout?.on("data", (chunk: Buffer | string) => {
                 const text = chunk.toString();
@@ -77,25 +76,27 @@ export class LocalhostInfrastructure implements Infrastructure {
 
             return {
                 success,
-                message: success ? "Local command completed successfully." : this.buildFailureMessage(command, result.exitCode, result.signal),
+                message: success
+                    ? "Local Docker OpenCode run completed successfully."
+                    : this.buildFailureMessage("docker run", result.exitCode, result.signal),
                 data: {
-                    command,
-                    cwd,
+                    imageTag,
+                    containerName,
                     exitCode: result.exitCode,
                     signal: result.signal,
+                    dockerArgs,
                     stdout,
                     stderr
                 }
             };
         } catch (error) {
-            const message = error instanceof Error ? error.message : "Unknown local process error.";
+            const message = error instanceof Error ? error.message : "Unknown local Docker process error.";
 
             return {
                 success: false,
-                message: `Failed to start local command: ${message}`,
+                message: `Failed to start local Docker OpenCode run: ${message}`,
                 data: {
-                    command,
-                    cwd,
+                    imageTag,
                     stdout: stdoutChunks.join(""),
                     stderr: stderrChunks.join("")
                 }
@@ -103,11 +104,12 @@ export class LocalhostInfrastructure implements Infrastructure {
         } finally {
             this.process = undefined;
             this.state = "idle";
+            this.containerName = undefined;
         }
     }
 
     async stopProcess(): Promise<JobResult> {
-        return this.signalProcess("SIGTERM", "stopped");
+        return this.signalProcess("stop", "stopped");
     }
 
     async pauseProcess(): Promise<JobResult> {
@@ -125,7 +127,7 @@ export class LocalhostInfrastructure implements Infrastructure {
             };
         }
 
-        return this.signalProcess("SIGSTOP", "paused");
+        return this.signalProcess("pause", "paused");
     }
 
     async resumeProcess(): Promise<JobResult> {
@@ -143,18 +145,13 @@ export class LocalhostInfrastructure implements Infrastructure {
             };
         }
 
-        return this.signalProcess("SIGCONT", "running");
+        return this.signalProcess("unpause", "running");
     }
 
-    private buildEnv(options: JobConfig): Record<string, string> {
-        return {
-            ...process.env,
-            REPO_URL: options.repoUrl,
-            JOB_MODE: options.mode
-        };
-    }
-
-    private async signalProcess(signal: NodeJS.Signals, nextState: Exclude<LocalProcessState, "idle"> | "stopped"): Promise<JobResult> {
+    private async signalProcess(
+        dockerAction: "stop" | "pause" | "unpause",
+        nextState: Exclude<LocalProcessState, "idle"> | "stopped"
+    ): Promise<JobResult> {
         if (!this.process || this.state === "idle") {
             return {
                 success: false,
@@ -162,7 +159,26 @@ export class LocalhostInfrastructure implements Infrastructure {
             };
         }
 
-        this.process.kill(signal);
+        if (!this.containerName) {
+            return {
+                success: false,
+                message: "No active container found for local process."
+            };
+        }
+
+        const control = await execa("docker", [dockerAction, this.containerName], {
+            reject: false,
+            stdout: "pipe",
+            stderr: "pipe"
+        });
+
+        if (control.exitCode !== 0) {
+            return {
+                success: false,
+                message: control.stderr || control.stdout || `Failed to ${dockerAction} local container.`
+            };
+        }
+
 
         this.state = nextState === "stopped" ? "idle" : nextState;
 
@@ -170,7 +186,8 @@ export class LocalhostInfrastructure implements Infrastructure {
             success: true,
             message: `Local process ${nextState}.`,
             data: {
-                signal
+                containerName: this.containerName,
+                dockerAction
             }
         };
     }
@@ -187,129 +204,184 @@ export class LocalhostInfrastructure implements Infrastructure {
         return `Local command failed: ${command}`;
     }
 
-    private async resolveRepositoryPath(repoUrl: string): Promise<string> {
-        if (this.isRemoteReference(repoUrl)) {
-            throw new Error("repoUrl must be a local folder path. Remote URLs are not supported.");
+    private async ensureDockerAvailable(): Promise<void> {
+        const result = await execa("docker", ["--version"], {
+            reject: false,
+            stdout: "pipe",
+            stderr: "pipe"
+        });
+
+        if (result.exitCode !== 0) {
+            throw new Error("Docker is required for LocalhostInfrastructure. Ensure Docker is installed and running.");
+        }
+    }
+
+    private async ensureImageAvailable(imageTag: string): Promise<void> {
+        const forceRebuild = process.env.OPENCODE_DOCKER_REBUILD === "1";
+
+        if (!forceRebuild) {
+            const inspect = await execa("docker", ["image", "inspect", imageTag], {
+                reject: false,
+                stdout: "pipe",
+                stderr: "pipe"
+            });
+
+            if (inspect.exitCode === 0) {
+                return;
+            }
         }
 
-        const repoPath = path.resolve(repoUrl);
-        const stats = await fs.stat(repoPath).catch(() => undefined);
+        const buildArgs = [
+            "build",
+            "-f",
+            dockerfilePath,
+            "-t",
+            imageTag
+        ];
+
+        const configuredVersion = process.env.OPENCODE_DOCKER_VERSION?.trim();
+        if (configuredVersion) {
+            buildArgs.push("--build-arg", `OPENCODE_VERSION=${configuredVersion}`);
+        }
+
+        buildArgs.push(podsDir);
+
+        const build = await execa("docker", buildArgs, {
+            reject: false,
+            stdout: "pipe",
+            stderr: "pipe"
+        });
+
+        if (build.exitCode !== 0) {
+            throw new Error(build.stderr || build.stdout || "Failed to build local OpenCode Docker image.");
+        }
+    }
+
+    private resolveImageTag(): string {
+        return process.env.OPENCODE_DOCKER_IMAGE?.trim() || "oliver-opencode-local:latest";
+    }
+
+    private generateContainerName(): string {
+        const random = Math.random().toString(36).slice(2, 10);
+        return `oliver-opencode-local-${random}`;
+    }
+
+    private resolveNetworkMode(): string | undefined {
+        const configured = process.env.OPENCODE_DOCKER_NETWORK_MODE?.trim();
+        if (configured) {
+            return configured;
+        }
+
+        return process.platform === "linux" ? "host" : undefined;
+    }
+
+    private async buildDockerRunConfig(options: JobConfig): Promise<DockerRunConfig> {
+        if (this.isRemoteReference(options.repoUrl)) {
+            return {
+                repoUrl: options.repoUrl,
+                mounts: [],
+                usesMountedLocalRepo: false
+            };
+        }
+
+        const localRepoPath = path.resolve(options.repoUrl);
+        const stats = await fs.stat(localRepoPath).catch(() => undefined);
 
         if (!stats?.isDirectory()) {
-            throw new Error(`Repository path does not exist or is not a directory: ${repoPath}`);
+            throw new Error(`Repository path does not exist or is not a directory: ${localRepoPath}`);
         }
 
-        return repoPath;
+        return {
+            repoUrl: localRepoMountPath,
+            mounts: [`${localRepoPath}:${localRepoMountPath}:ro`],
+            usesMountedLocalRepo: true
+        };
+    }
+
+    private buildDockerRunArgs(
+        containerName: string,
+        imageTag: string,
+        options: JobConfig & { command?: string },
+        runConfig: DockerRunConfig
+    ): string[] {
+        const args = [
+            "run",
+            "--rm",
+            "--name",
+            containerName
+        ];
+
+        const networkMode = this.resolveNetworkMode();
+        if (networkMode) {
+            args.push("--network", networkMode);
+        }
+
+        for (const mount of runConfig.mounts) {
+            args.push("-v", mount);
+        }
+
+        for (const [name, value] of this.buildContainerEnv(options, runConfig.repoUrl, runConfig)) {
+            args.push("-e", `${name}=${value}`);
+        }
+
+        args.push(imageTag);
+        return args;
+    }
+
+    private buildContainerEnv(
+        options: JobConfig & { command?: string },
+        repoUrl: string,
+        runConfig?: DockerRunConfig
+    ): Array<[string, string]> {
+        const entries: Array<[string, string]> = [
+            ["REPO_URL", repoUrl],
+            ["JOB_MODE", options.mode]
+        ];
+
+        if (runConfig?.usesMountedLocalRepo) {
+            entries.push(["GIT_CONFIG_COUNT", "2"]);
+            entries.push(["GIT_CONFIG_KEY_0", "safe.directory"]);
+            entries.push(["GIT_CONFIG_VALUE_0", localRepoMountPath]);
+            entries.push(["GIT_CONFIG_KEY_1", "safe.directory"]);
+            entries.push(["GIT_CONFIG_VALUE_1", `${localRepoMountPath}/.git`]);
+        }
+
+        if (options.task?.trim()) {
+            entries.push(["TASK", options.task]);
+        } else if (options.command?.trim()) {
+            entries.push(["OPENCODE_COMMAND", options.command]);
+        }
+
+        if (options.branch?.trim()) {
+            entries.push(["BRANCH", options.branch]);
+        }
+
+        if (options.commitHash?.trim()) {
+            entries.push(["COMMIT_HASH", options.commitHash]);
+        }
+
+        this.copyEnv(entries, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);
+        this.copyEnv(entries, "AI_API_KEY", ["AI_API_KEY", "OPENCODE_AI_API_KEY", "LLM_API_KEY"]);
+        this.copyEnv(entries, "GIT_USERNAME", ["GIT_USERNAME", "GIT_USER"]);
+        this.copyEnv(entries, "GIT_PASSWORD", ["GIT_PASSWORD", "GIT_PASS"]);
+        this.copyEnv(entries, "GIT_TOKEN", ["GIT_TOKEN", "GITHUB_TOKEN", "GIT_ACCESS_TOKEN"]);
+        this.copyEnv(entries, "OPENCODE_FLAGS", ["OPENCODE_FLAGS"]);
+        this.copyEnv(entries, "OPENCODE_COMMAND", ["OPENCODE_COMMAND"]);
+
+        return entries;
     }
 
     private isRemoteReference(repoUrl: string): boolean {
         return /^[a-z][a-z\d+.-]*:\/\//i.test(repoUrl) || /^git@/i.test(repoUrl) || /^ssh:\/\//i.test(repoUrl);
     }
 
-    private async prepareRepository(repoPath: string, options: JobConfig): Promise<void> {
-        await this.ensureGitRepository(repoPath);
-
-        if (options.branch) {
-            await this.checkoutBranchIfAvailable(repoPath, options.branch);
-        }
-
-        if (options.commitHash) {
-            await this.checkoutCommitIfAvailable(repoPath, options.commitHash);
-        }
-    }
-
-    private async ensureGitRepository(repoPath: string): Promise<void> {
-        const result = await this.runGit(repoPath, ["rev-parse", "--is-inside-work-tree"]);
-
-        if (!result.success || result.stdout.trim() !== "true") {
-            throw new Error(`Path is not a git repository: ${repoPath}`);
-        }
-    }
-
-    private async checkoutBranchIfAvailable(repoPath: string, branch: string): Promise<void> {
-        if (await this.localBranchExists(repoPath, branch)) {
-            await this.ensureGitSuccess(repoPath, ["switch", branch], `Failed to switch to local branch '${branch}'.`);
-            return;
-        }
-
-        if (!(await this.remoteBranchExists(repoPath, branch))) {
-            return;
-        }
-
-        await this.ensureGitSuccess(
-            repoPath,
-            ["fetch", "origin", `refs/heads/${branch}:refs/remotes/origin/${branch}`],
-            `Failed to fetch remote branch '${branch}'.`
-        );
-        await this.ensureGitSuccess(
-            repoPath,
-            ["switch", "--track", "-c", branch, `origin/${branch}`],
-            `Failed to switch to remote branch '${branch}'.`
-        );
-    }
-
-    private async checkoutCommitIfAvailable(repoPath: string, commitHash: string): Promise<void> {
-        if (await this.commitExists(repoPath, commitHash)) {
-            await this.ensureGitSuccess(repoPath, ["checkout", commitHash], `Failed to checkout commit '${commitHash}'.`);
-            return;
-        }
-
-        await this.runGit(repoPath, ["fetch", "--all", "--tags", "--prune"]);
-
-        if (!(await this.commitExists(repoPath, commitHash))) {
-            return;
-        }
-
-        await this.ensureGitSuccess(repoPath, ["checkout", commitHash], `Failed to checkout commit '${commitHash}'.`);
-    }
-
-    private async localBranchExists(repoPath: string, branch: string): Promise<boolean> {
-        const result = await this.runGit(repoPath, ["show-ref", "--verify", `refs/heads/${branch}`]);
-        return result.success;
-    }
-
-    private async remoteBranchExists(repoPath: string, branch: string): Promise<boolean> {
-        const result = await this.runGit(repoPath, ["ls-remote", "--exit-code", "--heads", "origin", branch]);
-        return result.success;
-    }
-
-    private async commitExists(repoPath: string, commitHash: string): Promise<boolean> {
-        const result = await this.runGit(repoPath, ["cat-file", "-e", `${commitHash}^{commit}`]);
-        return result.success;
-    }
-
-    private async ensureGitSuccess(repoPath: string, args: string[], fallbackMessage: string): Promise<void> {
-        const result = await this.runGit(repoPath, args);
-
-        if (result.success) {
-            return;
-        }
-
-        throw new Error(result.message || fallbackMessage);
-    }
-
-    private async runGit(repoPath: string, args: string[]): Promise<{ success: boolean; stdout: string; stderr: string; message?: string }> {
-        try {
-            const result = await execa("git", args, {
-                cwd: repoPath,
-                reject: false,
-                stdout: "pipe",
-                stderr: "pipe"
-            });
-
-            return {
-                success: result.exitCode === 0,
-                stdout: result.stdout,
-                stderr: result.stderr,
-                message: result.exitCode === 0 ? undefined : (result.stderr || result.stdout || `git ${args.join(" ")} failed`)
-            };
-        } catch (error) {
-            return {
-                success: false,
-                stdout: "",
-                stderr: "",
-                message: error instanceof Error ? error.message : "Unknown git error."
-            };
+    private copyEnv(target: Array<[string, string]>, targetName: string, sourceNames: string[]): void {
+        for (const sourceName of sourceNames) {
+            const value = process.env[sourceName]?.trim();
+            if (value) {
+                target.push([targetName, value]);
+                return;
+            }
         }
     }
 }
