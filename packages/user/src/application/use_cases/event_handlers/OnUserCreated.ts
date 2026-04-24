@@ -1,5 +1,5 @@
-import { DomainEvent } from '@/lib/shared/events';
-import { UserCreatedPayload, USER_CREATED } from '@/lib/user/domain/events';
+import { DomainEvent } from '@oliver/shared';
+import { UserCreatedPayload, USER_CREATED } from '../../../domain/events';
 
 /**
  * Reacts to a new user being created.

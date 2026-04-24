@@ -1,27 +1,20 @@
+import { GitProviderEnum } from '@oliver/core';
 import { z } from 'zod';
 
 // ------------------------------------------------------------------
 // Zod schema
 // ------------------------------------------------------------------
-export const GitProviderEnum = z.enum(['github', 'bitbucket']);
 
-export const AssignedRepoSchema = z.object({
-    /** Provider-native canonical ID (GitHub: number-as-string, Bitbucket: UUID) */
+export const AssignRepoBodySchema = z.object({
     repoId: z.string(),
-    /** Human-readable "owner/name" handle */
     repoFullName: z.string(),
-    /** Which Git hosting provider this repo belongs to */
-    provider: GitProviderEnum,
-    /** URL to the repository's HTML page */
+    provider: z.enum(['GITHUB', 'BITBUCKET']),
     htmlUrl: z.string().url(),
-    /** Timestamp when the user assigned this repo to the site */
-    assignedAt: z.date().default(() => new Date()),
 });
-
 // ------------------------------------------------------------------
 // TypeScript types
 // ------------------------------------------------------------------
-export type AssignedRepo = z.infer<typeof AssignedRepoSchema>;
+export type AssignedRepo = z.infer<typeof AssignRepoBodySchema>;
 export type GitProvider = z.infer<typeof GitProviderEnum>;
 
 // ------------------------------------------------------------------
@@ -30,5 +23,5 @@ export type GitProvider = z.infer<typeof GitProviderEnum>;
 export function createAssignedRepo(
     input: Omit<AssignedRepo, 'assignedAt'> & { assignedAt?: Date }
 ): AssignedRepo {
-    return AssignedRepoSchema.parse(input);
+    return AssignRepoBodySchema.parse(input);
 }

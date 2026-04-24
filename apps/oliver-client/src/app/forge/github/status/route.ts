@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateForgeRequest } from '@/lib/auth/infrastructure/forgeAuth';
 import { MongoOAuthTokenRepository } from '@/lib/auth/infrastructure/repositories/OAuthTokenRepository.mongo';
 
-export async function POST(req: NextRequest, res: NextResponse) {
-    const { isValid, error } = validateForgeRequest(req, res);
+export async function POST(req: NextRequest) {
+    const { isValid, error } = validateForgeRequest(req);
     if (!isValid) return error!;
 
     const body = await req.json().catch(() => ({}));

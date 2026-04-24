@@ -1,0 +1,25 @@
+{
+  "name": "@oliver/code-gen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . --ext .ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@oliver/auth": "workspace:*",
+    "@oliver/core": "workspace:*",
+    "@oliver/shared": "workspace:*",
+    "@oliver/user": "workspace:*",
+    "execa": "^9.6.0",
+    "lucide-react": "^0.555.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0"
+  }
+}

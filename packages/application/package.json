@@ -5,13 +5,11 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -b",
-    "lint": "eslint . --ext .ts"
+    "build": "tsc -b"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.7.1",
   "dependencies": {
     "atlassian-jwt": "^2.0.0",
     "@oliver/db": "workspace:*",

@@ -10,7 +10,7 @@ services:
     volumes:
       - .:/app
       # - node_modules:/app/node_modules # See note below about node_modules persistence
-      - pnpm_store:/root/.local/share/pnpm/store/v3
+      - pnpm_store:/root/.local/share/pnpm/store/v10
       - turbo_cache:/app/.turbo
     stdin_open: true
     tty: true

@@ -17,6 +17,7 @@ dist
 
 # testing
 /coverage
+.turbo
 
 # next.js
 /.next/

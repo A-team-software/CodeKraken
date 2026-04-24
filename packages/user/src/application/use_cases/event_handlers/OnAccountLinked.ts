@@ -1,5 +1,5 @@
-import { DomainEvent } from '@/lib/shared/events';
-import { AccountLinkedPayload, ACCOUNT_LINKED } from '@/lib/user/domain/events';
+import { ACCOUNT_LINKED, AccountLinkedPayload } from '../../../domain';
+import { DomainEvent } from '@oliver/shared';
 
 /**
  * Reacts to a git account being linked to a user.

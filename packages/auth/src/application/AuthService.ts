@@ -67,7 +67,7 @@ export class AuthService {
         let userCookieName = '';
 
         if (providerType === 'git') {
-            const { TOKEN_COOKIE_NAME } = await import('../infrastructure/config/oauth.config');
+            const { TOKEN_COOKIE_NAME } = await import('@oliver/core');
             tokenCookieName = `${TOKEN_COOKIE_NAME}_${provider}`;
             userCookieName = `${TOKEN_COOKIE_NAME}_user_${provider}`;
         } else {

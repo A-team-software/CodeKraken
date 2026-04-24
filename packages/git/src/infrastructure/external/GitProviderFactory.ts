@@ -1,5 +1,5 @@
 import { Github, Box } from 'lucide-react';
-import { IGitProvider } from '@/src/application/domain/services/IGitProvider.interface';
+import { IGitProvider } from '../../application/domain/services/IGitProvider.interface';
 import { GitHubService } from './GitHubService';
 import { BitbucketService } from './BitbucketService';
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AssignedRepo, AssignedRepoSchema, GitProvider, createAssignedRepo } from './AssignedRepo.vo';
+import { AssignedRepo, AssignRepoBodySchema, GitProvider, createAssignedRepo } from './AssignedRepo.vo';
 
 // ------------------------------------------------------------------
 // Zod schema (for persistence / reconstruction)
@@ -10,7 +10,7 @@ export const SiteRepositorySchema = z.object({
     /** The base URL of the Jira site */
     siteUrl: z.string(),
     /** All repositories currently assigned to this site */
-    repos: z.array(AssignedRepoSchema).default([]),
+    repos: z.array(AssignRepoBodySchema).default([]),
     createdAt: z.date().optional(),
     updatedAt: z.date().optional(),
 });

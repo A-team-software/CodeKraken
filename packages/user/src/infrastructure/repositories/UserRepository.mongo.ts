@@ -1,11 +1,11 @@
 import { ObjectId } from "@oliver/db";
 import pick from "lodash/pick";
-import { SafeExecute } from "@oliver/core";
 
 
 import { UserCollection } from "@oliver/db";
-import { UserAggregate, UserRepository } from "@/src";
-import { GitProvider, UserProps, UserZodSchema } from "@oliver/core";
+import { UserAggregate } from "../../domain/aggregates/user_aggregate";
+import { UserRepository } from "../../domain/repository/UserRepository.interface";
+import { SafeExecute, GitProvider, UserProps, UserZodSchema } from "@oliver/core";
 
 
 export class MongoUserRepository

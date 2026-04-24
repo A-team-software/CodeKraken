@@ -5,7 +5,7 @@ export interface AssignRepoInput {
     siteUrl: string;
     repoId: string;
     repoFullName: string;
-    provider: 'github' | 'bitbucket';
+    provider: 'GITHUB' | 'BITBUCKET';
     htmlUrl: string;
 }
 

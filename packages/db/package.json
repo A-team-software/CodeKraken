@@ -11,13 +11,11 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.7.1",
   "dependencies": {
-    "mongodb": "^6.16.0",
+    "@oliver/core": "workspace:*",
     "@oliver/domains": "workspace:*",
-    "@oliver/auth": "workspace:*",
-    "@oliver/user": "workspace:*",
-    "@oliver/core": "workspace:*"
+    "lodash": "^4.18.1",
+    "mongodb": "^6.16.0"
   },
   "devDependencies": {
     "tsup": "^8.4.0"

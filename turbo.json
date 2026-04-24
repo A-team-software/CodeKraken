@@ -4,16 +4,21 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "apps/client/.next/**",
-        "!.next/cache/**",
-        "apps/api/dist/**",
-        "packages/ui/dist/**",
-        "packages/shared-types/dist/**",
-        "packages/core/dist/**",
-        "packages/auth/dist/**",
-        "packages/utils/dist/**"
-      ]
+      "env": [
+        "MONGO_DB_URI",
+        "REDIS_URL",
+        "APP_SECRET",
+        "API_KEY",
+        "TRELLO_SECRET",
+        "COOKIE_SECRET",
+        "SESSION_COOKIE_NAME",
+        "ACCESS_TOKEN_COOKIE_NAME",
+        "FORGE_SHARED_SECRET",
+        "MONGO_ROOT_USER",
+        "MONGO_ROOT_PASSWORD",
+        "DB_NAME"
+      ],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "**/*.tsbuildinfo"]
     },
     "lint": {
       "dependsOn": ["^build"]

@@ -1,6 +1,6 @@
 import { Collection } from "mongodb";
 import { MongoConnectionManager } from "../client";
-import { UserProps } from "@oliver/user";
+import { UserProps } from "@oliver/core";
 
 export class UserCollection {
     private static collection: Collection<UserProps>;

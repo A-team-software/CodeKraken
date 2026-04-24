@@ -29,7 +29,17 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.0",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@oliver/shared": "workspace:*",
+    "@oliver/core": "workspace:*",
+    "@oliver/boards": "workspace:*",
+    "@oliver/user": "workspace:*",
+    "@oliver/domains": "workspace:*",
+    "@oliver/db": "workspace:*",
+    "@oliver/code-gen": "workspace:*",
+    "@oliver/application": "workspace:*",
+    "@oliver/auth": "workspace:*",
+    "@oliver/git": "workspace:*"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

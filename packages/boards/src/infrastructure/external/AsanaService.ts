@@ -16,14 +16,12 @@ import { BaseBoardProvider } from './BaseBoardProvider';
 
 import { BoardProviderError } from '@oliver/shared';
 
-import {
-    ASANA_CLIENT_ID,
-    ASANA_CLIENT_SECRET,
-    ASANA_CALLBACK_URL,
-    ASANA_AUTH_URL,
-    ASANA_TOKEN_URL,
-    ASANA_SCOPES,
-} from '@oliver/auth';
+const ASANA_CLIENT_ID = process.env.NEXT_PUBLIC_ASANA_CLIENT_ID || '';
+const ASANA_CLIENT_SECRET = process.env.ASANA_CLIENT_SECRET || '';
+const ASANA_CALLBACK_URL = process.env.ASANA_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/boards/asana/callback';
+const ASANA_AUTH_URL = 'https://app.asana.com/-/oauth_authorize';
+const ASANA_TOKEN_URL = 'https://app.asana.com/-/oauth_token';
+const ASANA_SCOPES = 'default offline_access';
 
 /**
  * Asana Service - Implements IBoardProvider for Asana

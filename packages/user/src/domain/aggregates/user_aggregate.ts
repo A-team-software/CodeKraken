@@ -1,7 +1,6 @@
-import { UserProps, UserZodSchema } from "../entity/user_entity";
+import { UserProps, UserZodSchema, ConnectedAccount } from "@oliver/core";
 import { AggregateRoot } from "@oliver/shared";
 import { createAccountLinkedEvent, createAccountUnlinkedEvent, createUserCreatedEvent, createUserProfileUpdatedEvent } from "../events/UserEvents";
-import { ConnectedAccount } from "@oliver/git";
 
 export class UserAggregate extends AggregateRoot {
     private props: UserProps;

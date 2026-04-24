@@ -3,8 +3,8 @@ import { GITHUB_CLIENT_ID, FORGE_GITHUB_CALLBACK_URL } from '@/lib/infrastructur
 import { validateForgeRequest } from '@/lib/auth/infrastructure/forgeAuth';
 import { AuthService } from '@/lib/auth/application/AuthService';
 
-export async function POST(req: NextRequest, res: NextResponse) {
-  const { isValid, error } = validateForgeRequest(req, res);
+export async function POST(req: NextRequest) {
+  const { isValid, error } = validateForgeRequest(req);
   if (!isValid) return error!;
 
   const { accountId, cloudId } = await req.json();
