@@ -198,11 +198,6 @@ async function resolveLocalModel(): Promise<string | null> {
     return null;
 }
 
-async function supportsOpenCodeTools(model: string): Promise<boolean> {
-    const probe = await probeModelSupport(model);
-    return probe.supported;
-}
-
 async function probeModelSupport(model: string): Promise<ModelProbeResult> {
     const repoPath = await fs.mkdtemp(path.join(os.tmpdir(), "opencode-model-probe-"));
 
