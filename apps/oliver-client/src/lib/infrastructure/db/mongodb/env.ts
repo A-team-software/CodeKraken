@@ -29,4 +29,7 @@ if (!parsed.success) {
     }
 }
 
-export const ENV = parsed.success ? parsed.data : MongoEnvSchema.parse({});
+export const ENV = parsed.success ? parsed.data : MongoEnvSchema.parse({
+    MONGO_URI: process.env.MONGO_DB_URI || "mongodb://localhost:27017",
+    MONGO_DB_NAME: process.env.MONGO_DB_NAME || "oliverai",
+});
