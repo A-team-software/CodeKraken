@@ -18,7 +18,10 @@ const createdDirs: string[] = [];
 const createdRemoteBranches: string[] = [];
 
 const dockerAvailable = await isCommandAvailable("docker");
-const integrationTest = dockerAvailable ? test : test.skip;
+const taskRunnerIntegrationTestEnabled =
+    process.env.TEST_ENABLE_TASK_RUNNER_INTEGRATION_TESTS === "true" ||
+    process.env.TEST_ENABLE_INTEGRATION_TESTS === "true";
+const integrationTest = dockerAvailable && taskRunnerIntegrationTestEnabled ? test : test.skip;
 const prIntegrationTestEnabled = process.env.TEST_ENABLE_PR_INTEGRATION_TEST === "true";
 const prIntegrationTest = dockerAvailable && prIntegrationTestEnabled ? test : test.skip;
 

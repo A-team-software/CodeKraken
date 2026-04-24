@@ -418,7 +418,7 @@ post_opencode_success() {
 		redacted_push_output="$(redact_sensitive_output "$push_output" "$git_token")"
 		echo "$redacted_push_output" >&2
 		log "Push failed. Skipping PR creation."
-		return 0
+		return 1
 	fi
 
 	if [[ ! -f "PR.md" ]]; then

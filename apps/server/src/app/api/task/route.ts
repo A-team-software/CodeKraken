@@ -39,7 +39,18 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 export async function POST(req: NextRequest) {
 	try {
 		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
-		if (configuredToken) {
+		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
+
+		if (!allowUnauthenticated) {
+			if (!configuredToken) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Unauthorized"
+					},
+					{ status: 401 }
+				);
+			}
 			const authHeader = req.headers.get("authorization");
 			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
 
