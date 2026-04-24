@@ -69,12 +69,17 @@ build_remote_url() {
 	local git_user="$2"
 	local git_pass="$3"
 	local git_token="$4"
+	local protocol
+	local remote_without_scheme
 
-	if [[ "$remote_url" =~ ^https?:// ]]; then
+	if [[ "$remote_url" =~ ^(https?)://(.+)$ ]]; then
+		protocol="${BASH_REMATCH[1]}"
+		remote_without_scheme="${BASH_REMATCH[2]}"
+
 		if [[ -n "$git_token" ]]; then
 			local enc_token
 			enc_token="$(url_encode "$git_token")"
-			printf "%s" "${remote_url/https:\/\//https://${enc_token}@}"
+			printf "%s" "${protocol}://${enc_token}@${remote_without_scheme}"
 			return 0
 		fi
 
@@ -83,7 +88,7 @@ build_remote_url() {
 			local enc_pass
 			enc_user="$(url_encode "$git_user")"
 			enc_pass="$(url_encode "$git_pass")"
-			printf "%s" "${remote_url/https:\/\//https://${enc_user}:${enc_pass}@}"
+			printf "%s" "${protocol}://${enc_user}:${enc_pass}@${remote_without_scheme}"
 			return 0
 		fi
 	fi

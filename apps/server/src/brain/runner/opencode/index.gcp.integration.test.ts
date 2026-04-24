@@ -40,6 +40,7 @@ describe("OpenCodeRunner with GcpInfrastructure", () => {
     });
 
     afterEach(() => {
+        vi.unstubAllGlobals();
         process.env = { ...ORIGINAL_ENV };
     });
 
