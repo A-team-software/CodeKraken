@@ -7,8 +7,8 @@ export interface JobConfig {
     vars?: Record<string, string>;
 }
 
-export interface JobResult {
+export interface JobResult<TData = unknown> {
     success: boolean;
     message?: string;
-    data?: any;
+    data?: TData;
 }
