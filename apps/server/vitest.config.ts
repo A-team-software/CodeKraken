@@ -1,14 +1,17 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { config } from "dotenv";
 import { defineConfig } from "vitest/config";
 
-config({ path: path.resolve(__dirname, ".env") });
+const rootDir = fileURLToPath(new URL(".", import.meta.url));
+
+config({ path: path.resolve(rootDir, ".env") });
 
 export default defineConfig({
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "src")
+            "@": path.resolve(rootDir, "src")
         }
     }
 });

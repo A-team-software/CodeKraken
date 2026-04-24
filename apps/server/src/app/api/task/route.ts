@@ -19,6 +19,9 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 	const repoUrl = typeof body.repoUrl === "string" && body.repoUrl.trim().length > 0
 		? body.repoUrl
 		: defaultTaskConfig.repoUrl;
+	const mode = body.mode === "agent" || body.mode === "plan"
+		? body.mode
+		: defaultTaskConfig.mode;
 
 	if (!repoUrl) {
 		throw new Error("Missing repoUrl. Include repoUrl in request body or set OPENCODE_TASK_REPO_URL.");
@@ -27,7 +30,7 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 	return {
 		...defaultTaskConfig,
 		repoUrl,
-		mode: body.mode === "plan" ? "plan" : defaultTaskConfig.mode,
+		mode,
 		branch: typeof body.branch === "string" && body.branch.trim().length > 0 ? body.branch : defaultTaskConfig.branch,
 		commitHash: typeof body.commitHash === "string" && body.commitHash.trim().length > 0 ? body.commitHash : defaultTaskConfig.commitHash
 	};
@@ -35,6 +38,22 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 
 export async function POST(req: NextRequest) {
 	try {
+		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
+		if (configuredToken) {
+			const authHeader = req.headers.get("authorization");
+			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
+
+			if (bearerToken !== configuredToken) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Unauthorized"
+					},
+					{ status: 401 }
+				);
+			}
+		}
+
 		const body = await req.json();
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 

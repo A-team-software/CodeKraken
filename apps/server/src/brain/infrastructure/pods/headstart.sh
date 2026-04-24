@@ -64,6 +64,28 @@ url_encode() {
 	node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' -- "$1"
 }
 
+redact_sensitive_output() {
+	local output="$1"
+	local token="$2"
+
+	if [[ -z "$token" ]]; then
+		printf "%s" "$output"
+		return 0
+	fi
+
+	node -e '
+		const output = process.argv[1] || "";
+		const token = process.argv[2] || "";
+		const encodedToken = encodeURIComponent(token);
+		let redacted = output;
+		redacted = redacted.split(token).join("[REDACTED]");
+		if (encodedToken && encodedToken !== token) {
+			redacted = redacted.split(encodedToken).join("[REDACTED]");
+		}
+		process.stdout.write(redacted);
+	' -- "$output" "$token"
+}
+
 build_remote_url() {
 	local remote_url="$1"
 	local git_user="$2"
@@ -366,7 +388,9 @@ post_opencode_success() {
 	log "Pushing branch '${branch}' to remote."
 	local push_output
 	if ! push_output="$(git push "$push_url" "HEAD:refs/heads/${branch}" 2>&1)"; then
-		echo "$push_output" >&2
+		local redacted_push_output
+		redacted_push_output="$(redact_sensitive_output "$push_output" "$git_token")"
+		echo "$redacted_push_output" >&2
 		log "Push failed. Skipping PR creation."
 		return 0
 	fi
