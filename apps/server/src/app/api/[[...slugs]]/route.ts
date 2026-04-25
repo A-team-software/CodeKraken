@@ -10,6 +10,7 @@ import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
 import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from "@oliver/core";
+import { NextResponse } from "next/server";
 
 // Initialize event handlers
 registerHandlers();
@@ -216,12 +217,23 @@ const app = new Elysia({ prefix: "/api" })
 
         const { MongoUserRepository } = await import('@oliver/user');
         const userRepo = new MongoUserRepository();
-        const user = await userRepo.findById(userId);
+        const [user, error] = await SafeExecute.withSync<UserAggregate | null, Array<Error | null>>(() => userRepo.findById(userId)).execute();
 
         if (!user) {
             set.status = 404;
             return { error: 'User not found' };
         }
+
+        if ((error != null)) {
+            return new Response(`{
+                success: ${false},
+                message: ${error.message},
+                stack: ${error.stack},
+                name: ${error.name},
+                cause: ${error.cause}
+            }`);
+        }
+
 
         const gitAccount = user.accounts.find(a => a.provider.toLowerCase() === provider);
         if (!gitAccount?.accessToken) {
