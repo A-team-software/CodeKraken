@@ -2,8 +2,8 @@ import { validateForgeRequest } from '@oliver/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-    const result = validateForgeRequest(req);
-    if (!result.isValid) return new NextResponse(result.error!, { status: result.status || 400 });
+    const { isValid, error } = validateForgeRequest(req);
+    if (!isValid) return error!;
 
     const { accountId } = await req.json();
     if (!accountId) {

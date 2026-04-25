@@ -1,22 +1,21 @@
 import { Elysia, t } from "elysia";
-import { cors } from "@elysiajs/cors";
-import fs, { truncate } from "fs/promises";
+import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import { registerHandlers, UserAggregate } from "@oliver/user";
-import { SafeExecute } from "@oliver/core";
-import { createSessionId, cloneRepo, analyzeDiff, runSolve } from "@oliver/code-gen";
+import { cloneRepo } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/cloneRepo";
+import { analyzeDiff } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/diffAnalysis";
+import { truncate } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/truncate";
+import { createSessionId } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/session";
+import { runSolve } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/runSolve";
+import { registerHandlers } from "@oliver/user";
 import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
-import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from "@oliver/core";
-import { NextResponse } from "next/server";
 
 // Initialize event handlers
 registerHandlers();
 
 const app = new Elysia({ prefix: "/api" })
-    .use(cors())
     .derive(async ({ headers }) => {
         try {
             const authHeader = headers['authorization'];
@@ -68,6 +67,7 @@ const app = new Elysia({ prefix: "/api" })
         }
         return { userId: null };
     })
+
     .post(
         "/solve",
         async (ctx) => {
@@ -77,16 +77,17 @@ const app = new Elysia({ prefix: "/api" })
                 task,
                 repoUrl,
                 githubToken: directGithubToken,
-                apiKey,
+                apiKey: directApiKey,
                 provider = "github",
             } = body;
 
+            const apiKey = directApiKey || process.env.OLIVERAI_API_KEY || process.env.NEXT_PUBLIC_OLIVERAI_API_KEY;
             if (!apiKey) {
                 ctx.set.status = 400;
                 return {
                     success: false,
                     code: "MISSING_API_KEY",
-                    error: "Missing apiKey",
+                    error: "Missing apiKey (or set OLIVERAI_API_KEY on server)",
                 };
             }
 
@@ -96,24 +97,8 @@ const app = new Elysia({ prefix: "/api" })
             if (!githubToken && userId) {
                 const { MongoUserRepository } = await import('@oliver/user');
                 const userRepo = new MongoUserRepository();
-                const [user, error] = await SafeExecute.withSync<UserAggregate | null, Array<Error | null>>(() => userRepo.findById(userId))
-                    .withRetry({ attempts: 3, delayMs: 100 })
-                    .withTimeout(1000)
-                    .execute();
-
-
-                if (error != null) {
-                    return { success: false, message: error.message, stack: error.stack, name: error.name, cause: error.cause };
-                }
-
-
-                if (user == null) {
-                    return { success: false, message: "No user has been found" };
-                }
-
-
-
-                const account = user.accounts.find(a => a.provider.toLowerCase() === provider.toLowerCase());
+                const user = await userRepo.findById(userId);
+                const account = user?.accounts.find(a => a.provider.toLowerCase() === provider.toLowerCase());
                 if (account?.accessToken) {
                     githubToken = account.accessToken;
                 }
@@ -122,56 +107,21 @@ const app = new Elysia({ prefix: "/api" })
             const sessionId = createSessionId();
             const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `${sessionId}-`));
 
-            const [clone, error] = await SafeExecute.withSync(() => cloneRepo(repoUrl, githubToken)).execute();
-
-            if (error != null) {
-                return {
-                    success: false,
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name,
-                    cause: error.cause,
-                    code: 500
-                };
-            }
-
-            if ((clone == null) || (clone.exitCode !== 0)) {
-                ctx.set.status = 500;
-                return {
-                    success: false,
-                    sessionId,
-                    logs: truncate(clone!.stdout),
-                    stdErr: truncate(clone!.stderr)
-                };
-            }
-
             try {
-                const solve = await runSolve(task, apiKey);
-
-                const [diffPayload, error] = await SafeExecute.withSync<{
-                    changedFiles: Record<string, string>;
-                    deletedFiles: string[];
-                    diff: string;
-                } | null, Array<Error | null>>(() => analyzeDiff(workDir)).execute();
-
-                if (!diffPayload) return {
-                    message: "Failed to retrieve result",
-                    success: solve.exitCode === 0,
-                    sessionId,
-                    exitCode: solve.exitCode,
-                    logs: truncate(solve.stdout),
-                    stdErr: truncate(solve.stderr),
-                }
-                if (error != null) {
+                const clone = await cloneRepo(repoUrl, githubToken);
+                if (clone.exitCode !== 0) {
+                    ctx.set.status = 500;
                     return {
                         success: false,
-                        message: error.message,
-                        stack: error.stack,
-                        name: error.name,
-                        cause: error.cause,
+                        sessionId,
+                        logs: truncate(clone.stdout),
+                        stdErr: truncate(clone.stderr)
                     };
                 }
-                const { changedFiles, deletedFiles, diff } = diffPayload;
+
+                const solve = await runSolve(task, apiKey);
+                const { changedFiles, deletedFiles, diff } = await analyzeDiff(workDir);
+
                 return {
                     success: solve.exitCode === 0,
                     sessionId,
@@ -183,7 +133,7 @@ const app = new Elysia({ prefix: "/api" })
                     diff: truncate(diff, 20_000)
                 };
             } finally {
-                await SafeExecute.withSync(() => fs.rm(workDir, { recursive: true, force: true }));
+                await fs.rm(workDir, { recursive: true, force: true });
             }
         },
         {
@@ -196,6 +146,7 @@ const app = new Elysia({ prefix: "/api" })
             })
         }
     )
+
     // --- Forge API Endpoints ---
 
     .get('/forge/git/providers', async () => {
@@ -217,23 +168,12 @@ const app = new Elysia({ prefix: "/api" })
 
         const { MongoUserRepository } = await import('@oliver/user');
         const userRepo = new MongoUserRepository();
-        const [user, error] = await SafeExecute.withSync<UserAggregate | null, Array<Error | null>>(() => userRepo.findById(userId)).execute();
+        const user = await userRepo.findById(userId);
 
         if (!user) {
             set.status = 404;
             return { error: 'User not found' };
         }
-
-        if ((error != null)) {
-            return new Response(`{
-                success: ${false},
-                message: ${error.message},
-                stack: ${error.stack},
-                name: ${error.name},
-                cause: ${error.cause}
-            }`);
-        }
-
 
         const gitAccount = user.accounts.find(a => a.provider.toLowerCase() === provider);
         if (!gitAccount?.accessToken) {
@@ -281,37 +221,6 @@ const app = new Elysia({ prefix: "/api" })
         };
     })
 
-    .get('/forge/connect/resolve-user', async ({ query, set }) => {
-        const { accountId, clientKey, provider = 'github' } = query;
-        if (!accountId || !clientKey) {
-            set.status = 400;
-            return { error: 'Missing accountId or clientKey' };
-        }
-
-        const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
-        const { MongoUserRepository } = await import('@oliver/user');
-
-        const accessRepo = new MongoUserJiraSiteAccessRepository();
-        const access = await accessRepo.findByClientKeyAndAccountId(clientKey as string, accountId as string);
-
-        if (!access) return { found: false };
-
-        const userRepo = new MongoUserRepository();
-        const user = await userRepo.findById(access.userId);
-        if (!user) return { found: false };
-
-        const gitAccount = user.accounts.find(a =>
-            a.provider?.toString().toLowerCase() === (provider as string).toLowerCase()
-        );
-
-        return {
-            found: true,
-            hasGitToken: !!gitAccount?.accessToken,
-            username: gitAccount?.username,
-            userId: access.userId
-        };
-    })
-
     .get('/forge/github/token', async ({ userId, set }) => {
         if (!userId) {
             set.status = 401;
@@ -346,32 +255,6 @@ const app = new Elysia({ prefix: "/api" })
         }
     })
 
-    .get('/git/:provider/oauth', async ({ params, query, set }) => {
-        const { provider } = params;
-        const { returnTo } = query;
-
-        // Create secure state
-        const stateData = JSON.stringify({
-            timestamp: Date.now(),
-            provider,
-            returnTo
-        });
-        const state = await encrypt(stateData);
-
-        let loginUrl: string;
-        if (provider === 'github') {
-            loginUrl = GitHubService.getLoginUrl(state, GITHUB_CALLBACK_URL);
-        } else if (provider === 'bitbucket') {
-            loginUrl = BitbucketService.getLoginUrl(state, BITBUCKET_CALLBACK_URL);
-        } else {
-            set.status = 400;
-            return { error: `Unsupported provider: ${provider}` };
-        }
-
-        return { loginUrl, state, provider };
-    })
-
-
     // Fallback for user info
     .get('/user/me', async ({ userId }) => {
         if (!userId) return { authenticated: false };
@@ -396,7 +279,7 @@ const app = new Elysia({ prefix: "/api" })
     // --- Legacy / Other Endpoints (Retained for compatibility) ---
     // Note: Some of these might be redundant now but kept to avoid breaking other flows
 
-    .get('/forge/git/:provider/oauth', async ({ params, query, set }) => {
+    .get('/forge/git/:provider/oauth', async ({ params, query, set }: { params: { provider: string }, query: any, set: any }) => {
         const { accountId, cloudId } = query;
         if (!accountId || !cloudId) {
             set.status = 400;
@@ -407,8 +290,8 @@ const app = new Elysia({ prefix: "/api" })
         const sessionRepo = new MongoForgeSessionRepository();
         const forgeToken = await sessionRepo.create(accountId, cloudId, params.provider);
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://oliver-oliver-client.vercel.app';
-        const connectUrl = `${baseUrl}/connect/forge?forgeToken=${encodeURIComponent(forgeToken)}&provider=${encodeURIComponent(params.provider)}&accountId=${encodeURIComponent(accountId as string)}&clientKey=${encodeURIComponent(cloudId as string)}`;
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sca-pi.vercel.app';
+        const connectUrl = `${baseUrl}/connect/forge?forgeToken=${encodeURIComponent(forgeToken)}&provider=${encodeURIComponent(params.provider)}`;
 
         return { loginUrl: connectUrl };
     })
@@ -432,9 +315,9 @@ const app = new Elysia({ prefix: "/api" })
 
         let authUrl: string;
         if (provider === 'github') {
-            authUrl = GitHubService.getLoginUrl(state, GITHUB_CALLBACK_URL);
+            authUrl = GitHubService.getLoginUrl(state);
         } else if (provider === 'bitbucket') {
-            authUrl = BitbucketService.getLoginUrl(state, BITBUCKET_CALLBACK_URL);
+            authUrl = BitbucketService.getLoginUrl(state);
         } else {
             set.status = 400;
             return { error: `Unsupported provider: ${provider}` };
@@ -502,22 +385,10 @@ const app = new Elysia({ prefix: "/api" })
             if (!access) {
                 return `
                     <html>
-                        <head>
-                            <title>Account Not Found</title>
-                            <style>
-                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #000; color: #fff; text-align: center; padding-top: 100px; }
-                                .card { background: #111; border: 1px solid #333; border-radius: 12px; padding: 40px; display: inline-block; max-width: 400px; }
-                                h2 { color: #ff4d4d; }
-                                p { color: #888; line-height: 1.5; }
-                                button { background: #fff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="card">
-                                <h2>Identity record not found</h2>
-                                <p>No OliverAI account was found for this Jira user. Please sign in to the SCA dashboard first.</p>
-                                <button onclick="window.close()">Close Window</button>
-                            </div>
+                        <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+                            <h2>Identity record not found</h2>
+                            <p>No SCA account found for this Jira user. Please sign in to SCA first.</p>
+                            <button onclick="window.close()">Close</button>
                         </body>
                     </html>
                 `;
@@ -546,28 +417,14 @@ const app = new Elysia({ prefix: "/api" })
             // 5. Success UI
             return `
                 <html>
-                    <head>
-                        <title>Connected Successfully</title>
-                        <style>
-                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #000; color: #fff; text-align: center; padding-top: 100px; }
-                            .card { background: #111; border: 1px solid #333; border-radius: 12px; padding: 40px; display: inline-block; max-width: 400px; }
-                            h2 { color: #4ade80; }
-                            p { color: #888; line-height: 1.5; }
-                            .instruction { margin-top: 24px; font-size: 0.9em; color: #555; border-top: 1px solid #222; padding-top: 20px; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="card">
-                            <h2>Connected Successfully!</h2>
-                            <p>You can now return to the Jira tab to continue.</p>
-                            <div class="instruction">You may close this window.</div>
-                        </div>
+                    <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+                        <h2>Connected Successfully!</h2>
+                        <p>You can close this window now.</p>
                         <script>
                             if (window.opener) {
-                                window.opener.postMessage({ type: 'oliverai:forge:oauth_complete', ok: true, provider: '${provider}' }, "*");
+                                window.opener.postMessage({ type: 'SCA_AUTH_SUCCESS', provider: '${provider}' }, "*");
                             }
-                            // Auto-close attempt (might be blocked in standard tabs)
-                            setTimeout(() => window.close(), 3000);
+                            setTimeout(() => window.close(), 2000);
                         </script>
                     </body>
                 </html>
@@ -580,8 +437,8 @@ const app = new Elysia({ prefix: "/api" })
         }
     })
 
-    .get('/forge/oauth/pending', async ({ query }) => {
-        const { state, accountId, cloudId, provider } = query as any;
+    .get('/forge/oauth/pending', async ({ query }: { query: { state?: string, accountId?: string, cloudId?: string, provider?: string } }) => {
+        const { state, accountId, cloudId, provider } = query;
 
         if (state) {
             const { MongoOAuthStateRepository } = await import('@oliver/auth');
@@ -593,7 +450,7 @@ const app = new Elysia({ prefix: "/api" })
         return { pending: false, error: 'Missing polling parameters' };
     })
 
-    .post('/forge/connect/associate', async ({ body, set }) => {
+    .post('/forge/connect/associate', async ({ body, set }: { body: any, set: any }) => {
         const { accountId, clientKey, userId } = body;
         if (!accountId || !clientKey || !userId) {
             set.status = 400;
@@ -627,9 +484,6 @@ const app = new Elysia({ prefix: "/api" })
             userId: t.String(),
         })
     })
-
-
-
 
 export const GET = app.fetch;
 export const POST = app.fetch;
