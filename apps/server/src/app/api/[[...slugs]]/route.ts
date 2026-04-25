@@ -2,15 +2,11 @@ import { Elysia, t } from "elysia";
 import fs from "fs/promises";
 import os from "os";
 import path from "path";
-import { cloneRepo } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/cloneRepo";
-import { analyzeDiff } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/diffAnalysis";
-import { truncate } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/truncate";
-import { createSessionId } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/session";
-import { runSolve } from "../../../../../mig/sca/next-app/src/lib/agentic_code_gen/runSolve";
 import { registerHandlers } from "@oliver/user";
 import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
+import { createSessionId, cloneRepo, truncate, runSolve, analyzeDiff } from '@oliver/code-gen';
 
 // Initialize event handlers
 registerHandlers();

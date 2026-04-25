@@ -4,11 +4,11 @@ import { GITHUB_CALLBACK_URL } from '@oliver/core';
 
 export async function POST(req: NextRequest) {
   const { isValid, error } = validateForgeRequest(req);
-  if (!isValid) return error!;
+  if (!isValid) return NextResponse.json({ error: error }, { status: 401 });
 
   const { accountId, cloudId } = await req.json();
   if (!accountId || !cloudId) {
-    return new NextResponse('Missing accountId or cloudId', { status: 400 });
+    return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
   }
 
   // Generate state with Forge metadata using the standard AuthService
