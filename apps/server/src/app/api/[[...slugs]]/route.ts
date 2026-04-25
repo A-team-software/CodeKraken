@@ -275,7 +275,7 @@ const app = new Elysia({ prefix: "/api" })
     // --- Legacy / Other Endpoints (Retained for compatibility) ---
     // Note: Some of these might be redundant now but kept to avoid breaking other flows
 
-    .get('/forge/git/:provider/oauth', async ({ params, query, set }: { params: { provider: string }, query: any, set: any }) => {
+    .get('/forge/git/:provider/oauth', async ({ params, query, set }: any) => {
         const { accountId, cloudId } = query;
         if (!accountId || !cloudId) {
             set.status = 400;
@@ -433,7 +433,7 @@ const app = new Elysia({ prefix: "/api" })
         }
     })
 
-    .get('/forge/oauth/pending', async ({ query }: { query: { state?: string, accountId?: string, cloudId?: string, provider?: string } }) => {
+    .get('/forge/oauth/pending', async ({ query }: any) => {
         const { state, accountId, cloudId, provider } = query;
 
         if (state) {
@@ -446,7 +446,7 @@ const app = new Elysia({ prefix: "/api" })
         return { pending: false, error: 'Missing polling parameters' };
     })
 
-    .post('/forge/connect/associate', async ({ body, set }: { body: any, set: any }) => {
+    .post('/forge/connect/associate', async ({ body, set }: any) => {
         const { accountId, clientKey, userId } = body;
         if (!accountId || !clientKey || !userId) {
             set.status = 400;
