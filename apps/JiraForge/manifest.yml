@@ -38,6 +38,6 @@ permissions:
   external:
     fetch:
       backend:
-        - "https://sca-pi.vercel.app"
+        - "https://oliver-server-qw6b.vercel.app"
         - "https://github.com"
         - "https://bitbucket.org"
