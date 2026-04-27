@@ -5,12 +5,24 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "pnpm run test:integration",
+    "test:integration": "vitest run src/brain/runner/opencode/index.local.integration.test.ts src/brain/runner/opencode/index.gcp.integration.test.ts src/app/api/task/route.integration.test.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",
     "@google/genai": "^1.31.0",
     "@google/generative-ai": "^0.24.1",
+    "@oliver/application": "workspace:*",
+    "@oliver/auth": "workspace:*",
+    "@oliver/boards": "workspace:*",
+    "@oliver/code-gen": "workspace:*",
+    "@oliver/core": "workspace:*",
+    "@oliver/db": "workspace:*",
+    "@oliver/domains": "workspace:*",
+    "@oliver/git": "workspace:*",
+    "@oliver/shared": "workspace:*",
+    "@oliver/user": "workspace:*",
     "@radix-ui/react-slot": "^1.2.3",
     "@types/lodash": "^4.17.24",
     "class-variance-authority": "^0.7.1",
@@ -27,17 +39,7 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.0",
-    "zod": "^4.1.13",
-    "@oliver/shared": "workspace:*",
-    "@oliver/core": "workspace:*",
-    "@oliver/boards": "workspace:*",
-    "@oliver/user": "workspace:*",
-    "@oliver/domains": "workspace:*",
-    "@oliver/db": "workspace:*",
-    "@oliver/code-gen": "workspace:*",
-    "@oliver/application": "workspace:*",
-    "@oliver/auth": "workspace:*",
-    "@oliver/git": "workspace:*"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -45,8 +47,10 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.22",
+    "dotenv": "^17.4.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.18",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.4"
   }
 }
