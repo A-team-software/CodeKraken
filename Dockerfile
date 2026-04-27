@@ -3,7 +3,7 @@ FROM node:22-bookworm-slim
 WORKDIR /app
 
 # Install specific pnpm version
-RUN npm install -g pnpm@10.33.0
+RUN npm install -g pnpm@9.15.9
 
 # Configure pnpm to work better with registries
 RUN pnpm config set fetch-retry-mintimeout 20000
