@@ -4,7 +4,7 @@ import { MongoOAuthStateRepository } from '@oliver/auth';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { SynchronizeUserUseCase } from '@oliver/user';
 import { MongoUserRepository } from '@oliver/user';
-import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger } from '@oliver/core';
+import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger, FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 
 /**
  * GET /api/git/[provider]/callback
@@ -55,6 +55,7 @@ export async function GET(
             providerType: 'git',
             code,
             state,
+            redirectUri: FORGE_GITHUB_CALLBACK_URL // Ensure we use the same URI as authorize step
         });
 
         const { systemUserId, onboardingStep, accessToken, metadata } = result;

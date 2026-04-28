@@ -1,6 +1,6 @@
 import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { GITHUB_CALLBACK_URL } from '@oliver/core';
+import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 
 export async function POST(req: NextRequest) {
   const { isValid, error } = validateForgeRequest(req);
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     client_id: GITHUB_CLIENT_ID,
     scope: 'repo',
     state: state,
-    redirect_uri: GITHUB_CALLBACK_URL
+    redirect_uri: FORGE_GITHUB_CALLBACK_URL
   });
 
   const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
