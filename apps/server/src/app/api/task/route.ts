@@ -1,6 +1,7 @@
 import { RunnerTaskConfig } from "../services/base-project-manager-task-processor";
 import { ProjectManagerTaskProcessorFactory } from "../services/project-manager-task-processor-factory";
 import { WebhookInvocation } from "../services/task-processor";
+import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
 
 function buildDefaultTaskConfig(): RunnerTaskConfig {
@@ -65,7 +66,17 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		const body = await req.json();
+		const [body, bodyError] = await SafeExecute.withSync(() => req.json()).execute();
+		if (bodyError) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: bodyError.message
+				},
+				{ status: 400 }
+			);
+		}
+
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 
 		const invocation: WebhookInvocation = {
@@ -76,7 +87,16 @@ export async function POST(req: NextRequest) {
 
 		const taskConfig = resolveTaskConfig(bodyRecord);
 		const processor = new ProjectManagerTaskProcessorFactory().createProcessor(invocation, taskConfig);
-		const result = await processor.processTask(invocation);
+		const [result, processError] = await SafeExecute.withSync(() => processor.processTask(invocation)).execute();
+		if (processError || !result) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: processError?.message ?? "Task processing failed."
+				},
+				{ status: 400 }
+			);
+		}
 
 		const payload = {
 			success: result.success,
