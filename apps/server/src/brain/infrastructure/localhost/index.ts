@@ -39,9 +39,9 @@ export class LocalhostInfrastructure implements Infrastructure {
         const stdoutChunks: string[] = [];
         const stderrChunks: string[] = [];
         const imageTag = this.resolveImageTag();
-        const runConfig = await this.buildDockerRunConfig(options);
 
         try {
+            const runConfig = await this.buildDockerRunConfig(options);
             await this.ensureDockerAvailable();
             await this.ensureImageAvailable(imageTag);
 
@@ -276,10 +276,12 @@ export class LocalhostInfrastructure implements Infrastructure {
     }
 
     private async buildDockerRunConfig(options: JobConfig): Promise<DockerRunConfig> {
+        const workspaceMount = await this.resolveWorkspaceMount();
+
         if (this.isRemoteReference(options.repoUrl)) {
             return {
                 repoUrl: options.repoUrl,
-                mounts: [],
+                mounts: workspaceMount ? [workspaceMount] : [],
                 usesMountedLocalRepo: false
             };
         }
@@ -291,11 +293,27 @@ export class LocalhostInfrastructure implements Infrastructure {
             throw new Error(`Repository path does not exist or is not a directory: ${localRepoPath}`);
         }
 
+        const mounts = [`${localRepoPath}:${localRepoMountPath}:ro`];
+        if (workspaceMount) {
+            mounts.push(workspaceMount);
+        }
+
         return {
             repoUrl: localRepoMountPath,
-            mounts: [`${localRepoPath}:${localRepoMountPath}:ro`],
+            mounts,
             usesMountedLocalRepo: true
         };
+    }
+
+    private async resolveWorkspaceMount(): Promise<string | undefined> {
+        const configuredPath = process.env.OPENCODE_DOCKER_WORKSPACE_HOST_DIR?.trim();
+        if (!configuredPath) {
+            return undefined;
+        }
+
+        const hostPath = path.resolve(configuredPath);
+        await fs.mkdir(hostPath, { recursive: true });
+        return `${hostPath}:/workspace`;
     }
 
     private buildDockerRunArgs(
@@ -358,6 +376,16 @@ export class LocalhostInfrastructure implements Infrastructure {
 
         if (options.commitHash?.trim()) {
             entries.push(["COMMIT_HASH", options.commitHash]);
+        }
+
+        const taskId = options.vars?.taskId?.trim();
+        if (taskId) {
+            entries.push(["TASK_ID", taskId]);
+        }
+
+        const taskSummary = options.vars?.taskSummary?.trim();
+        if (taskSummary) {
+            entries.push(["TASK_SUMMARY", taskSummary]);
         }
 
         this.copyEnv(entries, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);

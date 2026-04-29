@@ -1,13 +1,14 @@
-import { AuthService, GITHUB_CLIENT_ID, GITHUB_CALLBACK_URL, validateForgeRequest } from '@oliver/auth';
+import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
 
 export async function POST(req: NextRequest) {
-  const result = validateForgeRequest(req);
-  if (!result.isValid) return new NextResponse(result.error!, { status: result.status || 400 });
+  const { isValid, error } = validateForgeRequest(req);
+  if (!isValid) return NextResponse.json({ error: error }, { status: 401 });
 
   const { accountId, cloudId } = await req.json();
   if (!accountId || !cloudId) {
-    return new NextResponse('Missing accountId or cloudId', { status: 400 });
+    return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
   }
 
   // Generate state with Forge metadata using the standard AuthService
@@ -19,18 +20,15 @@ export async function POST(req: NextRequest) {
   });
   const state = await authService.generateState('github', metadata);
 
-  // We explicitly inclusion the redirect_uri to ensure it matches the authorized list.
-  // This value must match exactly what is registered in the GitHub OAuth App.
+  // Use the standard registered callback URL to avoid registration issues
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     scope: 'repo',
     state: state,
-    redirect_uri: GITHUB_CALLBACK_URL,
+    redirect_uri: FORGE_GITHUB_CALLBACK_URL
   });
 
   const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
 
-  // Return as `authUrl` — matches both the SCA pattern and what the Forge frontend
-  // destructures from invoke('getGithubAuthUrl').
   return NextResponse.json({ authUrl });
 }

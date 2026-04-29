@@ -1,5 +1,5 @@
 {
-  "name": "oliverai",
+  "name": "oliver-client",
   "private": true,
   "version": "0.0.0",
   "scripts": {
@@ -29,6 +29,13 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^3.3.0",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@oliver/core": "workspace:*",
+    "@oliver/user": "workspace:*",
+    "@oliver/auth": "workspace:*",
+    "@oliver/db": "workspace:*",
+    "@oliver/git": "workspace:*",
+    "@oliver/shared": "workspace:*",
+    "@oliver/code-gen": "workspace:*"
   }
 }

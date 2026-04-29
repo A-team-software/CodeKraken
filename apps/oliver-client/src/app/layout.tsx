@@ -1,7 +1,6 @@
 import React from "react";
 import "./styles/globals.css";
-import { Providers } from "./providers";
-import { initializeAppDatabase } from "@/lib/infrastructure/initialization";
+import { initializeAppDatabase } from "@oliver/db";
 
 export const metadata = {
   title: "OliverAI - AI Coding Assistant for Project Management",
@@ -22,9 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-950">
-        <Providers>{children}</Providers>
-      </body>
+      <body className="bg-slate-950">{children}</body>
     </html>
   );
 }

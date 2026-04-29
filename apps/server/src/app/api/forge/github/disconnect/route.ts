@@ -2,12 +2,14 @@ import { validateForgeRequest } from '@oliver/auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-    const result = validateForgeRequest(req);
-    if (!result.isValid) return new NextResponse(result.error!, { status: result.status || 400 });
+    const { isValid, error } = validateForgeRequest(req);
+    if (!isValid) return NextResponse.json({ error: error }, { status: 401 });
 
-    const { accountId } = await req.json();
+    const body = await req.json();
+    const accountId = body.accountId;
+
     if (!accountId) {
-        return new NextResponse('Missing accountId', { status: 400 });
+        return NextResponse.json({ error: 'Missing accountId' }, { status: 400 });
     }
 
     try {
