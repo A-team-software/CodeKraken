@@ -278,7 +278,8 @@ export class GcpInfrastructure implements Infrastructure {
             JOB_MODE: options.mode,
             ...(options.task ? { TASK: options.task } : {}),
             ...(options.branch ? { BRANCH: options.branch } : {}),
-            ...(options.commitHash ? { COMMIT_HASH: options.commitHash } : {})
+            ...(options.commitHash ? { COMMIT_HASH: options.commitHash } : {}),
+            ...(options.vars?.jobId ? { JOB_ID: options.vars.jobId } : {})
         };
 
         this.copyIfSet(env, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);
@@ -289,6 +290,9 @@ export class GcpInfrastructure implements Infrastructure {
         this.copyIfSet(env, "WORKSPACE_DIR", ["WORKSPACE_DIR", "POD_WORKDIR"]);
         this.copyIfSet(env, "OPENCODE_FLAGS", ["OPENCODE_FLAGS"]);
         this.copyIfSet(env, "OPENCODE_COMMAND", ["OPENCODE_COMMAND"]);
+        this.copyIfSet(env, "API_SERVER_URL", ["API_SERVER_URL", "OPENCODE_API_SERVER_URL"]);
+        this.copyIfSet(env, "API_KEY", ["API_KEY", "OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
+        this.copyIfSet(env, "OPENCODE_TASK_API_TOKEN", ["OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
 
         return Object.entries(env).map(([name, value]) => ({
             name,

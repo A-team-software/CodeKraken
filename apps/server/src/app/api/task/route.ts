@@ -4,6 +4,54 @@ import { WebhookInvocation } from "../services/task-processor";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
 
+function getUnauthorizedResponse(req: NextRequest): NextResponse | null {
+	const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim() || process.env.API_KEY?.trim();
+	const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
+
+	if (allowUnauthenticated) {
+		return null;
+	}
+
+	if (!configuredToken) {
+		return NextResponse.json(
+			{
+				success: false,
+				error: "Unauthorized"
+			},
+			{ status: 401 }
+		);
+	}
+
+	const authHeader = req.headers.get("authorization");
+	const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
+	const basicToken = authHeader?.startsWith("Basic ") ? authHeader.slice("Basic ".length).trim() : "";
+
+	if (bearerToken === configuredToken) {
+		return null;
+	}
+
+	if (basicToken) {
+		try {
+			const decoded = Buffer.from(basicToken, "base64").toString("utf8");
+			const separatorIndex = decoded.indexOf(":");
+			const password = separatorIndex >= 0 ? decoded.slice(separatorIndex + 1) : "";
+			if (password === configuredToken) {
+				return null;
+			}
+		} catch {
+			// Ignore decode errors and fall through to unauthorized.
+		}
+	}
+
+	return NextResponse.json(
+		{
+			success: false,
+			error: "Unauthorized"
+		},
+		{ status: 401 }
+	);
+}
+
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
 		repoUrl: process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "",
@@ -39,31 +87,9 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 
 export async function POST(req: NextRequest) {
 	try {
-		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
-		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
-
-		if (!allowUnauthenticated) {
-			if (!configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
-			const authHeader = req.headers.get("authorization");
-			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
-
-			if (bearerToken !== configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
+		const unauthorizedResponse = getUnauthorizedResponse(req);
+		if (unauthorizedResponse) {
+			return unauthorizedResponse;
 		}
 
 		const [body, bodyError] = await SafeExecute.withSync(() => req.json()).execute();
@@ -107,6 +133,78 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json(payload, { status: result.success ? 200 : 500 });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Unexpected task webhook processing error.";
+		return NextResponse.json(
+			{
+				success: false,
+				error: message
+			},
+			{ status: 400 }
+		);
+	}
+}
+
+
+export async function PATCH(req: NextRequest) {
+	try {
+		const unauthorizedResponse = getUnauthorizedResponse(req);
+		if (unauthorizedResponse) {
+			return unauthorizedResponse;
+		}
+
+		const jobId = req.nextUrl.searchParams.get("jobId")?.trim();
+		if (!jobId) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "Missing jobId query parameter."
+				},
+				{ status: 400 }
+			);
+		}
+
+		const [body, bodyError] = await SafeExecute.withSync(() => req.json()).execute();
+		if (bodyError) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: bodyError.message
+				},
+				{ status: 400 }
+			);
+		}
+
+		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
+		const plan = typeof bodyRecord.plan === "string" ? bodyRecord.plan.trim() : "";
+		if (!plan) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "Request body must include a non-empty plan string."
+				},
+				{ status: 400 }
+			);
+		}
+
+		const runner = new ProjectManagerTaskProcessorFactory().getRunner();
+		await runner.saveJob(jobId, {
+			result: {
+				success: true,
+				message: "Plan updated.",
+				data: {
+					plan
+				}
+			}
+		});
+
+		return NextResponse.json(
+			{
+				success: true,
+				jobId
+			},
+			{ status: 200 }
+		);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Unexpected task plan update error.";
 		return NextResponse.json(
 			{
 				success: false,

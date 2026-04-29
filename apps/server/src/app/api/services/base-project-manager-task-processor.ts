@@ -24,7 +24,7 @@ export abstract class BaseProjectManagerTaskProcessor<TRemoteTask> implements Ta
             task: taskPrompt,
             vars: {
                 ...(this.runnerTaskConfig.vars ?? {}),
-                taskId: localTask.id,
+                jobId: localTask.id,
                 taskType: localTask.type,
                 taskSummary: localTask.summary
             }
