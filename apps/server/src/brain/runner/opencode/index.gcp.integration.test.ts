@@ -143,6 +143,59 @@ describe("OpenCodeRunner with GcpInfrastructure", () => {
         );
     });
 
+    it("launches in plan mode when incremental PRs are enabled for the tenant", async () => {
+        process.env.GCP_RUN_JOB_NAME = "projects/demo-project/locations/us-central1/jobs/opencode-job";
+        process.env.GCP_ACCESS_TOKEN = "test-access-token";
+
+        const fetchMock = vi.fn().mockResolvedValue(
+            createFetchResponse({
+                ok: true,
+                status: 200,
+                statusText: "OK",
+                body: { name: "projects/demo-project/locations/us-central1/operations/op-plan" }
+            })
+        );
+        vi.stubGlobal("fetch", fetchMock);
+
+        const runner = new OpenCodeRunner(
+            new GcpInfrastructure(),
+            {
+                saveJob: vi.fn().mockResolvedValue(undefined),
+                getJob: vi.fn().mockResolvedValue(null),
+                deleteJob: vi.fn().mockResolvedValue(undefined)
+            },
+            {
+                getTenantConfig: vi.fn().mockResolvedValue({ incrementalPrsOn: true })
+            }
+        );
+
+        const result = await runner.start({
+            repoUrl: "https://example.com/repo.git",
+            mode: "agent",
+            task: "Create a plan for this ticket.",
+            vars: { tenantId: "tenant-123" }
+        });
+
+        expect(result.success).toBe(true);
+        const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+        const body = JSON.parse(String(init.body)) as {
+            overrides: { containerOverrides: Array<{ env: Array<{ name: string; value: string }> }> };
+        };
+        const env = body.overrides.containerOverrides[0].env;
+
+        expect(env).toEqual(
+            expect.arrayContaining([
+                { name: "JOB_MODE", value: "plan" },
+                {
+                    name: "TASK",
+                    value: expect.stringContaining("PLAN OUTPUT INSTRUCTIONS:")
+                }
+            ])
+        );
+        const taskEnv = env.find((entry) => entry.name === "TASK");
+        expect(taskEnv?.value).toContain(".plans/");
+    });
+
     it("returns an error when GCP_RUN_JOB_NAME is missing", async () => {
         process.env.GCP_ACCESS_TOKEN = "test-access-token";
         const fetchMock = vi.fn();

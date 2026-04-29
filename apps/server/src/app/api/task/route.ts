@@ -3,6 +3,51 @@ import { ProjectManagerTaskProcessorFactory } from "../services/project-manager-
 import { WebhookInvocation } from "../services/task-processor";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
+import { JobResult } from "@/brain/shared";
+
+function parseResultUpdate(rawResult: unknown): JobResult | null | undefined {
+	if (rawResult === undefined) {
+		return undefined;
+	}
+
+	if (rawResult === null) {
+		return null;
+	}
+
+	if (!rawResult || typeof rawResult !== "object" || Array.isArray(rawResult)) {
+		throw new Error("The result field must be an object or null.");
+	}
+
+	const resultRecord = rawResult as Record<string, unknown>;
+	if (typeof resultRecord.success !== "boolean") {
+		throw new Error("The result field must include a boolean success property.");
+	}
+
+	const parsedResult: JobResult = {
+		success: resultRecord.success
+	};
+
+	if (typeof resultRecord.message === "string") {
+		parsedResult.message = resultRecord.message;
+	}
+
+	if ("data" in resultRecord) {
+		parsedResult.data = resultRecord.data;
+	}
+
+	return parsedResult;
+}
+
+function mergePlanIntoResult(result: JobResult, plan: string): JobResult {
+	const nextData = (result.data && typeof result.data === "object" && !Array.isArray(result.data))
+		? { ...(result.data as Record<string, unknown>), plan }
+		: { plan };
+
+	return {
+		...result,
+		data: nextData
+	};
+}
 
 function getUnauthorizedResponse(req: NextRequest): NextResponse | null {
 	const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim() || process.env.API_KEY?.trim();
@@ -175,25 +220,46 @@ export async function PATCH(req: NextRequest) {
 
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 		const plan = typeof bodyRecord.plan === "string" ? bodyRecord.plan.trim() : "";
-		if (!plan) {
+		const parsedResult = parseResultUpdate(bodyRecord.result);
+
+		if (!plan && parsedResult === undefined) {
 			return NextResponse.json(
 				{
 					success: false,
-					error: "Request body must include a non-empty plan string."
+					error: "Request body must include at least one of: non-empty plan, result."
 				},
 				{ status: 400 }
 			);
 		}
 
+		if (plan && parsedResult === null) {
+			return NextResponse.json(
+				{
+					success: false,
+					error: "Cannot combine plan with a null result update."
+				},
+				{ status: 400 }
+			);
+		}
+
+		let resultToPersist: JobResult | null | undefined = parsedResult;
+		if (plan) {
+			if (parsedResult && parsedResult !== null) {
+				resultToPersist = mergePlanIntoResult(parsedResult, plan);
+			} else if (parsedResult === undefined) {
+				resultToPersist = {
+					success: true,
+					message: "Plan updated.",
+					data: {
+						plan
+					}
+				};
+			}
+		}
+
 		const runner = new ProjectManagerTaskProcessorFactory().getRunner();
 		await runner.saveJob(jobId, {
-			result: {
-				success: true,
-				message: "Plan updated.",
-				data: {
-					plan
-				}
-			}
+			result: resultToPersist
 		});
 
 		return NextResponse.json(
