@@ -1,6 +1,6 @@
 import { MongoConnectionManager } from "@oliver/db";
 
-import { ConfigPersistenceLayer, TenantConfig } from "./config-persistance-layer";
+import { ConfigPersistenceLayer, TenantConfig } from "./config-persistence-layer";
 
 interface TenantConfigDocument {
     _id?: string;

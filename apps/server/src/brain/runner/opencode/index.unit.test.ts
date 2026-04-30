@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ConfigPersistenceLayer } from "../config-persistance-layer";
-import { JobPersistenceLayer } from "../job-persistance-layer";
+import { ConfigPersistenceLayer } from "../config-persistence-layer";
+import { JobPersistenceLayer } from "../job-persistence-layer";
 import { OpenCodeRunner } from "./index";
 
 describe("OpenCodeRunner unit", () => {
