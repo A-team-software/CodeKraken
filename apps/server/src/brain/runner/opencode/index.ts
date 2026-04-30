@@ -12,9 +12,8 @@ export class OpenCodeRunner implements Runner {
   constructor(
     private readonly infrastructure: Infrastructure = new LocalhostInfrastructure(),
     private readonly jobPersistenceLayer: JobPersistenceLayer = new MongoJobPersistenceLayer(),
-    private readonly configPersistenceLayer: ConfigPersistenceLayer = new MongoConfigPersistenceLayer()) {
-      // Pass
-    }
+    private readonly configPersistenceLayer: ConfigPersistenceLayer = new MongoConfigPersistenceLayer()
+  ) {}
 
   async start(config: JobConfig): Promise<JobResult> {
     const effectiveConfig = await this.withTenantConfig(config);
