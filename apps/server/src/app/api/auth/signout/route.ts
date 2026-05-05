@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Logger } from "@oliver/core";
+import { Logger, SafeExecute } from "@oliver/core";
 import { AuthService } from "@oliver/auth";
 
 export async function POST(request: NextRequest) {
@@ -14,16 +14,22 @@ export async function POST(request: NextRequest) {
 
         for (const cookie of boardUserCookies) {
             const provider = cookie.name.replace("board_provider_user_", "");
-            await authService.deleteTokens(cookie.value, provider, 'board').catch(e =>
-                Logger.error(`Failed to delete board token for ${provider}`, { error: e.message })
-            );
+            const [_, deleteError] = await SafeExecute.withSync(async () => 
+                authService.deleteTokens(cookie.value, provider, 'board')
+            ).execute();
+            if (deleteError) {
+                Logger.error(`Failed to delete board token for ${provider}`, { error: deleteError.message });
+            }
         }
 
         for (const cookie of gitUserCookies) {
             const provider = cookie.name.replace("git_provider_user_", "");
-            await authService.deleteTokens(cookie.value, provider, 'git').catch(e =>
-                Logger.error(`Failed to delete git token for ${provider}`, { error: e.message })
-            );
+            const [_, deleteError] = await SafeExecute.withSync(async () => 
+                authService.deleteTokens(cookie.value, provider, 'git')
+            ).execute();
+            if (deleteError) {
+                Logger.error(`Failed to delete git token for ${provider}`, { error: deleteError.message });
+            }
         }
 
         // 2. Clear all relevant cookies

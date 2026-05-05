@@ -5,7 +5,7 @@ import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { SynchronizeUserUseCase } from '@oliver/user';
 import { MongoUserRepository } from '@oliver/user';
 import { TOKEN_COOKIE_MAX_AGE } from '@oliver/core';
-import { Logger } from '@oliver/core';
+import { Logger, SafeExecute } from '@oliver/core';
 
 /**
  * GET /api/boards/[provider]/callback
@@ -15,7 +15,11 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ provider: string }> }
 ) {
-    const { provider } = await params;
+    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+    if (paramsError || !paramsResult) {
+        return NextResponse.json({ error: 'Invalid params' }, { status: 400 });
+    }
+    const { provider } = paramsResult;
 
     try {
         const { searchParams } = request.nextUrl;
@@ -49,12 +53,18 @@ export async function GET(
         const processCallbackUseCase = new ProcessOAuthCallbackUseCase(stateRepo, tokenRepo, syncUserUseCase);
 
         // Execute Use Case
-        const result = await processCallbackUseCase.execute({
-            provider,
-            providerType: 'board',
-            code,
-            state
-        });
+        const [result, executeError] = await SafeExecute.withSync(async () => 
+            processCallbackUseCase.execute({
+                provider,
+                providerType: 'board',
+                code,
+                state
+            })
+        ).execute();
+
+        if (executeError || !result) return NextResponse.redirect(
+            `${request.nextUrl.origin}/integrations?error=${encodeURIComponent(executeError?.message || 'OAuth execution failed')}&provider=${provider}`
+        );
 
         const { systemUserId, onboardingStep, accessToken, metadata } = result;
 

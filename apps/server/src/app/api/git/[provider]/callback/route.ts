@@ -5,6 +5,7 @@ import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { SynchronizeUserUseCase } from '@oliver/user';
 import { MongoUserRepository } from '@oliver/user';
 import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger, FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 /**
  * GET /api/git/[provider]/callback
@@ -14,7 +15,11 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ provider: string }> }
 ) {
-    const { provider } = await params;
+    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+    if (paramsError || !paramsResult) {
+        return NextResponse.json({ error: 'Invalid params' }, { status: 400 });
+    }
+    const { provider } = paramsResult;
 
     try {
         const { searchParams } = request.nextUrl;
@@ -50,13 +55,17 @@ export async function GET(
         // Execute Use Case
         // Do NOT pass redirectUri — the authorize step does not send redirect_uri either,
         // and GitHub requires both steps to match (both omit or both identical).
-        const result = await processCallbackUseCase.execute({
-            provider,
-            providerType: 'git',
-            code,
-            state,
-            redirectUri: FORGE_GITHUB_CALLBACK_URL // Ensure we use the same URI as authorize step
-        });
+        const [result, executeError] = await SafeExecute.withSync(async () => 
+            processCallbackUseCase.execute({
+                provider,
+                providerType: 'git',
+                code,
+                state,
+                redirectUri: FORGE_GITHUB_CALLBACK_URL // Ensure we use the same URI as authorize step
+            })
+        ).execute();
+
+        if (executeError || !result) return NextResponse.json({ error: executeError?.message || 'OAuth execution failed' }, { status: 500 });
 
         const { systemUserId, onboardingStep, accessToken, metadata } = result;
 

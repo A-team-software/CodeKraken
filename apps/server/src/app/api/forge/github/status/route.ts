@@ -1,5 +1,5 @@
 import { MongoOAuthTokenRepository } from '@oliver/auth';
-import { Logger } from '@oliver/core/src/observability/logging/logger';
+import { Logger, SafeExecute } from '@oliver/core';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -32,10 +32,14 @@ export async function POST(request: NextRequest) {
         }
 
         // ── Parse body ────────────────────────────────────────────────────────
-        const body = await request.json().catch(() => ({}));
-        const accountId: string | undefined = body.accountId;
-        const cloudId: string | undefined = body.cloudId ?? body.clientKey;
-        const provider: string | undefined = body.provider;
+        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
+        if (bodyError) {
+             // Silently handle if needed, but the original had a catch
+        }
+        const safeBody = body || {};
+        const accountId: string | undefined = safeBody.accountId;
+        const cloudId: string | undefined = safeBody.cloudId ?? safeBody.clientKey;
+        const provider: string | undefined = safeBody.provider;
 
         if (!accountId || !cloudId) {
             return NextResponse.json(
@@ -46,12 +50,16 @@ export async function POST(request: NextRequest) {
 
         // ── Query oauthtokens ────────────────────────────────────────────────
         const tokenRepo = new MongoOAuthTokenRepository();
-        const oauthToken = await tokenRepo.findByAtlassianAccountIdAndCloudId(
-            accountId,
-            cloudId,
-            'git',
-            provider
-        );
+        const [oauthToken, queryError] = await SafeExecute.withSync(async () => 
+            tokenRepo.findByAtlassianAccountIdAndCloudId(
+                accountId,
+                cloudId,
+                'git',
+                provider
+            )
+        ).execute();
+
+        if (queryError) return NextResponse.json({ connected: false, error: queryError.message || 'Internal error' }, { status: 500 });
 
         if (!oauthToken) {
             return NextResponse.json({ connected: false });

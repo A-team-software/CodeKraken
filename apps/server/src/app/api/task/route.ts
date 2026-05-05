@@ -2,6 +2,7 @@ import { RunnerTaskConfig } from "../services/base-project-manager-task-processo
 import { ProjectManagerTaskProcessorFactory } from "../services/project-manager-task-processor-factory";
 import { WebhookInvocation } from "../services/task-processor";
 import { NextRequest, NextResponse } from "next/server";
+import { SafeExecute } from "@oliver/core/src/errors";
 
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
@@ -13,7 +14,7 @@ function buildDefaultTaskConfig(): RunnerTaskConfig {
 	};
 }
 
-function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
+function resolveTaskConfig(body: Record<string, unknown>): [RunnerTaskConfig | null, string | null] {
 	const defaultTaskConfig = buildDefaultTaskConfig();
 
 	const repoUrl = typeof body.repoUrl === "string" && body.repoUrl.trim().length > 0
@@ -24,16 +25,16 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 		: defaultTaskConfig.mode;
 
 	if (!repoUrl) {
-		throw new Error("Missing repoUrl. Include repoUrl in request body or set OPENCODE_TASK_REPO_URL.");
+		return [null, "Missing repoUrl. Include repoUrl in request body or set OPENCODE_TASK_REPO_URL."];
 	}
 
-	return {
+	return [{
 		...defaultTaskConfig,
 		repoUrl,
 		mode,
 		branch: typeof body.branch === "string" && body.branch.trim().length > 0 ? body.branch : defaultTaskConfig.branch,
 		commitHash: typeof body.commitHash === "string" && body.commitHash.trim().length > 0 ? body.commitHash : defaultTaskConfig.commitHash
-	};
+	}, null];
 }
 
 export async function POST(req: NextRequest) {
@@ -65,7 +66,8 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		const body = await req.json();
+		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
+		if (bodyError) return NextResponse.json({ success: false, error: bodyError.message || 'Invalid request body' }, { status: 400 });
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 
 		const invocation: WebhookInvocation = {
@@ -74,9 +76,12 @@ export async function POST(req: NextRequest) {
 			query: Object.fromEntries(req.nextUrl.searchParams.entries())
 		};
 
-		const taskConfig = resolveTaskConfig(bodyRecord);
+		const [taskConfig, taskConfigError] = resolveTaskConfig(bodyRecord);
+		if (taskConfigError || !taskConfig) return NextResponse.json({ success: false, error: taskConfigError || 'Invalid task config' }, { status: 400 });
 		const processor = new ProjectManagerTaskProcessorFactory().createProcessor(invocation, taskConfig);
-		const result = await processor.processTask(invocation);
+		const [result, processError] = await SafeExecute.withSync(async () => processor.processTask(invocation)).execute();
+
+		if (processError || !result) return NextResponse.json({ success: false, error: processError?.message || 'Task processing failed' }, { status: 500 });
 
 		const payload = {
 			success: result.success,

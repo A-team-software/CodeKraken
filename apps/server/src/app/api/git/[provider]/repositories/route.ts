@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GetRepositoriesUseCase } from '@oliver/git';
 import { TOKEN_COOKIE_NAME } from '@oliver/auth';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 /**
  * GET /api/git/[provider]/repositories
@@ -15,7 +16,9 @@ export async function GET(
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
 
         // Try Bearer header first, then fall back to OAuth cookie
         let token = request.headers.get('authorization')?.replace('Bearer ', '')
@@ -34,7 +37,11 @@ export async function GET(
         const perPage = parseInt(request.nextUrl.searchParams.get('perPage') || '30');
 
         const useCase = new GetRepositoriesUseCase();
-        const repositories = await useCase.execute({ providerType: provider, token, page, perPage });
+        const [repositories, executeError] = await SafeExecute.withSync(async () => 
+            useCase.execute({ providerType: provider, token: token!, page, perPage })
+        ).execute();
+
+        if (executeError) return NextResponse.json({ error: executeError.message || 'Failed to fetch repositories' }, { status: (executeError as any).code === 'AUTH_FAILED' ? 401 : 500 });
 
         return NextResponse.json({ repositories, provider, page, perPage });
     } catch (error: any) {
