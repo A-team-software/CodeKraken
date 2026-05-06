@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         // ── Parse body ────────────────────────────────────────────────────────
         const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
         if (bodyError) {
-             // Silently handle if needed, but the original had a catch
+            // Silently handle if needed, but the original had a catch
         }
         const safeBody = body || {};
         const accountId: string | undefined = safeBody.accountId;
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
         // ── Query oauthtokens ────────────────────────────────────────────────
         const tokenRepo = new MongoOAuthTokenRepository();
-        const [oauthToken, queryError] = await SafeExecute.withSync(async () => 
+        const [oauthToken, queryError] = await SafeExecute.withSync(async () =>
             tokenRepo.findByAtlassianAccountIdAndCloudId(
                 accountId,
                 cloudId,
@@ -62,7 +62,14 @@ export async function POST(request: NextRequest) {
         if (queryError) return NextResponse.json({ connected: false, error: queryError.message || 'Internal error' }, { status: 500 });
 
         if (!oauthToken) {
-            return NextResponse.json({ connected: false });
+            return NextResponse.json({
+                connected: false, params: {
+                    accountId,
+                    cloudId,
+                    hint: 'git',
+                    provider
+                }
+            });
         }
 
         // Treat as disconnected if the token has a known expiry that has passed

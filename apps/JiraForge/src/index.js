@@ -73,7 +73,7 @@ resolver.define('getGithubStatus', async (req) => {
   if (!res.ok) {
     const text = await res.text();
     console.error(`Forge: getGithubStatus failed: ${text}`);
-    throw new Error(`Failed to get github status: ${res.status}`);
+    return { connected: false, error: text };
   }
 
   const data = await res.json();
