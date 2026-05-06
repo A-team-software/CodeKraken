@@ -5,4 +5,5 @@ export interface Runner {
     stop(): Promise<JobResult>;
     pause(): Promise<JobResult>;
     resume(): Promise<JobResult>;
+    saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult | null }): Promise<void>;
 }

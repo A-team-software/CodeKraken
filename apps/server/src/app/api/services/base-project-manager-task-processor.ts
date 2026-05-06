@@ -17,6 +17,7 @@ export abstract class BaseProjectManagerTaskProcessor<TRemoteTask> implements Ta
     async processTask(invocation: WebhookInvocation): Promise<JobResult> {
         const remoteTask = this.parseRemoteTaskFromWebhook(invocation);
         const localTask = this.adapter.remoteTaskToLocalTask(remoteTask);
+        const tenantId = this.resolveTenantId(invocation);
 
         const taskPrompt = this.buildTaskPrompt(localTask);
         return this.runner.start({
@@ -24,7 +25,8 @@ export abstract class BaseProjectManagerTaskProcessor<TRemoteTask> implements Ta
             task: taskPrompt,
             vars: {
                 ...(this.runnerTaskConfig.vars ?? {}),
-                taskId: localTask.id,
+                jobId: localTask.id,
+                ...(tenantId ? { tenantId } : {}),
                 taskType: localTask.type,
                 taskSummary: localTask.summary
             }
@@ -71,5 +73,26 @@ export abstract class BaseProjectManagerTaskProcessor<TRemoteTask> implements Ta
         }
 
         return String(value);
+    }
+
+    protected resolveTenantId(invocation: WebhookInvocation): string | undefined {
+        const headerTenantId = invocation.headers?.["x-forge-client-key"]?.trim();
+        if (headerTenantId) {
+            return headerTenantId;
+        }
+
+        const queryTenantId = invocation.query?.clientKey?.trim() || invocation.query?.tenantId?.trim();
+        if (queryTenantId) {
+            return queryTenantId;
+        }
+
+        const body = invocation.body as Record<string, unknown> | undefined;
+        const bodyTenantId = typeof body?.clientKey === "string"
+            ? body.clientKey.trim()
+            : typeof body?.tenantId === "string"
+                ? body.tenantId.trim()
+                : undefined;
+
+        return bodyTenantId || undefined;
     }
 }

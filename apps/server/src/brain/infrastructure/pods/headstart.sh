@@ -86,33 +86,49 @@ redact_sensitive_output() {
 	' -- "$output" "$token"
 }
 
+build_git_auth_header() {
+	local git_user="$1"
+	local git_pass="$2"
+	local git_token="$3"
+
+	if [[ -n "$git_token" ]]; then
+		printf "Authorization: Basic %s" "$(printf "x-access-token:%s" "$git_token" | base64 | tr -d '\n')"
+		return 0
+	fi
+
+	if [[ -n "$git_user" && -n "$git_pass" ]]; then
+		printf "Authorization: Basic %s" "$(printf "%s:%s" "$git_user" "$git_pass" | base64 | tr -d '\n')"
+		return 0
+	fi
+
+	return 1
+}
+
+configure_git_auth() {
+	local git_user="$1"
+	local git_pass="$2"
+	local git_token="$3"
+	local auth_header
+	local git_config_count
+
+	if ! auth_header="$(build_git_auth_header "$git_user" "$git_pass" "$git_token")"; then
+		return 0
+	fi
+
+	git_config_count="${GIT_CONFIG_COUNT:-0}"
+	export GIT_CONFIG_COUNT=$((git_config_count + 1))
+	export GIT_CONFIG_KEY_"${git_config_count}"="http.extraHeader"
+	export GIT_CONFIG_VALUE_"${git_config_count}"="${auth_header}"
+}
+
 build_remote_url() {
 	local remote_url="$1"
 	local git_user="$2"
 	local git_pass="$3"
 	local git_token="$4"
-	local protocol
-	local remote_without_scheme
 
-	if [[ "$remote_url" =~ ^(https?)://(.+)$ ]]; then
-		protocol="${BASH_REMATCH[1]}"
-		remote_without_scheme="${BASH_REMATCH[2]}"
-
-		if [[ -n "$git_token" ]]; then
-			local enc_token
-			enc_token="$(url_encode "$git_token")"
-			printf "%s" "${protocol}://${enc_token}@${remote_without_scheme}"
-			return 0
-		fi
-
-		if [[ -n "$git_user" && -n "$git_pass" ]]; then
-			local enc_user
-			local enc_pass
-			enc_user="$(url_encode "$git_user")"
-			enc_pass="$(url_encode "$git_pass")"
-			printf "%s" "${protocol}://${enc_user}:${enc_pass}@${remote_without_scheme}"
-			return 0
-		fi
+	if [[ "$remote_url" =~ ^https?://.+$ ]]; then
+		configure_git_auth "$git_user" "$git_pass" "$git_token"
 	fi
 
 	printf "%s" "$remote_url"
@@ -274,6 +290,121 @@ build_json_for_bitbucket_pr() {
 			close_source_branch: false
 		}));
 	" -- "$1" "$2" "$3" "$4"
+}
+
+build_json_for_plan_update() {
+	node -e '
+		const plan = process.argv[1] || "";
+		process.stdout.write(JSON.stringify({ plan }));
+	' -- "$1"
+}
+
+find_latest_plan_file() {
+	node -e '
+		const fs = require("fs");
+		const path = require("path");
+		const root = process.argv[1] || ".plans";
+
+		function walk(dir, files) {
+			let entries = [];
+			try {
+				entries = fs.readdirSync(dir, { withFileTypes: true });
+			} catch {
+				return;
+			}
+
+			for (const entry of entries) {
+				const full = path.join(dir, entry.name);
+				if (entry.isDirectory()) {
+					walk(full, files);
+					continue;
+				}
+
+				if (!entry.isFile()) {
+					continue;
+				}
+
+				try {
+					const stat = fs.statSync(full);
+					files.push({ full, mtimeMs: stat.mtimeMs });
+				} catch {
+					// Ignore unreadable files.
+				}
+			}
+		}
+
+		const files = [];
+		walk(root, files);
+		if (files.length === 0) {
+			process.exit(0);
+		}
+
+		files.sort((a, b) => b.mtimeMs - a.mtimeMs);
+		process.stdout.write(files[0].full);
+	' -- ".plans"
+}
+
+post_plan_to_api_server() {
+	local mode="$1"
+	local api_server_url="$2"
+	local job_id="$3"
+	local api_key="$4"
+
+	if [[ "$mode" != "plan" ]]; then
+		return 0
+	fi
+
+	if [[ -z "$api_server_url" ]]; then
+		log "API_SERVER_URL is not set. Skipping plan upload."
+		return 0
+	fi
+
+	if [[ -z "$job_id" ]]; then
+		log "JOB_ID/TASK_ID is not set. Skipping plan upload."
+		return 0
+	fi
+
+	local plan_file
+	plan_file="$(find_latest_plan_file || true)"
+	if [[ -z "$plan_file" || ! -f "$plan_file" ]]; then
+		log "No plan file found under .plans. Skipping plan upload."
+		return 0
+	fi
+
+	local plan_content payload endpoint response http_code body
+	plan_content="$(cat "$plan_file")"
+	payload="$(build_json_for_plan_update "$plan_content")"
+	endpoint="${api_server_url%/}/task?jobId=$(url_encode "$job_id")"
+
+	log "Uploading plan from '${plan_file}' to ${endpoint}."
+
+	if [[ -n "$api_key" ]]; then
+		response="$(curl -s -w $'\n''%{http_code}' -X PATCH \
+			-u ":${api_key}" \
+			-H "Content-Type: application/json" \
+			"$endpoint" \
+			-d "$payload")" || {
+			log "Failed to upload plan to API server."
+			return 0
+		}
+	else
+		response="$(curl -s -w $'\n''%{http_code}' -X PATCH \
+			-H "Content-Type: application/json" \
+			"$endpoint" \
+			-d "$payload")" || {
+			log "Failed to upload plan to API server."
+			return 0
+		}
+	fi
+
+	http_code="${response##*$'\n'}"
+	body="${response%$'\n'*}"
+
+	if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+		log "Plan uploaded successfully for job '${job_id}'."
+	else
+		log "Plan upload returned HTTP ${http_code}: ${body}"
+	fi
 }
 
 sanitize_branch_component() {
@@ -585,6 +716,12 @@ main() {
 	local task_summary
 	task_id="$(first_non_empty TASK_ID || true)"
 	task_summary="$(first_non_empty TASK_SUMMARY || true)"
+	local job_id
+	local api_server_url
+	local api_key
+	job_id="$(first_non_empty JOB_ID TASK_ID || true)"
+	api_server_url="$(first_non_empty API_SERVER_URL OPENCODE_API_SERVER_URL || true)"
+	api_key="$(first_non_empty API_KEY OPENCODE_TASK_API_TOKEN TASK_API_TOKEN || true)"
 
 	if [[ -z "$mode" ]]; then
 		mode="agent"
@@ -624,6 +761,7 @@ main() {
 	apply_commit_if_present "$commit_hash"
 	ensure_pr_md_ignored
 	start_opencode "$mode" "$task" "$opencode_flags"
+	post_plan_to_api_server "$mode" "$api_server_url" "$job_id" "$api_key"
 	log "OpenCode completed successfully. Running post-processing."
 	post_opencode_success "$remote_repo" "$branch" "$clone_url" "$git_token" "$task_id" "$task_summary" "$task"
 }
