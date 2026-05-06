@@ -14,7 +14,7 @@ function readConfiguredApiToken(): string {
 }
 
 function isUnauthenticatedAccessAllowed(): boolean {
-	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED === "true";
+	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED !== "false";
 }
 
 function extractBasicAuthPassword(authorizationHeader: string): string | null {
