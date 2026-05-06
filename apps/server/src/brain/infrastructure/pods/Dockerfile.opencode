@@ -11,8 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /workspace
 
-COPY headstart.sh /usr/local/bin/headstart.sh
-RUN chmod +x /usr/local/bin/headstart.sh
+COPY headstart/ /usr/local/bin/headstart/
+RUN chmod +x \
+	/usr/local/bin/headstart/headstart.sh \
+	/usr/local/bin/headstart/create_pr.sh \
+	/usr/local/bin/headstart/github.sh \
+	/usr/local/bin/headstart/bitbucket.sh \
+	/usr/local/bin/headstart/gitlab.sh
 
 RUN curl -fsSL https://opencode.ai/install -o /tmp/opencode-install.sh \
 	&& chmod +x /tmp/opencode-install.sh \
@@ -23,4 +28,4 @@ ENV PATH="/root/.opencode/bin:${PATH}"
 
 RUN git --version && node -v && opencode -v
 
-ENTRYPOINT ["/usr/local/bin/headstart.sh"]
+ENTRYPOINT ["/usr/local/bin/headstart/headstart.sh"]
