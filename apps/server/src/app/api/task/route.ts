@@ -137,6 +137,30 @@ export async function POST(req: NextRequest) {
 		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
 		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
 
+		if (!allowUnauthenticated) {
+			if (!configuredToken) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Unauthorized"
+					},
+					{ status: 401 }
+				);
+			}
+			const authHeader = req.headers.get("authorization");
+			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
+
+			if (bearerToken !== configuredToken) {
+				return NextResponse.json(
+					{
+						success: false,
+						error: "Unauthorized"
+					},
+					{ status: 401 }
+				);
+			}
+		}
+
 		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
 		if (bodyError) return NextResponse.json({ success: false, error: bodyError.message || 'Invalid request body' }, { status: 400 });
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
