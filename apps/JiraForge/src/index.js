@@ -47,7 +47,7 @@ resolver.define('getGithubAuthUrl', async (req) => {
   if (!res.ok) {
     const text = await res.text();
     console.error(`Forge: getGithubAuthUrl failed: ${text}`);
-    throw new Error(`Failed to get auth URL: ${res.status}`);
+    return res;
   }
 
   return res.json();

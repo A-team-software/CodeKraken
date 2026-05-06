@@ -223,6 +223,7 @@ function App() {
     setError(null);
     try {
       const { authUrl } = await invoke('getGithubAuthUrl');
+      console.log(`authUrl: ${authUrl}`)
       if (authUrl) {
         // Use window.open (popup) instead of router.open so that window.opener
         // is set in the callback page, allowing postMessage back to this panel.
