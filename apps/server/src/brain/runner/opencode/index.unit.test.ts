@@ -20,6 +20,7 @@ describe("OpenCodeRunner unit", () => {
             {
                 saveJob,
                 getJob: vi.fn().mockResolvedValue(null),
+                findLatestJobByPrId: vi.fn().mockResolvedValue(null),
                 deleteJob: vi.fn().mockResolvedValue(undefined)
             } as JobPersistenceLayer,
             {
@@ -60,6 +61,7 @@ describe("OpenCodeRunner unit", () => {
             {
                 saveJob,
                 getJob: vi.fn().mockResolvedValue(null),
+                findLatestJobByPrId: vi.fn().mockResolvedValue(null),
                 deleteJob: vi.fn().mockResolvedValue(undefined)
             } as JobPersistenceLayer,
             {
@@ -85,5 +87,7 @@ describe("OpenCodeRunner unit", () => {
         const launchedConfig = startProcess.mock.calls[0]?.[0] as { task?: string };
         expect(launchedConfig.task).toContain("PLAN OUTPUT INSTRUCTIONS:");
         expect(launchedConfig.task).toContain(".plans/");
+        expect(launchedConfig.task).toContain("todos:");
+        expect(launchedConfig.task).toContain("- id: (id of the todo)");
     });
 });

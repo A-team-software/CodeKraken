@@ -148,12 +148,26 @@ describe("PATCH /api/task", () => {
         expect(updateOneMock).not.toHaveBeenCalled();
     });
 
+    it("returns 400 when body jobId does not match query jobId", async () => {
+        const response = await PATCH(createPatchRequest({
+            body: {
+                jobId: "other-job",
+                plan: "Plan from .plans"
+            }
+        }));
+        const payload = await parseResponse(response);
+
+        expect(response.status).toBe(400);
+        expect(payload.error).toBe("jobId in request body must match jobId query parameter when provided.");
+        expect(updateOneMock).not.toHaveBeenCalled();
+    });
+
     it("returns 400 when neither plan nor result is provided", async () => {
         const response = await PATCH(createPatchRequest({ body: {} }));
         const payload = await parseResponse(response);
 
         expect(response.status).toBe(400);
-        expect(payload.error).toBe("Request body must include at least one of: non-empty plan, result.");
+        expect(payload.error).toBe("Request body must include at least one of: non-empty plan, prId, result.");
         expect(updateOneMock).not.toHaveBeenCalled();
     });
 
@@ -210,7 +224,7 @@ describe("PATCH /api/task", () => {
                 $set: expect.objectContaining({
                     result: {
                         success: true,
-                        message: "Plan updated.",
+                        message: "Job metadata updated.",
                         data: { plan: "Plan from .plans" }
                     }
                 })
@@ -306,5 +320,17 @@ describe("PATCH /api/task", () => {
 
         expect(response.status).toBe(400);
         expect(payload.error).toBe("db down");
+    });
+
+    it("accepts matching body jobId", async () => {
+        const response = await PATCH(createPatchRequest({
+            body: {
+                jobId: "job-123",
+                plan: "Plan from .plans"
+            }
+        }));
+
+        expect(response.status).toBe(200);
+        expect(updateOneMock).toHaveBeenCalledTimes(1);
     });
 });

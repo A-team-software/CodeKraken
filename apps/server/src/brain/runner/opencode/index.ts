@@ -1,8 +1,8 @@
 import { LocalhostInfrastructure } from "../../infrastructure/localhost/index";
 import { Infrastructure } from "../../infrastructure/infrastructure";
 import { JobConfig, JobResult } from "../../shared";
-import { Runner } from "../runner";
-import { JobPersistenceLayer } from "../job-persistence-layer";
+import { PullRequestPlatform, Runner } from "../runner";
+import { JobDocument, JobPersistenceLayer } from "../job-persistence-layer";
 import { MongoJobPersistenceLayer } from "../mongo-job-persistence-layer";
 import { ConfigPersistenceLayer } from "../config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "../mongo-config-persistence-layer";
@@ -16,11 +16,11 @@ export class OpenCodeRunner implements Runner {
   ) {}
 
   async start(config: JobConfig): Promise<JobResult> {
-    const effectiveConfig = await this.withTenantConfig(config);
+    const { config: effectiveConfig, isIncremental } = await this.withTenantConfig(config);
     const jobId = this.resolveJobId(config);
-    await this.trySaveJob(jobId, { config: effectiveConfig, result: null });
+    await this.trySaveJob(jobId, { config: effectiveConfig, result: null, isIncremental });
     const result = await this.infrastructure.startProcess(this.withOpenCodeCommand(effectiveConfig));
-    await this.trySaveJob(jobId, { config: effectiveConfig, result });
+    await this.trySaveJob(jobId, { config: effectiveConfig, result, isIncremental });
     return result;
   }
 
@@ -38,21 +38,24 @@ export class OpenCodeRunner implements Runner {
     };
   }
 
-  private async withTenantConfig(config: JobConfig): Promise<JobConfig> {
+  private async withTenantConfig(config: JobConfig): Promise<{ config: JobConfig; isIncremental: boolean }> {
     const tenantId = config.vars?.tenantId?.trim();
     if (!tenantId) {
-      return config;
+      return { config, isIncremental: false };
     }
 
     const tenantConfig = await this.tryGetTenantConfig(tenantId);
     if (!tenantConfig?.incrementalPrsOn) {
-      return config;
+      return { config, isIncremental: false };
     }
 
     return {
-      ...config,
-      mode: "plan",
-      task: this.withPlanFolderInstructions(config.task)
+      config: {
+        ...config,
+        mode: "plan",
+        task: this.withPlanFolderInstructions(config.task)
+      },
+      isIncremental: true
     };
   }
 
@@ -65,7 +68,12 @@ export class OpenCodeRunner implements Runner {
       "PLAN OUTPUT INSTRUCTIONS:",
       "- Generate the plan inside the .plans/ folder of the repository you are running in.",
       "- Ensure the plan is written to a file under .plans/ before you finish.",
-      "- Keep the plan content clear and implementation-oriented."
+      "- Keep the plan content clear and implementation-oriented.",
+      "- The plan MUST contain a todo list using exactly this structure:",
+      "  todos:",
+      "      - id: (id of the todo)",
+      "        content: (summary of the todo)",
+      "        status: (status of the todo)"
     ].join("\n");
 
     if (task.includes("PLAN OUTPUT INSTRUCTIONS:")) {
@@ -87,15 +95,59 @@ export class OpenCodeRunner implements Runner {
     return this.infrastructure.pauseProcess();
   }
 
+  async startNextIteration(prId: string, platform: PullRequestPlatform, jobId?: string): Promise<JobResult> {
+    const jobDocument = await this.resolveJobDocumentForIteration(prId, jobId);
+    if (!jobDocument) {
+      return {
+        success: false,
+        message: `Unable to find a job for PR id '${prId}'.`
+      };
+    }
+
+    const plan = jobDocument.plan?.trim();
+    if (!plan) {
+      return {
+        success: false,
+        message: `No plan found for job '${jobDocument.id}'.`
+      };
+    }
+
+    if (!jobDocument.config?.repoUrl?.trim()) {
+      return {
+        success: false,
+        message: `Job '${jobDocument.id}' does not contain a valid repository configuration.`
+      };
+    }
+
+    const followUpTask = this.buildIterationTaskPrompt(plan, prId, platform);
+    const followUpConfig: JobConfig = {
+      ...jobDocument.config,
+      mode: "agent",
+      task: followUpTask,
+      vars: {
+        ...(jobDocument.config.vars ?? {}),
+        jobId: jobDocument.id,
+        previousPrId: prId,
+        sourcePlatform: platform,
+        incrementalIteration: "true"
+      }
+    };
+
+    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result: null, isIncremental: true });
+    const result = await this.infrastructure.startProcess(this.withOpenCodeCommand(followUpConfig));
+    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result, prId, isIncremental: true });
+    return result;
+  }
+
   resume(): Promise<JobResult> {
     return this.infrastructure.resumeProcess();
   }
 
-  async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null }): Promise<void> {
+  async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; isIncremental?: boolean }): Promise<void> {
     await this.jobPersistenceLayer.saveJob(jobId, data);
   }
 
-  private async trySaveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null }): Promise<void> {
+  private async trySaveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; isIncremental?: boolean }): Promise<void> {
     const persistenceAttempt = this.saveJob(jobId, data).catch(() => undefined);
     const timeoutMs = 150;
 
@@ -129,5 +181,30 @@ export class OpenCodeRunner implements Runner {
     }
 
     return randomUUID();
+  }
+
+  private async resolveJobDocumentForIteration(prId: string, jobId?: string): Promise<JobDocument | null> {
+    const preferredJobId = jobId?.trim();
+    if (preferredJobId) {
+      const byJobId = await this.jobPersistenceLayer.getJob(preferredJobId);
+      if (byJobId) {
+        return byJobId;
+      }
+    }
+
+    return this.jobPersistenceLayer.findLatestJobByPrId(prId);
+  }
+
+  private buildIterationTaskPrompt(plan: string, prId: string, platform: PullRequestPlatform): string {
+    return [
+      `INCREMENTAL ITERATION INPUT (${platform} PR #${prId}):`,
+      "- Continue execution from the existing plan.",
+      "- Prioritize actionable todos that are not done.",
+      "- Implement code/doc updates needed for the selected todos.",
+      "- Commit changes as you progress and update PR.md when needed.",
+      "",
+      "PLAN:",
+      plan
+    ].join("\n");
   }
 }

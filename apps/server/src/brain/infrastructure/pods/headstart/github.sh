@@ -45,8 +45,12 @@ http_code="${response##*$'\n'}"
 body="${response%$'\n'*}"
 
 if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+	pr_id="$(node -e "try{const r=JSON.parse(process.argv[1]);console.log(r.number||'');}catch{}" -- "$body")"
 	pr_url="$(node -e "try{const r=JSON.parse(process.argv[1]);console.log(r.html_url||'');}catch{}" -- "$body")"
-	log "PR created: ${pr_url}"
+	log "PR created: ${pr_url} (id=${pr_id:-unknown})"
+	if [[ -n "$pr_id" ]]; then
+		echo "$pr_id"
+	fi
 else
 	log "PR creation returned HTTP ${http_code}: ${body}"
 fi

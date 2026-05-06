@@ -50,8 +50,12 @@ http_code="${response##*$'\n'}"
 body="${response%$'\n'*}"
 
 if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+	mr_id="$(node -e "try{const r=JSON.parse(process.argv[1]);console.log(r.iid||r.id||'');}catch{}" -- "$body")"
 	mr_url="$(node -e "try{const r=JSON.parse(process.argv[1]);console.log(r.web_url||'');}catch{}" -- "$body")"
-	log "MR created: ${mr_url}"
+	log "MR created: ${mr_url} (id=${mr_id:-unknown})"
+	if [[ -n "$mr_id" ]]; then
+		echo "$mr_id"
+	fi
 else
 	log "MR creation returned HTTP ${http_code}: ${body}"
 fi
