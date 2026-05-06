@@ -134,10 +134,8 @@ function resolveTaskConfig(body: Record<string, unknown>): [RunnerTaskConfig | n
 
 export async function POST(req: NextRequest) {
 	try {
-		const unauthorizedResponse = getUnauthorizedResponse(req);
-		if (unauthorizedResponse) {
-			return unauthorizedResponse;
-		}
+		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
+		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
 
 		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
 		if (bodyError) return NextResponse.json({ success: false, error: bodyError.message || 'Invalid request body' }, { status: 400 });
@@ -165,99 +163,6 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json(payload, { status: result.success ? 200 : 500 });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Unexpected task webhook processing error.";
-		return NextResponse.json(
-			{
-				success: false,
-				error: message
-			},
-			{ status: 400 }
-		);
-	}
-}
-
-
-export async function PATCH(req: NextRequest) {
-	try {
-		const unauthorizedResponse = getUnauthorizedResponse(req);
-		if (unauthorizedResponse) {
-			return unauthorizedResponse;
-		}
-
-		const jobId = req.nextUrl.searchParams.get("jobId")?.trim();
-		if (!jobId) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: "Missing jobId query parameter."
-				},
-				{ status: 400 }
-			);
-		}
-
-		const [body, bodyError] = await SafeExecute.withSync(() => req.json()).execute();
-		if (bodyError) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: bodyError.message
-				},
-				{ status: 400 }
-			);
-		}
-
-		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
-		const plan = typeof bodyRecord.plan === "string" ? bodyRecord.plan.trim() : "";
-		const parsedResult = parseResultUpdate(bodyRecord.result);
-
-		if (!plan && parsedResult === undefined) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: "Request body must include at least one of: non-empty plan, result."
-				},
-				{ status: 400 }
-			);
-		}
-
-		if (plan && parsedResult === null) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: "Cannot combine plan with a null result update."
-				},
-				{ status: 400 }
-			);
-		}
-
-		let resultToPersist: JobResult | null | undefined = parsedResult;
-		if (plan) {
-			if (parsedResult && parsedResult !== null) {
-				resultToPersist = mergePlanIntoResult(parsedResult, plan);
-			} else if (parsedResult === undefined) {
-				resultToPersist = {
-					success: true,
-					message: "Plan updated.",
-					data: {
-						plan
-					}
-				};
-			}
-		}
-
-		const runner = new ProjectManagerTaskProcessorFactory().getRunner();
-		await runner.saveJob(jobId, {
-			result: resultToPersist
-		});
-
-		return NextResponse.json(
-			{
-				success: true,
-				jobId
-			},
-			{ status: 200 }
-		);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unexpected task plan update error.";
 		return NextResponse.json(
 			{
 				success: false,

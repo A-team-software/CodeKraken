@@ -195,6 +195,32 @@ export class MongoOAuthTokenRepository implements OAuthTokenRepository {
     }
 
     // ----------------------------------------------------------
+    // DELETE BY ATLASSIAN ACCOUNT ID AND CLOUD ID
+    // ----------------------------------------------------------
+
+    async deleteByAtlassianAccountIdAndCloudId(
+        atlassianAccountId: string,
+        cloudId: string,
+        providerType?: ProviderType,
+        provider?: string
+    ): Promise<boolean> {
+        const collection = await OAuthTokenCollection.get();
+        const query: Record<string, any> = { atlassianAccountId, cloudId };
+        if (providerType) query.providerType = providerType;
+        if (provider) query.provider = provider.toLowerCase();
+
+        const [result, error] = await SafeExecute
+            .withSync(() => collection.deleteOne(query))
+            .withRetry({ attempts: 3, delayMs: 100 })
+            .withTimeout(5000)
+            .execute();
+
+        if (error || !result) return false;
+
+        return result.deletedCount > 0;
+    }
+
+    // ----------------------------------------------------------
     // FIND BY USER
     // ----------------------------------------------------------
 
