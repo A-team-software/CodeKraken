@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BoardProviderFactory } from '@oliver/boards';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
         const { searchParams } = new URL(request.url);
         const boardId = searchParams.get('boardId');
         const status = searchParams.get('status')?.split(',');
@@ -25,12 +28,16 @@ export async function GET(
         }
 
         const boardProvider = BoardProviderFactory.create(provider, token);
-        const issues = await boardProvider.getIssues(boardId, {
-            status,
-            assignee: assignee || undefined,
-            type,
-            search: search || undefined,
-        });
+        const [issues, issuesError] = await SafeExecute.withSync(async () => 
+            boardProvider.getIssues(boardId, {
+                status,
+                assignee: assignee || undefined,
+                type,
+                search: search || undefined,
+            })
+        ).execute();
+
+        if (issuesError) return NextResponse.json({ error: issuesError.message || 'Failed to fetch issues' }, { status: (issuesError as any).code === 'AUTH_FAILED' ? 401 : 500 });
 
         return NextResponse.json({ issues });
     } catch (error: any) {
@@ -47,14 +54,17 @@ export async function POST(
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
         const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
         if (!token) {
             return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
         }
 
-        const body = await request.json();
+        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
+        if (bodyError || !body) return NextResponse.json({ error: bodyError?.message || 'Invalid request body' }, { status: 400 });
         const { boardId, summary, description, type, priority, assignee, labels } = body;
 
         if (!boardId || !summary || !type) {
@@ -65,14 +75,18 @@ export async function POST(
         }
 
         const boardProvider = BoardProviderFactory.create(provider, token);
-        const issue = await boardProvider.createIssue(boardId, {
-            summary,
-            description,
-            type,
-            priority,
-            assignee,
-            labels,
-        });
+        const [issue, issueError] = await SafeExecute.withSync(async () => 
+            boardProvider.createIssue(boardId, {
+                summary,
+                description,
+                type,
+                priority,
+                assignee,
+                labels,
+            })
+        ).execute();
+
+        if (issueError) return NextResponse.json({ error: issueError.message || 'Failed to create issue' }, { status: (issueError as any).code === 'AUTH_FAILED' ? 401 : 500 });
 
         return NextResponse.json({ issue }, { status: 201 });
     } catch (error: any) {

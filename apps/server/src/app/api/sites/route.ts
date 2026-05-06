@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoAtlassianTenantRepository } from '@oliver/db';
 import { MongoUserJiraSiteAccessRepository } from '@oliver/db';
 import { GetUserJiraSitesUseCase } from '@oliver/application';
-import { Logger } from '@oliver/core';
+import { Logger, SafeExecute } from '@oliver/core';
 
 /**
  * GET /api/sites
@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
         const useCase = new GetUserJiraSitesUseCase(accessRepo);
 
         // Execute use case to get user's site accesses
-        const userSiteAccesses = await useCase.execute({ userId });
+        const [userSiteAccesses, accessError] = await SafeExecute.withSync(async () => 
+            useCase.execute({ userId })
+        ).execute();
+
+        if (accessError || !userSiteAccesses) return NextResponse.json({ error: accessError?.message || 'Failed to fetch site access' }, { status: 500 });
 
         if (userSiteAccesses.length === 0) {
             Logger.info('No Jira sites found for user', { userId });
@@ -49,19 +53,12 @@ export async function GET(request: NextRequest) {
         }> = [];
 
         for (const access of userSiteAccesses) {
-            try {
-                const tenant = await tenantRepo.findByClientKey(access.clientKey);
+            const [tenant, tenantError] = await SafeExecute.withSync(async () =>
+                tenantRepo.findByClientKey(access.clientKey)
+            ).execute();
 
-                // Always add the site from access record, enriched by tenant info if available
-                sites.push({
-                    clientKey: access.clientKey,
-                    baseUrl: access.baseUrl || (tenant?.baseUrl ?? ''),
-                    productType: tenant?.productType ?? 'jira',
-                    description: tenant?.description ?? 'Jira Site',
-                    key: tenant?.key ?? (access.baseUrl ? new URL(access.baseUrl).hostname.split('.')[0] : 'Jira Site'),
-                });
-            } catch (err: any) {
-                Logger.warn(`Failed to fetch tenant details for ${access.clientKey}: ${err.message}`);
+            if (tenantError) {
+                Logger.warn(`Failed to fetch tenant details for ${access.clientKey}: ${tenantError.message}`);
                 // Fallback: still include the site with basic info from the access record
                 sites.push({
                     clientKey: access.clientKey,
@@ -69,6 +66,15 @@ export async function GET(request: NextRequest) {
                     productType: 'jira',
                     description: 'Jira Site',
                     key: access.baseUrl ? new URL(access.baseUrl).hostname.split('.')[0] : 'Jira Site',
+                });
+            } else {
+                // Always add the site from access record, enriched by tenant info if available
+                sites.push({
+                    clientKey: access.clientKey,
+                    baseUrl: access.baseUrl || (tenant?.baseUrl ?? ''),
+                    productType: tenant?.productType ?? 'jira',
+                    description: tenant?.description ?? 'Jira Site',
+                    key: tenant?.key ?? (access.baseUrl ? new URL(access.baseUrl).hostname.split('.')[0] : 'Jira Site'),
                 });
             }
         }

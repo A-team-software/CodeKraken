@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ListGitProvidersUseCase } from '@oliver/git';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 /**
  * GET /api/providers - List all available providers
@@ -7,7 +8,11 @@ import { ListGitProvidersUseCase } from '@oliver/git';
 export async function GET() {
     try {
         const useCase = new ListGitProvidersUseCase();
-        const providers = await useCase.execute();
+        const [providers, error] = await SafeExecute.withSync(async () =>
+            useCase.execute()
+        ).execute();
+
+        if (error) return NextResponse.json({ error: error.message || 'Failed to fetch providers' }, { status: 500 });
 
         return NextResponse.json({ providers });
     } catch (error) {

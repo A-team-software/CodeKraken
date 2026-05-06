@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GitProviderFactory } from '@oliver/git';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
         const { searchParams } = new URL(request.url);
         const repoId = searchParams.get('repoId');
         const owner = searchParams.get('owner');
@@ -44,7 +47,11 @@ export async function GET(
             permissions: { admin: false, push: false, pull: false },
         };
 
-        const webhooks = await gitProvider.getWebhooks(repo);
+        const [webhooks, webhooksError] = await SafeExecute.withSync(async () => 
+            gitProvider.getWebhooks(repo as any)
+        ).execute();
+
+        if (webhooksError) return NextResponse.json({ error: webhooksError.message || 'Failed to fetch webhooks' }, { status: (webhooksError as any).code === 'AUTH_FAILED' ? 401 : 500 });
 
         return NextResponse.json({ webhooks });
     } catch (error: any) {
@@ -61,14 +68,17 @@ export async function POST(
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
         const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
         if (!token) {
             return NextResponse.json({ error: 'No authorization token provided' }, { status: 401 });
         }
 
-        const body = await request.json();
+        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
+        if (bodyError || !body) return NextResponse.json({ error: bodyError?.message || 'Invalid request body' }, { status: 400 });
         const { repoId, owner, slug, url, events, active, secret, contentType, insecureSsl } = body;
 
         if (!owner || !slug || !url || !events) {
@@ -96,14 +106,18 @@ export async function POST(
             permissions: { admin: false, push: false, pull: false },
         };
 
-        const webhook = await gitProvider.createWebhook(repo, {
-            url,
-            events,
-            active: active ?? true,
-            secret,
-            contentType,
-            insecureSsl,
-        });
+        const [webhook, webhookError] = await SafeExecute.withSync(async () => 
+            gitProvider.createWebhook(repo as any, {
+                url,
+                events,
+                active: active ?? true,
+                secret,
+                contentType,
+                insecureSsl,
+            })
+        ).execute();
+
+        if (webhookError) return NextResponse.json({ error: webhookError.message || 'Failed to create webhook' }, { status: (webhookError as any).code === 'AUTH_FAILED' ? 401 : 500 });
 
         return NextResponse.json({ webhook }, { status: 201 });
     } catch (error: any) {

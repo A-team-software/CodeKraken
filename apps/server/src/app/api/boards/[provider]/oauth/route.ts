@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@oliver/auth';
 import { BoardProviderFactory } from '@oliver/boards';
-import { Logger } from '@oliver/core';
+import { Logger, SafeExecute } from '@oliver/core';
 
 /**
  * GET /api/boards/[provider]/oauth
@@ -12,19 +12,22 @@ export async function GET(
     { params }: { params: Promise<{ provider: string }> }
 ) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
         const { searchParams } = request.nextUrl;
         const returnTo = searchParams.get('returnTo');
         const metadata = returnTo ? JSON.stringify({ returnTo }) : undefined;
 
         // Generate and store state token for CSRF protection using AuthService
-        let state: string;
-        try {
-            state = await AuthService.getInstance().generateState(provider, metadata);
-        } catch (error: any) {
-            Logger.error(`Error generating/storing OAuth state`, error.message);
+        const [state, stateError] = await SafeExecute.withSync(async () => 
+            AuthService.getInstance().generateState(provider, metadata)
+        ).execute();
+
+        if (stateError || !state) {
+            Logger.error(`Error generating/storing OAuth state`, stateError?.message);
             return NextResponse.json(
-                { error: `Database error while initiating OAuth: ${error.message}` },
+                { error: `Database error while initiating OAuth: ${stateError?.message}` },
                 { status: 500 },
             );
         }

@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PersonalAccessTokenService } from "@oliver/auth";
-import { Logger } from "@oliver/core";
+import { Logger, SafeExecute } from "@oliver/core";
 
 export async function GET(request: NextRequest) {
     try {
-        const userId = await getUserIdFromRequest(request);
+        const [userId, userIdError] = await SafeExecute.withSync(async () => getUserIdFromRequest(request)).execute();
+        if (userIdError) return NextResponse.json({ error: userIdError.message || 'Internal Server Error' }, { status: 500 });
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const service = PersonalAccessTokenService.getInstance();
-        const tokens = await service.getTokensByUser(userId);
+        const [tokens, tokensError] = await SafeExecute.withSync(async () => service.getTokensByUser(userId)).execute();
+        if (tokensError || !tokens) return NextResponse.json({ error: tokensError?.message || 'Failed to fetch tokens' }, { status: 500 });
 
         return NextResponse.json({
             tokens: tokens.map(t => ({
@@ -28,19 +30,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const userId = await getUserIdFromRequest(request);
+        const [userId, userIdError] = await SafeExecute.withSync(async () => getUserIdFromRequest(request)).execute();
+        if (userIdError) return NextResponse.json({ error: userIdError.message || 'Internal Server Error' }, { status: 500 });
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const body = await request.json();
+        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
+        if (bodyError || !body) return NextResponse.json({ error: bodyError?.message || 'Invalid request body' }, { status: 400 });
         const { name } = body;
         if (!name) {
             return NextResponse.json({ error: "Missing required field: name" }, { status: 400 });
         }
 
         const service = PersonalAccessTokenService.getInstance();
-        const { rawToken, aggregate } = await service.generateToken(userId, name);
+        const [result, generateError] = await SafeExecute.withSync(async () => service.generateToken(userId, name)).execute();
+        if (generateError || !result) return NextResponse.json({ error: generateError?.message || 'Failed to generate token' }, { status: 500 });
+        const { rawToken, aggregate } = result;
 
         return NextResponse.json({
             success: true,

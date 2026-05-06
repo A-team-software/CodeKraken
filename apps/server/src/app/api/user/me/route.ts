@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Logger } from "@oliver/core";
-import { userModule } from "@oliver/user";
+import { SafeExecute } from "@oliver/core/src/errors";
+import { UserProfileDTO, userModule } from "@oliver/user";
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,24 +13,36 @@ export async function GET(request: NextRequest) {
         // Find any git provider user cookie
         const gitUserCookie = cookies.find(c => c.name.startsWith("git_provider_user_"));
 
-        let userProfile: any = null;
+        let userProfile: UserProfileDTO | null = null;
 
-        try {
-            if (boardUserCookie && boardUserCookie.value) {
-                // For boards, the cookie holds the system user ID
-                userProfile = await userModule.useCases.getUserProfile.execute({ id: boardUserCookie.value });
-            } else if (gitUserCookie && gitUserCookie.value) {
-                // For git providers, the cookie holds the username
-                try {
-                    userProfile = await userModule.useCases.getUserProfile.execute({ username: gitUserCookie.value });
-                } catch {
-                    // Fallback to checking id (some providers might store ID instead)
-                    userProfile = await userModule.useCases.getUserProfile.execute({ id: gitUserCookie.value });
-                }
+        if (boardUserCookie && boardUserCookie.value) {
+            // For boards, the cookie holds the system user ID
+            const [result, error] = await SafeExecute.withSync(async () =>
+                userModule.useCases.getUserProfile.execute({ id: boardUserCookie.value! })
+            ).execute();
+
+            if (error && error.message !== 'User not found') {
+                return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
             }
-        } catch (error: any) {
-            if (error.message !== 'User not found') {
-                throw error;
+            userProfile = result;
+        } else if (gitUserCookie && gitUserCookie.value) {
+            // For git providers, the cookie holds the username
+            const [result, error] = await SafeExecute.withSync(async () =>
+                userModule.useCases.getUserProfile.execute({ username: gitUserCookie.value! })
+            ).execute();
+
+            if (error) {
+                // Fallback to checking id (some providers might store ID instead)
+                const [idResult, idError] = await SafeExecute.withSync(async () =>
+                    userModule.useCases.getUserProfile.execute({ id: gitUserCookie.value! })
+                ).execute();
+
+                if (idError && idError.message !== 'User not found') {
+                    return NextResponse.json({ error: idError.message || 'Internal Server Error' }, { status: 500 });
+                }
+                userProfile = idResult;
+            } else {
+                userProfile = result;
             }
         }
 

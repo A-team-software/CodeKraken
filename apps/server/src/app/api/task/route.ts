@@ -3,99 +3,7 @@ import { ProjectManagerTaskProcessorFactory } from "../services/project-manager-
 import { WebhookInvocation } from "../services/task-processor";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
-import { JobResult } from "@/brain/shared";
-
-function parseResultUpdate(rawResult: unknown): JobResult | null | undefined {
-	if (rawResult === undefined) {
-		return undefined;
-	}
-
-	if (rawResult === null) {
-		return null;
-	}
-
-	if (!rawResult || typeof rawResult !== "object" || Array.isArray(rawResult)) {
-		throw new Error("The result field must be an object or null.");
-	}
-
-	const resultRecord = rawResult as Record<string, unknown>;
-	if (typeof resultRecord.success !== "boolean") {
-		throw new Error("The result field must include a boolean success property.");
-	}
-
-	const parsedResult: JobResult = {
-		success: resultRecord.success
-	};
-
-	if (typeof resultRecord.message === "string") {
-		parsedResult.message = resultRecord.message;
-	}
-
-	if ("data" in resultRecord) {
-		parsedResult.data = resultRecord.data;
-	}
-
-	return parsedResult;
-}
-
-function mergePlanIntoResult(result: JobResult, plan: string): JobResult {
-	const nextData = (result.data && typeof result.data === "object" && !Array.isArray(result.data))
-		? { ...(result.data as Record<string, unknown>), plan }
-		: { plan };
-
-	return {
-		...result,
-		data: nextData
-	};
-}
-
-function getUnauthorizedResponse(req: NextRequest): NextResponse | null {
-	const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim() || process.env.API_KEY?.trim();
-	const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
-
-	if (allowUnauthenticated) {
-		return null;
-	}
-
-	if (!configuredToken) {
-		return NextResponse.json(
-			{
-				success: false,
-				error: "Unauthorized"
-			},
-			{ status: 401 }
-		);
-	}
-
-	const authHeader = req.headers.get("authorization");
-	const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
-	const basicToken = authHeader?.startsWith("Basic ") ? authHeader.slice("Basic ".length).trim() : "";
-
-	if (bearerToken === configuredToken) {
-		return null;
-	}
-
-	if (basicToken) {
-		try {
-			const decoded = Buffer.from(basicToken, "base64").toString("utf8");
-			const separatorIndex = decoded.indexOf(":");
-			const password = separatorIndex >= 0 ? decoded.slice(separatorIndex + 1) : "";
-			if (password === configuredToken) {
-				return null;
-			}
-		} catch {
-			// Ignore decode errors and fall through to unauthorized.
-		}
-	}
-
-	return NextResponse.json(
-		{
-			success: false,
-			error: "Unauthorized"
-		},
-		{ status: 401 }
-	);
-}
+import { SafeExecute } from "@oliver/core/src/errors";
 
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
@@ -107,7 +15,7 @@ function buildDefaultTaskConfig(): RunnerTaskConfig {
 	};
 }
 
-function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
+function resolveTaskConfig(body: Record<string, unknown>): [RunnerTaskConfig | null, string | null] {
 	const defaultTaskConfig = buildDefaultTaskConfig();
 
 	const repoUrl = typeof body.repoUrl === "string" && body.repoUrl.trim().length > 0
@@ -118,16 +26,16 @@ function resolveTaskConfig(body: Record<string, unknown>): RunnerTaskConfig {
 		: defaultTaskConfig.mode;
 
 	if (!repoUrl) {
-		throw new Error("Missing repoUrl. Include repoUrl in request body or set OPENCODE_TASK_REPO_URL.");
+		return [null, "Missing repoUrl. Include repoUrl in request body or set OPENCODE_TASK_REPO_URL."];
 	}
 
-	return {
+	return [{
 		...defaultTaskConfig,
 		repoUrl,
 		mode,
 		branch: typeof body.branch === "string" && body.branch.trim().length > 0 ? body.branch : defaultTaskConfig.branch,
 		commitHash: typeof body.commitHash === "string" && body.commitHash.trim().length > 0 ? body.commitHash : defaultTaskConfig.commitHash
-	};
+	}, null];
 }
 
 export async function POST(req: NextRequest) {
@@ -148,6 +56,8 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
+		if (bodyError) return NextResponse.json({ success: false, error: bodyError.message || 'Invalid request body' }, { status: 400 });
 		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
 
 		const invocation: WebhookInvocation = {
@@ -156,18 +66,12 @@ export async function POST(req: NextRequest) {
 			query: Object.fromEntries(req.nextUrl.searchParams.entries())
 		};
 
-		const taskConfig = resolveTaskConfig(bodyRecord);
+		const [taskConfig, taskConfigError] = resolveTaskConfig(bodyRecord);
+		if (taskConfigError || !taskConfig) return NextResponse.json({ success: false, error: taskConfigError || 'Invalid task config' }, { status: 400 });
 		const processor = new ProjectManagerTaskProcessorFactory().createProcessor(invocation, taskConfig);
-		const [result, processError] = await SafeExecute.withSync(() => processor.processTask(invocation)).execute();
-		if (processError || !result) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: processError?.message ?? "Task processing failed."
-				},
-				{ status: 400 }
-			);
-		}
+		const [result, processError] = await SafeExecute.withSync(async () => processor.processTask(invocation)).execute();
+
+		if (processError || !result) return NextResponse.json({ success: false, error: processError?.message || 'Task processing failed' }, { status: 500 });
 
 		const payload = {
 			success: result.success,

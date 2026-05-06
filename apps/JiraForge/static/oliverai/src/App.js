@@ -61,10 +61,10 @@ function App() {
     setAuth((a) => ({ ...a, loading: true }));
     try {
       console.log('Invoking getGithubStatus...');
-      const { connected } = await invoke('getGithubStatus');
-      console.log('getGithubStatus:', connected);
+      const data = await invoke('getGithubStatus');
+      console.log('GitHub Status:', data);
       setAuth({
-        connected: !!connected,
+        connected: !!data.connected,
         loading: false,
         username: 'GitHub User' // Placeholder since status only returns true/false now
       });
@@ -146,10 +146,10 @@ function App() {
           perPage: 50,
         });
         if (!mounted) return;
-        const fetchedRepos = Array.isArray(res?.repositories) 
-          ? res.repositories 
-          : Array.isArray(res) 
-            ? res 
+        const fetchedRepos = Array.isArray(res?.repositories)
+          ? res.repositories
+          : Array.isArray(res)
+            ? res
             : [];
         setRepos(fetchedRepos);
         sessionStorage.setItem(cacheKey, JSON.stringify(fetchedRepos));
@@ -190,10 +190,10 @@ function App() {
       try {
         const status = await invoke('getGithubStatus');
         if (status.connected) {
-          setAuth({ 
-            connected: true, 
-            loading: false, 
-            username: status.username || 'GitHub User' 
+          setAuth({
+            connected: true,
+            loading: false,
+            username: status.username || 'GitHub User'
           });
           setConnecting(false);
           clearInterval(interval);

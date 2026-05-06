@@ -4,6 +4,7 @@ import { GIT_PROVIDER_REGISTRY } from '@oliver/git';
 import { GitHubService } from '@oliver/git';
 import { BitbucketService } from '@oliver/git';
 import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from '@oliver/core';
+import { SafeExecute } from '@oliver/core/src/errors';
 
 /**
  * GET /api/git/[provider]/oauth
@@ -11,7 +12,9 @@ import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from '@oliver/core';
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
     try {
-        const { provider } = await params;
+        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
+        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
+        const { provider } = paramsResult;
 
         // Verify provider supports OAuth
         const providerMeta = GIT_PROVIDER_REGISTRY[provider];
@@ -45,7 +48,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             metadataObj.returnTo = returnTo;
         }
         const finalMetadata = Object.keys(metadataObj).length > 0 ? JSON.stringify(metadataObj) : undefined;
-        const state = await AuthService.getInstance().generateState(provider, finalMetadata);
+        const [state, stateError] = await SafeExecute.withSync(async () => 
+            AuthService.getInstance().generateState(provider, finalMetadata)
+        ).execute();
+
+        if (stateError || !state) return NextResponse.json({ error: stateError?.message || 'Failed to generate state' }, { status: 500 });
 
         // Get login URL from appropriate provider service
         let loginUrl: string;

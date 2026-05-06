@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { SafeExecute } from '@oliver/core/src/errors';
 import { cookies } from 'next/headers';
 import { AuthService } from '@oliver/auth';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
@@ -11,7 +12,8 @@ import { ProviderType } from '@oliver/core';
  */
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
+        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
+        if (bodyError || !body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
         const { provider, providerType } = body;
 
         if (!provider || !providerType) {
@@ -22,11 +24,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Use the AuthService facade to refresh if needed
-        const result = await AuthService.getInstance().getValidTokenAndUserFromRequest(cookies, request, provider, providerType as ProviderType);
+        const [result, refreshError] = await SafeExecute.withSync(async () => 
+            AuthService.getInstance().getValidTokenAndUserFromRequest(cookies, request, provider, providerType as ProviderType)
+        ).execute();
 
-        if (!result) {
+        if (refreshError || !result) {
             return NextResponse.json(
-                { error: 'No valid session found or refresh failed' },
+                { error: refreshError?.message || 'No valid session found or refresh failed' },
                 { status: 401 }
             );
         }
@@ -42,7 +46,11 @@ export async function POST(request: NextRequest) {
 
         // Fetch the user's token from DB to get the latest one
         const tokenRepo = new MongoOAuthTokenRepository();
-        const tokenData = await tokenRepo.findByUserAndProvider(result.userId, provider, providerType as ProviderType);
+        const [tokenData, tokenDataError] = await SafeExecute.withSync(async () => 
+            tokenRepo.findByUserAndProvider(result.userId, provider, providerType as ProviderType)
+        ).execute();
+
+        if (tokenDataError) return NextResponse.json({ error: tokenDataError.message || 'Failed to fetch token after refresh' }, { status: 500 });
 
         if (!tokenData) {
             return NextResponse.json({ error: 'Token not found after refresh' }, { status: 500 });
@@ -54,7 +62,9 @@ export async function POST(request: NextRequest) {
         });
 
         // Update cookie with latest access token
-        const { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE } = await import('@oliver/core');
+        const [core, importCoreError] = await SafeExecute.withSync(async () => import('@oliver/core')).execute();
+        if (importCoreError || !core) return NextResponse.json({ error: importCoreError?.message || 'Failed to import core module' }, { status: 500 });
+        const { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE } = core;
 
         let cookieName = '';
         if (providerType === 'git') {

@@ -7,13 +7,14 @@ import { PersonalAccessTokenService } from "@oliver/auth";
 import { decrypt, encrypt } from "@oliver/shared";
 import { BitbucketService, GitHubService } from "@oliver/git";
 import { createSessionId, cloneRepo, truncate, runSolve, analyzeDiff } from '@oliver/code-gen';
+import { SafeExecute } from "@oliver/core/src/errors";
 
 // Initialize event handlers
 registerHandlers();
 
 const app = new Elysia({ prefix: "/api" })
     .derive(async ({ headers }) => {
-        try {
+        const [result, deriveError] = await SafeExecute.withSync(async () => {
             const authHeader = headers['authorization'];
             if (authHeader && authHeader.startsWith('Bearer ')) {
                 const token = authHeader.substring(7);
@@ -25,43 +26,43 @@ const app = new Elysia({ prefix: "/api" })
                     const forgeClientKey = headers['x-forge-client-key'];
 
                     if (forgeAccountId && forgeClientKey) {
-                        console.log(`Elysia Auth: Forge check success. Account: ${forgeAccountId}, ClientKey: ${forgeClientKey}`);
-                        const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
+                        const [db, importDbError] = await SafeExecute.withSync(async () => import('@oliver/db')).execute();
+                        if (importDbError || !db) throw importDbError || new Error('Failed to import DB module');
+                        const { MongoUserJiraSiteAccessRepository } = db;
                         const accessRepo = new MongoUserJiraSiteAccessRepository();
 
                         // Map Forge context to userId
-                        const access = await accessRepo.findByClientKeyAndAccountId(forgeClientKey as string, forgeAccountId as string);
+                        const [access, accessError] = await SafeExecute.withSync(async () => 
+                            accessRepo.findByClientKeyAndAccountId(forgeClientKey as string, forgeAccountId as string)
+                        ).execute();
+                        if (accessError) throw accessError;
+
                         if (access) {
-                            console.log(`Elysia Auth: Forge mapped to userId ${access.userId}`);
                             return { userId: access.userId };
                         }
-                        console.warn(`Elysia Auth: Forge mapping failed - no access record found for clientKey: ${forgeClientKey}, accountId: ${forgeAccountId}`);
-                    } else {
-                        console.warn(`Elysia Auth: Forge token matched but missing headers. x-forge-account-id: ${!!forgeAccountId}, x-forge-client-key: ${!!forgeClientKey}`);
                     }
-                } else if (API_SECRET) {
-                    console.warn(`Elysia Auth: Forge token mismatch. Received: ${token.substring(0, 4)}... Expected: ${API_SECRET.substring(0, 4)}...`);
-                } else {
-                    console.warn('Elysia Auth: API_SECRET not set on server');
                 }
 
                 // Fallback to PAT validation
                 const tokenService = PersonalAccessTokenService.getInstance();
-                const tokenAggregate = await tokenService.validateToken(token);
+                const [tokenAggregate, tokenError] = await SafeExecute.withSync(async () => 
+                    tokenService.validateToken(token)
+                ).execute();
+                if (tokenError) throw tokenError;
+
                 if (tokenAggregate) {
-                    console.log(`Elysia Auth: Validated PAT for user ${tokenAggregate.userId}`);
                     return {
                         userId: tokenAggregate.userId
                     };
                 }
-                console.log('Elysia Auth: Token validation failed (not found in DB)');
-            } else {
-                console.log('Elysia Auth: No valid Bearer token found in headers');
             }
-        } catch (error: any) {
-            console.error('Elysia Auth Error during derivation:', error);
+            return { userId: null };
+        }).execute();
+
+        if (deriveError) {
+            console.error('Elysia Auth Error during derivation:', deriveError);
         }
-        return { userId: null };
+        return result || { userId: null };
     })
 
     .post(
@@ -91,9 +92,12 @@ const app = new Elysia({ prefix: "/api" })
 
             // If we have a userId from PAT, automatically fetch the provider token
             if (!githubToken && userId) {
-                const { MongoUserRepository } = await import('@oliver/user');
+                const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
+                if (importUserError || !userModule) throw importUserError || new Error('Failed to import user module');
+                const { MongoUserRepository } = userModule;
                 const userRepo = new MongoUserRepository();
-                const user = await userRepo.findById(userId);
+                const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
+                if (userError) throw userError;
                 const account = user?.accounts.find(a => a.provider.toLowerCase() === provider.toLowerCase());
                 if (account?.accessToken) {
                     githubToken = account.accessToken;
@@ -101,10 +105,13 @@ const app = new Elysia({ prefix: "/api" })
             }
 
             const sessionId = createSessionId();
-            const workDir = await fs.mkdtemp(path.join(os.tmpdir(), `${sessionId}-`));
+            const [workDir, tempDirError] = await SafeExecute.withSync(async () => fs.mkdtemp(path.join(os.tmpdir(), `${sessionId}-`))).execute();
+            if (tempDirError || !workDir) throw tempDirError || new Error('Failed to create temp directory');
 
             try {
-                const clone = await cloneRepo(repoUrl, githubToken);
+                const [clone, cloneError] = await SafeExecute.withSync(async () => cloneRepo(repoUrl, githubToken)).execute();
+                if (cloneError || !clone) throw cloneError || new Error('Clone failed');
+
                 if (clone.exitCode !== 0) {
                     ctx.set.status = 500;
                     return {
@@ -115,8 +122,12 @@ const app = new Elysia({ prefix: "/api" })
                     };
                 }
 
-                const solve = await runSolve(task, apiKey);
-                const { changedFiles, deletedFiles, diff } = await analyzeDiff(workDir);
+                const [solve, solveError] = await SafeExecute.withSync(async () => runSolve(task, apiKey)).execute();
+                if (solveError || !solve) throw solveError || new Error('Solve failed');
+
+                const [diffResult, diffError] = await SafeExecute.withSync(async () => analyzeDiff(workDir)).execute();
+                if (diffError || !diffResult) throw diffError || new Error('Diff analysis failed');
+                const { changedFiles, deletedFiles, diff } = diffResult;
 
                 return {
                     success: solve.exitCode === 0,
@@ -129,7 +140,7 @@ const app = new Elysia({ prefix: "/api" })
                     diff: truncate(diff, 20_000)
                 };
             } finally {
-                await fs.rm(workDir, { recursive: true, force: true });
+                await SafeExecute.withSync(async () => fs.rm(workDir, { recursive: true, force: true })).execute();
             }
         },
         {
@@ -162,9 +173,18 @@ const app = new Elysia({ prefix: "/api" })
 
         const provider = (query?.provider || 'github').toString().toLowerCase();
 
-        const { MongoUserRepository } = await import('@oliver/user');
+        const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
+        if (importUserError || !userModule) {
+            set.status = 500;
+            return { error: 'Internal server error' };
+        }
+        const { MongoUserRepository } = userModule;
         const userRepo = new MongoUserRepository();
-        const user = await userRepo.findById(userId);
+        const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
+        if (userError) {
+            set.status = 500;
+            return { error: 'Failed to fetch user' };
+        }
 
         if (!user) {
             set.status = 404;
@@ -177,12 +197,24 @@ const app = new Elysia({ prefix: "/api" })
             return { error: `No ${provider} connection found. Please connect ${provider} in the SCA dashboard.` };
         }
 
-        const { GetRepositoriesUseCase } = await import('@oliver/git');
+        const [gitModule, importGitError] = await SafeExecute.withSync(async () => import('@oliver/git')).execute();
+        if (importGitError || !gitModule) {
+            set.status = 500;
+            return { error: 'Internal server error' };
+        }
+        const { GetRepositoriesUseCase } = gitModule;
         const useCase = new GetRepositoriesUseCase();
-        const repos = await useCase.execute({
-            providerType: provider,
-            token: gitAccount.accessToken
-        });
+        const [repos, reposError] = await SafeExecute.withSync(async () => 
+            useCase.execute({
+                providerType: provider,
+                token: gitAccount.accessToken!
+            })
+        ).execute();
+
+        if (reposError) {
+            set.status = 500;
+            return { error: 'Failed to fetch repositories' };
+        }
 
         return { repositories: repos };
     })
@@ -196,12 +228,17 @@ const app = new Elysia({ prefix: "/api" })
 
         const provider = (query?.provider || 'github').toString().toUpperCase();
         console.log(`GET /forge/identity/status: Checking provider ${provider}`);
-        const { MongoUserRepository } = await import('@oliver/user');
+        const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
+        if (importUserError || !userModule) {
+            set.status = 500;
+            return { connected: false, error: 'Internal server error' };
+        }
+        const { MongoUserRepository } = userModule;
         const userRepo = new MongoUserRepository();
-        const user = await userRepo.findById(userId);
+        const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
 
-        if (!user) {
-            console.log(`GET /forge/identity/status: User ${userId} not found in DB`);
+        if (userError || !user) {
+            console.log(`GET /forge/identity/status: User ${userId} not found in DB or error`);
             return { connected: false };
         }
 
@@ -224,11 +261,15 @@ const app = new Elysia({ prefix: "/api" })
         }
 
         try {
-            const { MongoOAuthTokenRepository } = await import('@oliver/auth');
+            const [authModule, importAuthError] = await SafeExecute.withSync(async () => import('@oliver/auth')).execute();
+            if (importAuthError || !authModule) throw importAuthError || new Error('Failed to import auth module');
+            const { MongoOAuthTokenRepository } = authModule;
             const tokenRepo = new MongoOAuthTokenRepository();
 
-            const tokens = await tokenRepo.findByUser(userId);
-            const githubToken = tokens.find(t =>
+            const [tokens, tokensError] = await SafeExecute.withSync(async () => tokenRepo.findByUser(userId)).execute();
+            if (tokensError) throw tokensError;
+            
+            const githubToken = tokens?.find(t =>
                 t.provider === 'github' &&
                 t.providerType === 'git' &&
                 (!t.expiresAt || t.expiresAt.getTime() > Date.now())
@@ -255,11 +296,13 @@ const app = new Elysia({ prefix: "/api" })
     .get('/user/me', async ({ userId }) => {
         if (!userId) return { authenticated: false };
 
-        const { MongoUserRepository } = await import('@oliver/user');
+        const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
+        if (importUserError || !userModule) return { authenticated: false };
+        const { MongoUserRepository } = userModule;
         const userRepo = new MongoUserRepository();
-        const user = await userRepo.findById(userId);
+        const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
 
-        if (!user) return { authenticated: false };
+        if (userError || !user) return { authenticated: false };
 
         return {
             authenticated: true,
@@ -282,9 +325,19 @@ const app = new Elysia({ prefix: "/api" })
             return { ok: false, error: 'Missing accountId or cloudId' };
         }
 
-        const { MongoForgeSessionRepository } = await import('@oliver/auth');
+        const [authModule, importAuthError] = await SafeExecute.withSync(async () => import('@oliver/auth')).execute();
+        if (importAuthError || !authModule) {
+            set.status = 500;
+            return { ok: false, error: 'Internal server error' };
+        }
+        const { MongoForgeSessionRepository } = authModule;
         const sessionRepo = new MongoForgeSessionRepository();
-        const forgeToken = await sessionRepo.create(accountId, cloudId, params.provider);
+        const [forgeToken, sessionError] = await SafeExecute.withSync(async () => sessionRepo.create(accountId as string, cloudId as string, params.provider)).execute();
+
+        if (sessionError || !forgeToken) {
+            set.status = 500;
+            return { ok: false, error: 'Failed to create forge session' };
+        }
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sca-pi.vercel.app';
         const connectUrl = `${baseUrl}/connect/forge?forgeToken=${encodeURIComponent(forgeToken)}&provider=${encodeURIComponent(params.provider)}`;
@@ -307,7 +360,11 @@ const app = new Elysia({ prefix: "/api" })
             timestamp: Date.now(),
             provider
         });
-        const state = await encrypt(stateData);
+        const [state, encryptError] = await SafeExecute.withSync(async () => encrypt(stateData)).execute();
+        if (encryptError || !state) {
+            set.status = 500;
+            return { error: 'Failed to encrypt state' };
+        }
 
         let authUrl: string;
         if (provider === 'github') {
@@ -333,7 +390,8 @@ const app = new Elysia({ prefix: "/api" })
 
         try {
             // 1. Verify state
-            const decryptedState = await decrypt(state as string);
+            const [decryptedState, decryptError] = await SafeExecute.withSync(async () => decrypt(state as string)).execute();
+            if (decryptError || !decryptedState) throw decryptError || new Error('Failed to decrypt state');
             const { accountId, timestamp } = JSON.parse(decryptedState);
 
             // Check expiration (e.g., 10 minutes)
@@ -343,7 +401,7 @@ const app = new Elysia({ prefix: "/api" })
             }
 
             // 2. Exchange code for token and get provider account ID
-            let tokenData;
+            let tokenDataRef: any;
             let providerAccountId: string;
             let gitUsername: string = '';
             let avatarUrl: string | undefined;
@@ -351,32 +409,45 @@ const app = new Elysia({ prefix: "/api" })
             let gitEmail: string | undefined;
 
             if (provider === 'github') {
-                tokenData = await GitHubService.exchangeCodeForToken(code as string);
+                const [tokenData, exchangeError] = await SafeExecute.withSync(async () => GitHubService.exchangeCodeForToken(code as string)).execute();
+                if (exchangeError || !tokenData) throw exchangeError || new Error('Token exchange failed');
                 const ghService = new GitHubService(tokenData.access_token);
-                providerAccountId = await ghService.getProviderAccountId();
-                const ghUser = await ghService.getUser();
+                const [pAccountId, pAccountError] = await SafeExecute.withSync(async () => ghService.getProviderAccountId()).execute();
+                if (pAccountError || !pAccountId) throw pAccountError || new Error('Failed to get provider account ID');
+                providerAccountId = pAccountId;
+                const [ghUser, userError] = await SafeExecute.withSync(async () => ghService.getUser()).execute();
+                if (userError || !ghUser) throw userError || new Error('Failed to get user');
                 gitUsername = ghUser.username ?? '';
                 avatarUrl = ghUser.avatarUrl;
                 profileUrl = ghUser.url;
                 gitEmail = ghUser.email || undefined;
+                tokenDataRef = tokenData;
             } else if (provider === 'bitbucket') {
-                tokenData = await BitbucketService.exchangeCodeForToken(code as string);
+                const [tokenData, exchangeError] = await SafeExecute.withSync(async () => BitbucketService.exchangeCodeForToken(code as string)).execute();
+                if (exchangeError || !tokenData) throw exchangeError || new Error('Token exchange failed');
                 const bbService = new BitbucketService(tokenData.access_token);
-                providerAccountId = await bbService.getProviderAccountId();
-                const bbUser = await bbService.getUser();
+                const [pAccountId, pAccountError] = await SafeExecute.withSync(async () => bbService.getProviderAccountId()).execute();
+                if (pAccountError || !pAccountId) throw pAccountError || new Error('Failed to get provider account ID');
+                providerAccountId = pAccountId;
+                const [bbUser, userError] = await SafeExecute.withSync(async () => bbService.getUser()).execute();
+                if (userError || !bbUser) throw userError || new Error('Failed to get user');
                 gitUsername = bbUser.username ?? '';
                 avatarUrl = bbUser.avatarUrl;
                 profileUrl = bbUser.url;
                 gitEmail = bbUser.email || undefined;
+                tokenDataRef = tokenData;
             } else {
                 set.status = 400;
                 return { error: `Unsupported provider: ${provider}` };
             }
 
             // 3. Associate with Atlassian user
-            const { MongoUserJiraSiteAccessRepository } = await import('@oliver/db');
+            const [db, importDbError] = await SafeExecute.withSync(async () => import('@oliver/db')).execute();
+            if (importDbError || !db) throw importDbError || new Error('Failed to import DB module');
+            const { MongoUserJiraSiteAccessRepository } = db;
             const accessRepo = new MongoUserJiraSiteAccessRepository();
-            const access = await accessRepo.findByAtlassianAccountId(accountId);
+            const [access, accessError] = await SafeExecute.withSync(async () => accessRepo.findByAtlassianAccountId(accountId)).execute();
+            if (accessError) throw accessError;
 
             if (!access) {
                 return `
@@ -391,23 +462,27 @@ const app = new Elysia({ prefix: "/api" })
             }
 
             // 4. Save token to User record
-            const { MongoUserRepository } = await import('@oliver/user');
+            const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
+            if (importUserError || !userModule) throw importUserError || new Error('Failed to import user module');
+            const { MongoUserRepository } = userModule;
             const userRepo = new MongoUserRepository();
-            const user = await userRepo.findById(access.userId);
+            const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(access.userId)).execute();
+            if (userError) throw userError;
 
             if (user) {
                 user.linkOrUpdateAccount({
                     provider: provider.toUpperCase() as any,
                     providerAccountId,
                     username: gitUsername,
-                    accessToken: tokenData.access_token,
-                    refreshToken: tokenData.refresh_token,
-                    expiresAt: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000) : undefined,
+                    accessToken: tokenDataRef.access_token,
+                    refreshToken: tokenDataRef.refresh_token,
+                    expiresAt: tokenDataRef.expires_in ? new Date(Date.now() + tokenDataRef.expires_in * 1000) : undefined,
                     avatarUrl,
                     profileUrl,
                     email: gitEmail,
                 });
-                await userRepo.save(user);
+                const [_, saveError] = await SafeExecute.withSync(async () => userRepo.save(user!)).execute();
+                if (saveError) throw saveError;
             }
 
             // 5. Success UI
@@ -437,9 +512,11 @@ const app = new Elysia({ prefix: "/api" })
         const { state, accountId, cloudId, provider } = query;
 
         if (state) {
-            const { MongoOAuthStateRepository } = await import('@oliver/auth');
+            const [authModule, importAuthError] = await SafeExecute.withSync(async () => import('@oliver/auth')).execute();
+            if (importAuthError || !authModule) return { pending: false, error: 'Internal server error' };
+            const { MongoOAuthStateRepository } = authModule;
             const stateRepo = new MongoOAuthStateRepository();
-            const stateDoc = await stateRepo.findByState(state);
+            const [stateDoc, stateError] = await SafeExecute.withSync(async () => stateRepo.findByState(state)).execute();
             return { pending: !!stateDoc };
         }
 
@@ -454,19 +531,25 @@ const app = new Elysia({ prefix: "/api" })
         }
 
         try {
-            const { AtlassianConnectService } = await import('@oliver/application');
+            const [appModule, importAppError] = await SafeExecute.withSync(async () => import('@oliver/application')).execute();
+            if (importAppError || !appModule) throw importAppError || new Error('Failed to import application module');
+            const { AtlassianConnectService } = appModule;
             const atlassianService = new AtlassianConnectService();
 
             const siteUrl = `https://${clientKey}`;
 
-            await atlassianService.storeUserSiteAccess(
-                userId,
-                siteUrl,
-                'forge:connected',
-                undefined,
-                accountId,
-                clientKey
-            );
+            const [_, storeError] = await SafeExecute.withSync(async () => 
+                atlassianService.storeUserSiteAccess(
+                    userId,
+                    siteUrl,
+                    'forge:connected',
+                    undefined,
+                    accountId,
+                    clientKey
+                )
+            ).execute();
+
+            if (storeError) throw storeError;
 
             return { success: true };
         } catch (error: any) {
