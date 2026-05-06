@@ -1,18 +1,22 @@
 import { JobDocument, JobPersistenceLayer, JobStep } from "./job-persistence-layer";
+import { PlanProcessor } from "./plan-processor";
 import { JobConfig, JobResult } from "../shared";
 import { MongoConnectionManager } from "@oliver/db";
 
 export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 	private static readonly collectionName = "runner_jobs";
 	private static ensureIndexPromise: Promise<void> | null = null;
+	private readonly planProcessor = new PlanProcessor();
 
-	async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult | null; plan?: string; prId?: string; isIncremental?: boolean }): Promise<void> {
+	async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult | null; plan?: string; prId?: string; todoItemId?: string; isIncremental?: boolean }): Promise<void> {
 		const collection = await this.getCollection();
 		const now = new Date();
-		const existing = await collection.findOne({ _id: jobId }, { projection: { isIncremental: 1 } }) as { isIncremental?: boolean } | null;
+		const existing = await collection.findOne({ _id: jobId }) as Record<string, unknown> | null;
 		const isIncremental = data.isIncremental !== undefined
 			? data.isIncremental
 			: existing?.isIncremental === true;
+		const existingSteps = Array.isArray(existing?.steps) ? (existing?.steps as JobStep[]) : [];
+		const effectiveTodoItemId = data.todoItemId ?? (data.plan !== undefined && !data.prId ? "plan" : undefined);
 
 		const setFields: Record<string, unknown> = {
 			updatedAt: now
@@ -28,6 +32,8 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 
 		if (data.plan !== undefined) {
 			setFields.plan = data.plan;
+		} else if (typeof existing?.plan === "string" && effectiveTodoItemId && effectiveTodoItemId !== "plan" && data.result?.success === true) {
+			setFields.plan = this.planProcessor.markTodoAsCompleted(existing.plan, effectiveTodoItemId);
 		}
 
 		if (data.result !== undefined) {
@@ -44,6 +50,7 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 
 		if (data.result && typeof data.result === "object") {
 			const step: JobStep = {
+				...(effectiveTodoItemId ? { todoItemId: effectiveTodoItemId } : {}),
 				result: data.result,
 				...(data.prId ? { prId: data.prId } : {}),
 				createdAt: now,
@@ -51,7 +58,24 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 			};
 
 			if (isIncremental) {
-				update.$push = { steps: step };
+				if (effectiveTodoItemId) {
+					const existingIndex = existingSteps.findIndex(existingStep => existingStep.todoItemId === effectiveTodoItemId);
+					if (existingIndex >= 0) {
+						const existingStep = existingSteps[existingIndex];
+						const nextSteps = [...existingSteps];
+						nextSteps[existingIndex] = {
+							...existingStep,
+							result: data.result,
+							...(data.prId ? { prId: data.prId } : {}),
+							updatedAt: now
+						};
+						setFields.steps = nextSteps;
+					} else {
+						setFields.steps = [...existingSteps, step];
+					}
+				} else {
+					setFields.steps = [...existingSteps, step];
+				}
 			} else {
 				setFields.steps = [step];
 			}

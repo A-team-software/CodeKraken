@@ -140,6 +140,19 @@ function parseOptionalJobId(value: unknown): string | undefined {
 	return jobId.length > 0 ? jobId : undefined;
 }
 
+function parseOptionalTodoItemId(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (typeof value !== "string") {
+		throw new Error("todoItemId field must be a string when provided.");
+	}
+
+	const todoItemId = value.trim();
+	return todoItemId.length > 0 ? todoItemId : undefined;
+}
+
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
 		repoUrl: process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "",
@@ -260,6 +273,7 @@ export async function PATCH(req: NextRequest) {
 			const plan = parseOptionalPlan(bodyRecord.plan);
 			const prId = parseOptionalPrId(bodyRecord.prId);
 			const payloadJobId = parseOptionalJobId(bodyRecord.jobId);
+			const rawTodoItemId = parseOptionalTodoItemId(bodyRecord.todoItemId);
 			let result = parseResultUpdate(bodyRecord.result);
 
 			if (payloadJobId && payloadJobId !== jobId) {
@@ -280,16 +294,20 @@ export async function PATCH(req: NextRequest) {
 					message: "Job metadata updated.",
 					data: {
 						...(plan ? { plan } : {}),
-						...(prId ? { prId } : {})
+						...(prId ? { prId } : {}),
+						...((rawTodoItemId ?? (plan && !prId ? "plan" : undefined)) ? { todoItemId: rawTodoItemId ?? "plan" } : {})
 					}
 				};
 			} else if (plan !== undefined && result) {
 				result = mergePlanIntoResult(result, plan);
 			}
 
+			const todoItemId = rawTodoItemId ?? (plan && !prId ? "plan" : undefined);
+
 			return {
 				plan,
 				prId,
+				todoItemId,
 				payloadJobId,
 				result
 			};
@@ -304,7 +322,8 @@ export async function PATCH(req: NextRequest) {
 			await persistenceLayer.saveJob(jobId, {
 				result: parsed.result,
 				plan: parsed.plan,
-				prId: parsed.prId
+				prId: parsed.prId,
+				todoItemId: parsed.todoItemId
 			});
 		}).execute();
 

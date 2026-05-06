@@ -263,6 +263,7 @@ build_json_for_job_update() {
 		const prId = process.argv[3] || "";
 		const plan = process.argv[4] || "";
 		const jobId = process.argv[5] || "";
+		const todoItemId = process.argv[6] || "";
 
 		const payload = {
 			result: {
@@ -280,8 +281,12 @@ build_json_for_job_update() {
 			payload.plan = plan;
 		}
 
+		if (todoItemId) {
+			payload.todoItemId = todoItemId;
+		}
+
 		process.stdout.write(JSON.stringify(payload));
-	' -- "$1" "$2" "$3" "$4" "$5"
+	' -- "$1" "$2" "$3" "$4" "$5" "$6"
 }
 
 find_latest_plan_file() {
@@ -355,8 +360,14 @@ post_job_update_to_api_server() {
 		plan_content="$(cat "$plan_file")"
 	fi
 
+	local todo_item_id
+	todo_item_id="$(first_non_empty TODO_ITEM_ID TASK_TODO_ITEM_ID || true)"
+	if [[ -z "$todo_item_id" && -n "$plan_content" ]]; then
+		todo_item_id="plan"
+	fi
+
 	local payload endpoint response http_code body
-	payload="$(build_json_for_job_update "$execution_success" "$execution_message" "$pr_id" "$plan_content" "$job_id")"
+	payload="$(build_json_for_job_update "$execution_success" "$execution_message" "$pr_id" "$plan_content" "$job_id" "$todo_item_id")"
 	endpoint="${api_server_url%/}/task?jobId=$(url_encode "$job_id")"
 
 	if [[ -n "$plan_file" ]]; then

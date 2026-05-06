@@ -2,6 +2,7 @@ import { ObjectId } from "@oliver/db";
 import { JobConfig, JobResult } from "../shared";
 
 export interface JobStep {
+    todoItemId?: string;
     result: JobResult<any>;
     prId?: string;
     createdAt: Date;
@@ -24,6 +25,7 @@ export interface JobPersistenceLayer {
         result?: JobResult<any> | null;
         plan?: string;
         prId?: string;
+        todoItemId?: string;
         isIncremental?: boolean;
     }): Promise<void>;
     getJob(jobId: string): Promise<JobDocument | null>;

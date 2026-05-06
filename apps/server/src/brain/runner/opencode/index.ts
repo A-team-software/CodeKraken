@@ -7,8 +7,11 @@ import { MongoJobPersistenceLayer } from "../mongo-job-persistence-layer";
 import { ConfigPersistenceLayer } from "../config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "../mongo-config-persistence-layer";
 import { randomUUID } from "node:crypto";
+import { PlanProcessor } from "../plan-processor";
 
 export class OpenCodeRunner implements Runner {
+	private readonly planProcessor = new PlanProcessor();
+
   constructor(
     private readonly infrastructure: Infrastructure = new LocalhostInfrastructure(),
     private readonly jobPersistenceLayer: JobPersistenceLayer = new MongoJobPersistenceLayer(),
@@ -18,9 +21,10 @@ export class OpenCodeRunner implements Runner {
   async start(config: JobConfig): Promise<JobResult> {
     const { config: effectiveConfig, isIncremental } = await this.withTenantConfig(config);
     const jobId = this.resolveJobId(config);
-    await this.trySaveJob(jobId, { config: effectiveConfig, result: null, isIncremental });
+    const todoItemId = effectiveConfig.vars?.todoItemId?.trim();
+    await this.trySaveJob(jobId, { config: effectiveConfig, result: null, todoItemId, isIncremental });
     const result = await this.infrastructure.startProcess(this.withOpenCodeCommand(effectiveConfig));
-    await this.trySaveJob(jobId, { config: effectiveConfig, result, isIncremental });
+    await this.trySaveJob(jobId, { config: effectiveConfig, result, todoItemId, isIncremental });
     return result;
   }
 
@@ -53,7 +57,11 @@ export class OpenCodeRunner implements Runner {
       config: {
         ...config,
         mode: "plan",
-        task: this.withPlanFolderInstructions(config.task)
+        task: this.withPlanFolderInstructions(config.task),
+        vars: {
+          ...(config.vars ?? {}),
+          todoItemId: "plan"
+        }
       },
       isIncremental: true
     };
@@ -121,7 +129,15 @@ export class OpenCodeRunner implements Runner {
       };
     }
 
-    const followUpTask = this.buildIterationTaskPrompt(plan, prId, platform);
+    const todoItem = this.planProcessor.selectTodoForIteration(plan, jobDocument.steps);
+    if (!todoItem) {
+      return {
+        success: false,
+        message: `No actionable todo item found for job '${jobDocument.id}'.`
+      };
+    }
+
+    const followUpTask = this.buildIterationTaskPrompt(plan, todoItem, prId, platform);
     const followUpConfig: JobConfig = {
       ...jobDocument.config,
       mode: "agent",
@@ -129,15 +145,16 @@ export class OpenCodeRunner implements Runner {
       vars: {
         ...(jobDocument.config.vars ?? {}),
         jobId: jobDocument.id,
+        todoItemId: todoItem.id,
         ...(prId ? { previousPrId: prId } : {}),
         ...(platform ? { sourcePlatform: platform } : {}),
         incrementalIteration: "true"
       }
     };
 
-    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result: null, isIncremental: true });
+    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result: null, todoItemId: todoItem.id, isIncremental: true });
     const result = await this.infrastructure.startProcess(this.withOpenCodeCommand(followUpConfig));
-    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result, ...(prId ? { prId } : {}), isIncremental: true });
+    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result, todoItemId: todoItem.id, ...(prId ? { prId } : {}), isIncremental: true });
     return result;
   }
 
@@ -145,11 +162,11 @@ export class OpenCodeRunner implements Runner {
     return this.infrastructure.resumeProcess();
   }
 
-  async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; isIncremental?: boolean }): Promise<void> {
+  async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; todoItemId?: string; isIncremental?: boolean }): Promise<void> {
     await this.jobPersistenceLayer.saveJob(jobId, data);
   }
 
-  private async trySaveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; isIncremental?: boolean }): Promise<void> {
+  private async trySaveJob(jobId: string, data: { config?: JobConfig; result?: JobResult<any> | null; plan?: string; prId?: string; todoItemId?: string; isIncremental?: boolean }): Promise<void> {
     const persistenceAttempt = this.saveJob(jobId, data).catch(() => undefined);
     const timeoutMs = 150;
 
@@ -201,7 +218,7 @@ export class OpenCodeRunner implements Runner {
     return this.jobPersistenceLayer.findLatestJobByPrId(prId);
   }
 
-  private buildIterationTaskPrompt(plan: string, prId?: string, platform?: PullRequestPlatform): string {
+  private buildIterationTaskPrompt(plan: string, todoItem: { id: string; content: string; status: string }, prId?: string, platform?: PullRequestPlatform): string {
     const context = prId && platform
       ? `${platform} PR #${prId}`
       : prId
@@ -211,8 +228,10 @@ export class OpenCodeRunner implements Runner {
     return [
       `INCREMENTAL ITERATION INPUT (${context}):`,
       "- Continue execution from the existing plan.",
-      "- Prioritize actionable todos that are not done.",
-      "- Implement code/doc updates needed for the selected todos.",
+      `- Work on todo item id '${todoItem.id}'.`,
+      `- Todo summary: ${todoItem.content}`,
+      `- Todo status: ${todoItem.status}`,
+      "- Implement code/doc updates needed for this todo item.",
       "- Commit changes as you progress and update PR.md when needed.",
       "",
       "PLAN:",

@@ -5,14 +5,18 @@ const {
     createIndexMock,
     updateOneMock,
     collectionFactoryMock,
-    getDbMock
+    getDbMock,
+    startNextIterationMock,
+    findOneMock
 } = vi.hoisted(() => {
     const createIndex = vi.fn().mockResolvedValue("updatedAt_desc");
     const updateOne = vi.fn().mockResolvedValue({ acknowledged: true, matchedCount: 1, modifiedCount: 1 });
+    const startNextIteration = vi.fn().mockResolvedValue({ success: true, message: "started" });
+    const findOne = vi.fn().mockResolvedValue(null);
     const collection = {
         createIndex,
         updateOne,
-        findOne: vi.fn(),
+        findOne,
         deleteOne: vi.fn()
     };
     const collectionFactory = vi.fn().mockReturnValue(collection);
@@ -24,7 +28,9 @@ const {
         createIndexMock: createIndex,
         updateOneMock: updateOne,
         collectionFactoryMock: collectionFactory,
-        getDbMock: getDb
+        getDbMock: getDb,
+        startNextIterationMock: startNextIteration,
+        findOneMock: findOne
     };
 });
 
@@ -46,6 +52,14 @@ vi.mock("@oliver/core", () => ({
             }
         })
     }
+}));
+
+vi.mock("@/brain/runner/opencode", () => ({
+    OpenCodeRunner: vi.fn().mockImplementation(function () {
+        return {
+        startNextIteration: startNextIterationMock
+        };
+    })
 }));
 
 import { PATCH } from "./route";
@@ -225,8 +239,62 @@ describe("PATCH /api/task", () => {
                     result: {
                         success: true,
                         message: "Job metadata updated.",
-                        data: { plan: "Plan from .plans" }
+                        data: { plan: "Plan from .plans", todoItemId: "plan" }
                     }
+                })
+            }),
+            { upsert: true }
+        );
+        expect(startNextIterationMock).toHaveBeenCalledWith(undefined, undefined, "job-123");
+    });
+
+    it("persists explicit todoItemId when provided", async () => {
+        findOneMock.mockResolvedValueOnce({
+            _id: "job-123",
+            isIncremental: true,
+            plan: [
+                "todos:",
+                "    - id: todo-1",
+                "      content: Implement the first step",
+                "      status: pending"
+            ].join("\n"),
+            steps: []
+        });
+
+        const response = await PATCH(createPatchRequest({
+            body: {
+                result: {
+                    success: true,
+                    message: "Step completed"
+                },
+                prId: "42",
+                todoItemId: "todo-1"
+            }
+        }));
+
+        expect(response.status).toBe(200);
+        expect(updateOneMock).toHaveBeenCalledWith(
+            { _id: "job-123" },
+            expect.objectContaining({
+                $set: expect.objectContaining({
+                    updatedAt: expect.any(Date),
+                    plan: [
+                        "todos:",
+                        "    - id: todo-1",
+                        "      content: Implement the first step",
+                        "      status: completed"
+                    ].join("\n"),
+                    steps: [
+                        expect.objectContaining({
+                            todoItemId: "todo-1",
+                            prId: "42",
+                            result: {
+                                success: true,
+                                message: "Step completed",
+                                data: undefined
+                            }
+                        })
+                    ]
                 })
             }),
             { upsert: true }
