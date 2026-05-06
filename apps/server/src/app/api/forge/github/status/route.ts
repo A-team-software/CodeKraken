@@ -62,14 +62,7 @@ export async function POST(request: NextRequest) {
         if (queryError) return NextResponse.json({ connected: false, error: queryError.message || 'Internal error' }, { status: 500 });
 
         if (!oauthToken) {
-            return NextResponse.json({
-                connected: false, params: {
-                    accountId,
-                    cloudId,
-                    hint: 'git',
-                    provider
-                }
-            });
+            return NextResponse.json({ connected: false });
         }
 
         // Treat as disconnected if the token has a known expiry that has passed
