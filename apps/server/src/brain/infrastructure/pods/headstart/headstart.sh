@@ -756,7 +756,7 @@ main() {
 
 	local pr_id
 	pr_id=""
-	if [[ "$execution_success" == "true" ]]; then
+	if [[ "$execution_success" == "true" && "$mode" != "plan" ]]; then
 		pr_id="$(post_opencode_success "$remote_repo" "$branch" "$clone_url" "$git_token" "$task_id" "$task_summary" "$task")"
 	fi
 

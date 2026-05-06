@@ -104,7 +104,7 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 			: (doc.result as JobResult | null | undefined);
 
 		return {
-			id: typeof doc._id === "string" ? doc._id : "",
+			id: typeof doc._id === "string" ? doc._id : String(doc._id),
 			config: doc.config as JobConfig | undefined,
 			result: latestResult ?? null,
 			plan: typeof doc.plan === "string" ? doc.plan : undefined,

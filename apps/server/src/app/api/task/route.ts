@@ -2,6 +2,7 @@ import { RunnerTaskConfig } from "../../services/base-project-manager-task-proce
 import { ProjectManagerTaskProcessorFactory } from "../../services/project-manager-task-processor-factory";
 import { WebhookInvocation } from "../../services/task-processor";
 import { MongoJobPersistenceLayer } from "@/brain/runner/mongo-job-persistence-layer";
+import { OpenCodeRunner } from "@/brain/runner/opencode";
 import { JobResult } from "@/brain/shared";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
@@ -309,6 +310,21 @@ export async function PATCH(req: NextRequest) {
 
 		if (saveError) {
 			return NextResponse.json({ success: false, error: saveError.message || "Failed to persist job update." }, { status: 400 });
+		}
+
+		if (parsed.plan && !parsed.prId) {
+			const [startResult, startError] = await SafeExecute.withSync(async () => {
+				const runner = new OpenCodeRunner();
+				return runner.startNextIteration(undefined, undefined, jobId);
+			}).execute();
+
+			if (startError || !startResult?.success) {
+				console.warn("PATCH /api/task: next iteration start was attempted but did not complete successfully.", {
+					jobId,
+					error: startError?.message,
+					message: startResult?.message
+				});
+			}
 		}
 
 		return NextResponse.json({ success: true, jobId });

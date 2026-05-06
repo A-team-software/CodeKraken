@@ -95,12 +95,14 @@ export class OpenCodeRunner implements Runner {
     return this.infrastructure.pauseProcess();
   }
 
-  async startNextIteration(prId: string, platform: PullRequestPlatform, jobId?: string): Promise<JobResult> {
+  async startNextIteration(prId?: string, platform?: PullRequestPlatform, jobId?: string): Promise<JobResult> {
     const jobDocument = await this.resolveJobDocumentForIteration(prId, jobId);
     if (!jobDocument) {
       return {
         success: false,
-        message: `Unable to find a job for PR id '${prId}'.`
+        message: prId
+          ? `Unable to find a job for PR id '${prId}'.`
+          : `Unable to find a job for job id '${jobId ?? "unknown"}'.`
       };
     }
 
@@ -127,15 +129,15 @@ export class OpenCodeRunner implements Runner {
       vars: {
         ...(jobDocument.config.vars ?? {}),
         jobId: jobDocument.id,
-        previousPrId: prId,
-        sourcePlatform: platform,
+        ...(prId ? { previousPrId: prId } : {}),
+        ...(platform ? { sourcePlatform: platform } : {}),
         incrementalIteration: "true"
       }
     };
 
     await this.trySaveJob(jobDocument.id, { config: followUpConfig, result: null, isIncremental: true });
     const result = await this.infrastructure.startProcess(this.withOpenCodeCommand(followUpConfig));
-    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result, prId, isIncremental: true });
+    await this.trySaveJob(jobDocument.id, { config: followUpConfig, result, ...(prId ? { prId } : {}), isIncremental: true });
     return result;
   }
 
@@ -183,7 +185,7 @@ export class OpenCodeRunner implements Runner {
     return randomUUID();
   }
 
-  private async resolveJobDocumentForIteration(prId: string, jobId?: string): Promise<JobDocument | null> {
+  private async resolveJobDocumentForIteration(prId: string | undefined, jobId?: string): Promise<JobDocument | null> {
     const preferredJobId = jobId?.trim();
     if (preferredJobId) {
       const byJobId = await this.jobPersistenceLayer.getJob(preferredJobId);
@@ -192,12 +194,22 @@ export class OpenCodeRunner implements Runner {
       }
     }
 
+    if (!prId?.trim()) {
+      return null;
+    }
+
     return this.jobPersistenceLayer.findLatestJobByPrId(prId);
   }
 
-  private buildIterationTaskPrompt(plan: string, prId: string, platform: PullRequestPlatform): string {
+  private buildIterationTaskPrompt(plan: string, prId?: string, platform?: PullRequestPlatform): string {
+    const context = prId && platform
+      ? `${platform} PR #${prId}`
+      : prId
+        ? `PR #${prId}`
+        : "job plan continuation";
+
     return [
-      `INCREMENTAL ITERATION INPUT (${platform} PR #${prId}):`,
+      `INCREMENTAL ITERATION INPUT (${context}):`,
       "- Continue execution from the existing plan.",
       "- Prioritize actionable todos that are not done.",
       "- Implement code/doc updates needed for the selected todos.",
