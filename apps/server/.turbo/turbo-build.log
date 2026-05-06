@@ -7,51 +7,49 @@
 - Environments: .env.local, .env.production
 
 [37m[1m [22m[39m Creating an optimized production build ...
-[32m[1m✓[22m[39m Compiled successfully in 14.2s
-[?25l[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m..[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m...[39m[2K[1G[37m[1m [22m[39m Running TypeScript  [36m.[39m[2K[1G[?25h[?25l[37m[1m [22m[39m Finished TypeScript in 17.8s  [36m.[39m[2K[1G[?25h[37m[1m [22m[39m Finished TypeScript in 17.8s    [32m[1m✓[22m[39m Finished TypeScript in 17.8s 
-[?25l[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m..[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m...[39m[2K[1G[37m[1m [22m[39m Collecting page data using 7 workers  [36m.[39m[EventHandlers] Registered all domain event handlers.
-[2K[1G[?25h[37m[1m [22m[39m Collecting page data using 7 workers in 2.7s    [32m[1m✓[22m[39m Collecting page data using 7 workers in 2.7s 
-[?25l[37m[1m [22m[39m Generating static pages using 7 workers (0/16)  [36m[    ][39m[2K[1G[37m[1m [22m[39m Generating static pages using 7 workers (6/16)  [36m[=   ][39m[2K[1G[?25h[32m[1m✓[22m[39m Generating static pages using 7 workers (16/16) in 386ms
-[?25l[37m[1m [22m[39m Finalizing page optimization  [36m.[39m🛑 Shutdown signal received: SIGINT
-🛑 Shutdown signal received: SIGINT
-🛑 Shutdown signal received: SIGINT
-🛑 Shutdown signal received: SIGINT
-🛑 Shutdown signal received: SIGINT
-[2K[1G[?25h[37m[1m [22m[39m Finalizing page optimization in 23ms    [32m[1m✓[22m[39m Finalizing page optimization in 23ms 
 
-[4mRoute (app)[24m
-┌ ○ /_not-found
-├ ƒ /api/[[...slugs]]
-├ ƒ /api/auth/refresh
-├ ƒ /api/auth/signout
-├ ƒ /api/auth/tokens
-├ ƒ /api/auth/tokens/[id]
-├ ƒ /api/boards/[provider]/boards
-├ ƒ /api/boards/[provider]/callback
-├ ƒ /api/boards/[provider]/issues
-├ ƒ /api/boards/[provider]/oauth
-├ ƒ /api/boards/[provider]/webhooks
-├ ƒ /api/connect/installed
-├ ƒ /api/connect/uninstalled
-├ ƒ /api/forge/github/auth-url
-├ ƒ /api/forge/github/disconnect
-├ ƒ /api/forge/github/status
-├ ƒ /api/git/[provider]/callback
-├ ƒ /api/git/[provider]/oauth
-├ ƒ /api/git/[provider]/repositories
-├ ƒ /api/git/[provider]/webhooks
-├ ƒ /api/git/repositories
-├ ƒ /api/oauth/github/callback
-├ ƒ /api/providers
-├ ƒ /api/providers/[type]
-├ ƒ /api/sites
-├ ƒ /api/sites/[clientKey]/repositories
-├ ƒ /api/sites/[clientKey]/repositories/[provider]/[repoId]
-├ ƒ /api/task
-└ ƒ /api/user/me
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./apps/server/src/app/api/task/route.ts:6:10
+the name `SafeExecute` is defined multiple times
+  [90m4 |[0m [36mimport[0m { [33mSafeExecute[0m } [36mfrom[0m [32m"@oliver/core"[0m;
+  [90m5 |[0m [36mimport[0m { [33mNextRequest[0m, [33mNextResponse[0m } [36mfrom[0m [32m"next/server"[0m;
+[31m[1m>[0m [90m6 |[0m [36mimport[0m { [33mSafeExecute[0m } [36mfrom[0m [32m"@oliver/core/src/errors"[0m;
+  [90m  |[0m          [31m[1m^^^^^^^^^^^[0m
+  [90m7 |[0m
+  [90m8 |[0m [36mfunction[0m buildDefaultTaskConfig(): [33mRunnerTaskConfig[0m {
+  [90m9 |[0m 	[36mreturn[0m {
+
+Ecmascript file had an error
 
 
-○  (Static)   prerendered as static content
-ƒ  (Dynamic)  server-rendered on demand
+./apps/server/src/app/api/task/route.ts:59:16
+the name `bodyError` is defined multiple times
+  [90m57 |[0m 		}
+  [90m58 |[0m
+[31m[1m>[0m [90m59 |[0m 		[36mconst[0m [body, bodyError] = [36mawait[0m [33mSafeExecute[0m.withSync([36masync[0m () => req.json()).execute();
+  [90m   |[0m              [31m[1m^^^^^^^^^[0m
+  [90m60 |[0m 		[36mif[0m (bodyError) [36mreturn[0m [33mNextResponse[0m.json({ success: [36mfalse[0m, error: bodyError.message || [32m'Invalid request body'[0m }, { status: [35m400[0m });
+  [90m61 |[0m 		[36mconst[0m bodyRecord = (body && [36mtypeof[0m body === [32m"object"[0m) ? (body [36mas[0m [33mRecord[0m<string, unknown>) : {};
+  [90m62 |[0m
 
-[?25h
+Ecmascript file had an error
+
+
+./apps/server/src/app/api/task/route.ts:59:10
+the name `body` is defined multiple times
+  [90m57 |[0m 		}
+  [90m58 |[0m
+[31m[1m>[0m [90m59 |[0m 		[36mconst[0m [body, bodyError] = [36mawait[0m [33mSafeExecute[0m.withSync([36masync[0m () => req.json()).execute();
+  [90m   |[0m        [31m[1m^^^^[0m
+  [90m60 |[0m 		[36mif[0m (bodyError) [36mreturn[0m [33mNextResponse[0m.json({ success: [36mfalse[0m, error: bodyError.message || [32m'Invalid request body'[0m }, { status: [35m400[0m });
+  [90m61 |[0m 		[36mconst[0m bodyRecord = (body && [36mtypeof[0m body === [32m"object"[0m) ? (body [36mas[0m [33mRecord[0m<string, unknown>) : {};
+  [90m62 |[0m
+
+Ecmascript file had an error
+
+
+    at <unknown> (./apps/server/src/app/api/task/route.ts:6:10)
+    at <unknown> (./apps/server/src/app/api/task/route.ts:59:16)
+    at <unknown> (./apps/server/src/app/api/task/route.ts:59:10)
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 1.[39m
