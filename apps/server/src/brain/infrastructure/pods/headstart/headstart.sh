@@ -256,42 +256,6 @@ parse_owner_repo() {
 	echo "${path_part%%/*} ${path_part#*/}"
 }
 
-build_json_for_pr() {
-	node -e "
-		const title = process.argv[1] || 'Automated changes';
-		const body  = process.argv[2] || '';
-		const head  = process.argv[3];
-		const base  = process.argv[4] || 'main';
-		process.stdout.write(JSON.stringify({ title, body, head, base }));
-	" -- "$1" "$2" "$3" "$4"
-}
-
-build_json_for_mr() {
-	node -e "
-		const title         = process.argv[1] || 'Automated changes';
-		const description   = process.argv[2] || '';
-		const source_branch = process.argv[3];
-		const target_branch = process.argv[4] || 'main';
-		process.stdout.write(JSON.stringify({ title, description, source_branch, target_branch }));
-	" -- "$1" "$2" "$3" "$4"
-}
-
-build_json_for_bitbucket_pr() {
-	node -e "
-		const title = process.argv[1] || 'Automated changes';
-		const desc  = process.argv[2] || '';
-		const src   = process.argv[3];
-		const dst   = process.argv[4] || 'main';
-		process.stdout.write(JSON.stringify({
-			title,
-			description: desc,
-			source:      { branch: { name: src } },
-			destination: { branch: { name: dst } },
-			close_source_branch: false
-		}));
-	" -- "$1" "$2" "$3" "$4"
-}
-
 build_json_for_plan_update() {
 	node -e '
 		const plan = process.argv[1] || "";
@@ -349,6 +313,7 @@ post_plan_to_api_server() {
 	local api_server_url="$2"
 	local job_id="$3"
 	local api_key="$4"
+	local max_attempts=10
 
 	if [[ "$mode" != "plan" ]]; then
 		return 0
@@ -378,33 +343,51 @@ post_plan_to_api_server() {
 
 	log "Uploading plan from '${plan_file}' to ${endpoint}."
 
-	if [[ -n "$api_key" ]]; then
-		response="$(curl -s -w $'\n''%{http_code}' -X PATCH \
-			-u ":${api_key}" \
-			-H "Content-Type: application/json" \
-			"$endpoint" \
-			-d "$payload")" || {
-			log "Failed to upload plan to API server."
-			return 0
-		}
-	else
-		response="$(curl -s -w $'\n''%{http_code}' -X PATCH \
-			-H "Content-Type: application/json" \
-			"$endpoint" \
-			-d "$payload")" || {
-			log "Failed to upload plan to API server."
-			return 0
-		}
-	fi
+	local attempt=1
+	while ((attempt <= max_attempts)); do
+		local curl_exit=0
 
-	http_code="${response##*$'\n'}"
-	body="${response%$'\n'*}"
+		if [[ -n "$api_key" ]]; then
+			response="$(curl -sS --connect-timeout 10 --max-time 30 -w $'\n''%{http_code}' -X PATCH \
+				-u ":${api_key}" \
+				-H "Content-Type: application/json" \
+				"$endpoint" \
+				-d "$payload")" || curl_exit=$?
+		else
+			response="$(curl -sS --connect-timeout 10 --max-time 30 -w $'\n''%{http_code}' -X PATCH \
+				-H "Content-Type: application/json" \
+				"$endpoint" \
+				-d "$payload")" || curl_exit=$?
+		fi
 
-	if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
-		log "Plan uploaded successfully for job '${job_id}'."
-	else
-		log "Plan upload returned HTTP ${http_code}: ${body}"
-	fi
+		if [[ "$curl_exit" -eq 0 ]]; then
+			http_code="${response##*$'\n'}"
+			body="${response%$'\n'*}"
+
+			if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+				log "Plan uploaded successfully for job '${job_id}' (attempt ${attempt}/${max_attempts})."
+				return 0
+			fi
+
+			# Do not retry HTTP responses; only transport-level failures are retried.
+			log "Plan upload returned HTTP ${http_code}: ${body}"
+			return 0
+		fi
+
+		# Retry only for timeout/network transport failures.
+		if [[ "$curl_exit" -eq 7 || "$curl_exit" -eq 28 ]]; then
+			if ((attempt < max_attempts)); then
+				log "Plan upload transport failure (curl exit ${curl_exit}) on attempt ${attempt}/${max_attempts}; retrying."
+				attempt=$((attempt + 1))
+				continue
+			fi
+			log "Plan upload transport failure (curl exit ${curl_exit}) after ${max_attempts} attempts."
+			return 0
+		fi
+
+		log "Failed to upload plan to API server (curl exit ${curl_exit}); not retryable."
+		return 0
+	done
 }
 
 sanitize_branch_component() {
@@ -585,52 +568,25 @@ post_opencode_success() {
 		default_branch="main"
 	fi
 
-	log "Creating ${platform} PR: '${pr_title}' | ${branch} -> ${default_branch}"
+	log "Creating PR: '${pr_title}' | ${branch} -> ${default_branch}"
 
-	local payload response http_code body
-	case "$platform" in
-		github)
-			payload="$(build_json_for_pr "$pr_title" "$pr_body" "$branch" "$default_branch")"
-			response="$(curl -s -w $'\n''%{http_code}' -X POST \
-				-H "Authorization: token ${git_token}" \
-				-H "Accept: application/vnd.github.v3+json" \
-				-H "Content-Type: application/json" \
-				"https://api.github.com/repos/${owner}/${repo_name}/pulls" \
-				-d "$payload")"
-			http_code="${response##*$'\n'}"
-			body="${response%$'\n'*}"
-			if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
-				local pr_url
-				pr_url="$(node -e "try{const r=JSON.parse(process.argv[1]);console.log(r.html_url||'');}catch{}" -- "$body")"
-				log "GitHub PR created: ${pr_url}"
-			else
-				log "GitHub PR creation returned HTTP ${http_code}: ${body}"
-			fi
-			;;
-		gitlab)
-			local project_id
-			project_id="$(url_encode "${owner}/${repo_name}")"
-			payload="$(build_json_for_mr "$pr_title" "$pr_body" "$branch" "$default_branch")"
-			response="$(curl -s -w $'\n''%{http_code}' -X POST \
-				-H "PRIVATE-TOKEN: ${git_token}" \
-				-H "Content-Type: application/json" \
-				"https://gitlab.com/api/v4/projects/${project_id}/merge_requests" \
-				-d "$payload")"
-			http_code="${response##*$'\n'}"
-			log "GitLab MR creation returned HTTP ${http_code}"
-			;;
-		bitbucket)
-			payload="$(build_json_for_bitbucket_pr "$pr_title" "$pr_body" "$branch" "$default_branch")"
-			response="$(curl -s -w $'\n''%{http_code}' -X POST \
-				-H "Authorization: Bearer ${git_token}" \
-				-H "Content-Type: application/json" \
-				"https://api.bitbucket.org/2.0/repositories/${owner}/${repo_name}/pullrequests" \
-				-d "$payload")"
-			http_code="${response##*$'\n'}"
-			log "Bitbucket PR creation returned HTTP ${http_code}"
-			;;
-	esac
+	local headstart_dir
+	headstart_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+	if [[ -z "${SOURCE_PLATFORM:-}" ]]; then
+		SOURCE_PLATFORM="$platform"
+	fi
+
+	export SOURCE_PLATFORM
+	export GIT_TOKEN="$git_token"
+	export PR_TITLE="$pr_title"
+	export PR_BODY="$pr_body"
+	export PR_BRANCH="$branch"
+	export PR_DEFAULT_BRANCH="$default_branch"
+	export PR_REPO_OWNER="$owner"
+	export PR_REPO_NAME="$repo_name"
+
+	bash "${headstart_dir}/create_pr.sh"
 	return 0
 }
 
