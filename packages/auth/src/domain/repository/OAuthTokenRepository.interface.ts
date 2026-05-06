@@ -38,5 +38,12 @@ export interface OAuthTokenRepository {
         providerType: ProviderType
     ): Promise<boolean>;
 
+    deleteByAtlassianAccountIdAndCloudId(
+        atlassianAccountId: string,
+        cloudId: string,
+        providerType?: ProviderType,
+        provider?: string
+    ): Promise<boolean>;
+
     deleteAllByUser(userId: string): Promise<number>;
 }

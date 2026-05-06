@@ -61,7 +61,7 @@ function App() {
     setAuth((a) => ({ ...a, loading: true }));
     try {
       console.log('Invoking getGithubStatus...');
-      const data = await invoke('getGithubStatus');
+      const { data } = await invoke('getGithubStatus');
       console.log('GitHub Status:', data);
       setAuth({
         connected: !!data.connected,

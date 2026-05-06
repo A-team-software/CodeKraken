@@ -32,7 +32,7 @@ const app = new Elysia({ prefix: "/api" })
                         const accessRepo = new MongoUserJiraSiteAccessRepository();
 
                         // Map Forge context to userId
-                        const [access, accessError] = await SafeExecute.withSync(async () => 
+                        const [access, accessError] = await SafeExecute.withSync(async () =>
                             accessRepo.findByClientKeyAndAccountId(forgeClientKey as string, forgeAccountId as string)
                         ).execute();
                         if (accessError) throw accessError;
@@ -45,7 +45,7 @@ const app = new Elysia({ prefix: "/api" })
 
                 // Fallback to PAT validation
                 const tokenService = PersonalAccessTokenService.getInstance();
-                const [tokenAggregate, tokenError] = await SafeExecute.withSync(async () => 
+                const [tokenAggregate, tokenError] = await SafeExecute.withSync(async () =>
                     tokenService.validateToken(token)
                 ).execute();
                 if (tokenError) throw tokenError;
@@ -204,7 +204,7 @@ const app = new Elysia({ prefix: "/api" })
         }
         const { GetRepositoriesUseCase } = gitModule;
         const useCase = new GetRepositoriesUseCase();
-        const [repos, reposError] = await SafeExecute.withSync(async () => 
+        const [repos, reposError] = await SafeExecute.withSync(async () =>
             useCase.execute({
                 providerType: provider,
                 token: gitAccount.accessToken!
@@ -219,40 +219,6 @@ const app = new Elysia({ prefix: "/api" })
         return { repositories: repos };
     })
 
-    .get('/forge/identity/status', async ({ userId, query, set }) => {
-        console.log(`GET /forge/identity/status: userId=${userId}`);
-        if (!userId) {
-            set.status = 401;
-            return { connected: false, error: 'Unauthorized' };
-        }
-
-        const provider = (query?.provider || 'github').toString().toUpperCase();
-        console.log(`GET /forge/identity/status: Checking provider ${provider}`);
-        const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
-        if (importUserError || !userModule) {
-            set.status = 500;
-            return { connected: false, error: 'Internal server error' };
-        }
-        const { MongoUserRepository } = userModule;
-        const userRepo = new MongoUserRepository();
-        const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
-
-        if (userError || !user) {
-            console.log(`GET /forge/identity/status: User ${userId} not found in DB or error`);
-            return { connected: false };
-        }
-
-        const gitAccount = user.accounts.find(
-            (a: any) => a.provider?.toString().toUpperCase() === provider
-        );
-
-        return {
-            connected: !!gitAccount,
-            hasGitToken: !!(gitAccount?.accessToken),
-            username: gitAccount?.username,
-            userId: userId
-        };
-    })
 
     .get('/forge/github/token', async ({ userId, set }) => {
         if (!userId) {
@@ -268,7 +234,7 @@ const app = new Elysia({ prefix: "/api" })
 
             const [tokens, tokensError] = await SafeExecute.withSync(async () => tokenRepo.findByUser(userId)).execute();
             if (tokensError) throw tokensError;
-            
+
             const githubToken = tokens?.find(t =>
                 t.provider === 'github' &&
                 t.providerType === 'git' &&
@@ -538,7 +504,7 @@ const app = new Elysia({ prefix: "/api" })
 
             const siteUrl = `https://${clientKey}`;
 
-            const [_, storeError] = await SafeExecute.withSync(async () => 
+            const [_, storeError] = await SafeExecute.withSync(async () =>
                 atlassianService.storeUserSiteAccess(
                     userId,
                     siteUrl,
