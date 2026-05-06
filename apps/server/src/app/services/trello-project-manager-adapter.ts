@@ -1,4 +1,4 @@
-import { Task } from "../types/task";
+import { Task } from "../api/types/task";
 import { ProjectManagerAdapter } from "./project-manager-adapter";
 
 export interface TrelloCard {

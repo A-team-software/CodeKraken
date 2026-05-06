@@ -1,9 +1,9 @@
 import { JobConfig, JobResult } from "@/brain/shared";
 import { Runner } from "@/brain/runner/runner";
 
-import { Task } from "../types/task";
 import { ProjectManagerAdapter } from "./project-manager-adapter";
 import { TaskProcessor, WebhookInvocation } from "./task-processor";
+import { Task } from "../api/types/task";
 
 export type RunnerTaskConfig = Omit<JobConfig, "task">;
 
@@ -12,7 +12,7 @@ export abstract class BaseProjectManagerTaskProcessor<TRemoteTask> implements Ta
         protected readonly runner: Runner,
         protected readonly adapter: ProjectManagerAdapter<TRemoteTask>,
         protected readonly runnerTaskConfig: RunnerTaskConfig
-    ) {}
+    ) { }
 
     async processTask(invocation: WebhookInvocation): Promise<JobResult> {
         const remoteTask = this.parseRemoteTaskFromWebhook(invocation);
