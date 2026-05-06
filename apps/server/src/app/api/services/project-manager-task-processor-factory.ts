@@ -17,6 +17,10 @@ export type SupportedProjectManagerProvider = "jira" | "asana" | "trello" | "lin
 export class ProjectManagerTaskProcessorFactory {
     constructor(private readonly runner: Runner = new OpenCodeRunner()) {}
 
+    getRunner(): Runner {
+        return this.runner;
+    }
+
     createProcessor(invocation: WebhookInvocation, runnerTaskConfig: RunnerTaskConfig): TaskProcessor {
         const provider = this.resolveProvider(invocation);
 

@@ -1,6 +1,6 @@
 export interface JobConfig {
     repoUrl: string;
-    mode: 'plan' | 'agent';
+    mode: "plan" | "agent";
     task?: string;
     branch?: string;
     commitHash?: string;

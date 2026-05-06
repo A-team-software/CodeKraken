@@ -378,9 +378,9 @@ export class LocalhostInfrastructure implements Infrastructure {
             entries.push(["COMMIT_HASH", options.commitHash]);
         }
 
-        const taskId = options.vars?.taskId?.trim();
-        if (taskId) {
-            entries.push(["TASK_ID", taskId]);
+        const jobId = options.vars?.jobId?.trim();
+        if (jobId) {
+            entries.push(["JOB_ID", jobId]);
         }
 
         const taskSummary = options.vars?.taskSummary?.trim();
@@ -395,6 +395,9 @@ export class LocalhostInfrastructure implements Infrastructure {
         this.copyEnv(entries, "GIT_TOKEN", ["GIT_TOKEN", "GITHUB_TOKEN", "GIT_ACCESS_TOKEN"]);
         this.copyEnv(entries, "OPENCODE_FLAGS", ["OPENCODE_FLAGS"]);
         this.copyEnv(entries, "OPENCODE_COMMAND", ["OPENCODE_COMMAND"]);
+        this.copyEnv(entries, "API_SERVER_URL", ["API_SERVER_URL", "OPENCODE_API_SERVER_URL"]);
+        this.copyEnv(entries, "API_KEY", ["API_KEY", "OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
+        this.copyEnv(entries, "OPENCODE_TASK_API_TOKEN", ["OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
 
         return entries;
     }

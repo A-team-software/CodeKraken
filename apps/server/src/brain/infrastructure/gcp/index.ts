@@ -1,5 +1,6 @@
 import { Infrastructure } from "../infrastructure";
 import { JobConfig, JobResult } from "../../shared";
+import { SafeExecute } from "@oliver/core";
 
 type CloudRunEnvVar = {
     name: string;
@@ -33,16 +34,37 @@ export class GcpInfrastructure implements Infrastructure {
             const endpoint = this.buildRunEndpoint(runJobName);
             const body = this.buildRunRequestBody(options);
 
-            const response = await fetch(endpoint, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(body)
-            });
+            const [response, responseError] = await SafeExecute.withSync(() =>
+                fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(body)
+                })
+            ).execute();
 
-            const text = await response.text();
+            if (responseError || !response) {
+                return {
+                    success: false,
+                    message: responseError?.message ?? "Failed to run Cloud Run job request."
+                };
+            }
+
+            const [text, textError] = await SafeExecute.withSync(() => response.text()).execute();
+            if (textError || text == null) {
+                return {
+                    success: false,
+                    message: textError?.message ?? "Failed to read Cloud Run response body.",
+                    data: {
+                        endpoint,
+                        status: response.status,
+                        statusText: response.statusText
+                    }
+                };
+            }
+
             const data = this.safeJsonParse(text);
             const operationName = this.extractOperationName(data);
 
@@ -86,14 +108,36 @@ export class GcpInfrastructure implements Infrastructure {
             const endpoint = this.buildOperationDeleteEndpoint(operationName);
             const accessToken = this.resolveAccessToken();
 
-            const response = await fetch(endpoint, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
+            const [response, responseError] = await SafeExecute.withSync(() =>
+                fetch(endpoint, {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                })
+            ).execute();
 
-            const text = await response.text();
+            if (responseError || !response) {
+                return {
+                    success: false,
+                    message: responseError?.message ?? "Failed to stop Cloud Run operation request."
+                };
+            }
+
+            const [text, textError] = await SafeExecute.withSync(() => response.text()).execute();
+            if (textError || text == null) {
+                return {
+                    success: false,
+                    message: textError?.message ?? "Failed to read Cloud Run stop response body.",
+                    data: {
+                        endpoint,
+                        operationName,
+                        status: response.status,
+                        statusText: response.statusText
+                    }
+                };
+            }
+
             const data = this.safeJsonParse(text);
 
             if (!response.ok) {
@@ -234,7 +278,8 @@ export class GcpInfrastructure implements Infrastructure {
             JOB_MODE: options.mode,
             ...(options.task ? { TASK: options.task } : {}),
             ...(options.branch ? { BRANCH: options.branch } : {}),
-            ...(options.commitHash ? { COMMIT_HASH: options.commitHash } : {})
+            ...(options.commitHash ? { COMMIT_HASH: options.commitHash } : {}),
+            ...(options.vars?.jobId ? { JOB_ID: options.vars.jobId } : {})
         };
 
         this.copyIfSet(env, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);
@@ -245,6 +290,9 @@ export class GcpInfrastructure implements Infrastructure {
         this.copyIfSet(env, "WORKSPACE_DIR", ["WORKSPACE_DIR", "POD_WORKDIR"]);
         this.copyIfSet(env, "OPENCODE_FLAGS", ["OPENCODE_FLAGS"]);
         this.copyIfSet(env, "OPENCODE_COMMAND", ["OPENCODE_COMMAND"]);
+        this.copyIfSet(env, "API_SERVER_URL", ["API_SERVER_URL", "OPENCODE_API_SERVER_URL"]);
+        this.copyIfSet(env, "API_KEY", ["API_KEY", "OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
+        this.copyIfSet(env, "OPENCODE_TASK_API_TOKEN", ["OPENCODE_TASK_API_TOKEN", "TASK_API_TOKEN"]);
 
         return Object.entries(env).map(([name, value]) => ({
             name,
