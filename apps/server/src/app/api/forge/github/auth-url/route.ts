@@ -1,7 +1,6 @@
 import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
+import { FORGE_GITHUB_CALLBACK_URL, SafeExecute } from '@oliver/core';
 import { NextRequest, NextResponse } from 'next/server';
-import { FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
-import { SafeExecute } from '@oliver/core/src/errors';
 
 export async function POST(req: NextRequest) {
   const { isValid, error } = validateForgeRequest(req);
@@ -9,7 +8,7 @@ export async function POST(req: NextRequest) {
 
   const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
   if (bodyError || !body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  
+
   const { accountId, cloudId } = body;
   if (!accountId || !cloudId) {
     return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
@@ -22,13 +21,7 @@ export async function POST(req: NextRequest) {
     accountId,
     cloudId
   });
-  const [state, stateError] = await SafeExecute.withSync(async () => 
-    authService.generateState('github', metadata)
-  ).execute();
-
-  if (stateError || !state) {
-    return NextResponse.json({ error: 'Failed to generate auth state' }, { status: 500 });
-  }
+  const state = await authService.generateState('github', metadata);
 
   // Use the standard registered callback URL to avoid registration issues
   const params = new URLSearchParams({

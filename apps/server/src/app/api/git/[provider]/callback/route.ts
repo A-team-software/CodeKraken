@@ -55,7 +55,7 @@ export async function GET(
         // Execute Use Case
         // Do NOT pass redirectUri — the authorize step does not send redirect_uri either,
         // and GitHub requires both steps to match (both omit or both identical).
-        const [result, executeError] = await SafeExecute.withSync(async () => 
+        const [result, executeError] = await SafeExecute.withSync(async () =>
             processCallbackUseCase.execute({
                 provider,
                 providerType: 'git',
