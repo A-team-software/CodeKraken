@@ -1,9 +1,103 @@
-import { RunnerTaskConfig } from "../services/base-project-manager-task-processor";
-import { ProjectManagerTaskProcessorFactory } from "../services/project-manager-task-processor-factory";
-import { WebhookInvocation } from "../services/task-processor";
+import { RunnerTaskConfig } from "../../services/base-project-manager-task-processor";
+import { ProjectManagerTaskProcessorFactory } from "../../services/project-manager-task-processor-factory";
+import { WebhookInvocation } from "../../services/task-processor";
+import { JobResult } from "@/brain/shared";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
-import { SafeExecute } from "@oliver/core/src/errors";
+
+function unauthorizedResponse(): NextResponse {
+	return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+}
+
+function readConfiguredApiToken(): string {
+	return process.env.OPENCODE_TASK_API_TOKEN || process.env.TASK_API_TOKEN || process.env.API_KEY || "";
+}
+
+function isUnauthenticatedAccessAllowed(): boolean {
+	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED === "true";
+}
+
+function extractBasicAuthPassword(authorizationHeader: string): string | null {
+	if (!authorizationHeader.startsWith("Basic ")) {
+		return null;
+	}
+
+	try {
+		const decoded = Buffer.from(authorizationHeader.slice("Basic ".length), "base64").toString("utf8");
+		const separatorIndex = decoded.indexOf(":");
+		if (separatorIndex === -1) {
+			return null;
+		}
+
+		return decoded.slice(separatorIndex + 1);
+	} catch {
+		return null;
+	}
+}
+
+function getUnauthorizedResponse(req: NextRequest): NextResponse | null {
+	if (isUnauthenticatedAccessAllowed()) {
+		return null;
+	}
+
+	const configuredToken = readConfiguredApiToken();
+	if (!configuredToken) {
+		return unauthorizedResponse();
+	}
+
+	const authorizationHeader = req.headers.get("authorization") || "";
+	if (authorizationHeader === `Bearer ${configuredToken}`) {
+		return null;
+	}
+
+	const basicPassword = extractBasicAuthPassword(authorizationHeader);
+	if (basicPassword === configuredToken) {
+		return null;
+	}
+
+	return unauthorizedResponse();
+}
+
+function parseResultUpdate(value: unknown): JobResult | null | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (value === null) {
+		return null;
+	}
+
+	if (typeof value !== "object" || Array.isArray(value)) {
+		throw new Error("result field must be an object or null.");
+	}
+
+	const record = value as Record<string, unknown>;
+	if (typeof record.success !== "boolean") {
+		throw new Error("result field must include a boolean success property.");
+	}
+
+	if (record.message !== undefined && typeof record.message !== "string") {
+		throw new Error("result field message must be a string when provided.");
+	}
+
+	return {
+		success: record.success,
+		message: typeof record.message === "string" ? record.message : undefined,
+		data: record.data
+	};
+}
+
+function mergePlanIntoResult(result: JobResult, plan: string): JobResult {
+	const existingData = result.data;
+	const data = existingData && typeof existingData === "object" && !Array.isArray(existingData)
+		? { ...(existingData as Record<string, unknown>), plan }
+		: { plan };
+
+	return {
+		...result,
+		data
+	};
+}
 
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
@@ -43,17 +137,6 @@ export async function POST(req: NextRequest) {
 		const unauthorizedResponse = getUnauthorizedResponse(req);
 		if (unauthorizedResponse) {
 			return unauthorizedResponse;
-		}
-
-		const [body, bodyError] = await SafeExecute.withSync(() => req.json()).execute();
-		if (bodyError) {
-			return NextResponse.json(
-				{
-					success: false,
-					error: bodyError.message
-				},
-				{ status: 400 }
-			);
 		}
 
 		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
