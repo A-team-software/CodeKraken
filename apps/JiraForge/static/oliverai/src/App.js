@@ -47,6 +47,7 @@ function App() {
   const [auth, setAuth] = useState({ connected: false, loading: true });
   const [tokenInput, setTokenInput] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
@@ -61,12 +62,13 @@ function App() {
     setAuth((a) => ({ ...a, loading: true }));
     try {
       console.log('Invoking getGithubStatus...');
-      const { data } = await invoke('getGithubStatus');
-      console.log('GitHub Status:', data);
+      // NOTE: invoke returns the resolver's return value directly — not wrapped in { data: ... }
+      const status = await invoke('getGithubStatus');
+      console.log('GitHub Status:', status);
       setAuth({
-        connected: !!data.connected,
+        connected: !!status?.connected,
         loading: false,
-        username: 'GitHub User' // Placeholder since status only returns true/false now
+        username: status?.username || 'GitHub User',
       });
     } catch (e) {
       console.error('refreshAuthStatus failed:', e);
@@ -223,16 +225,15 @@ function App() {
     setError(null);
     try {
       const data = await invoke('getGithubAuthUrl');
-      console.log(`data: ${data}`)
+      console.log('getGithubAuthUrl response:', data);
       const { authUrl } = data;
       if (authUrl) {
-        // Use window.open (popup) instead of router.open so that window.opener
-        // is set in the callback page, allowing postMessage back to this panel.
-        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
-        if (!popup) {
-          // Popup was blocked – fall back to same-tab navigation.
-          window.location.href = authUrl;
-        }
+        // Forge Custom UI sandboxes window.open — use router.open to open in a
+        // new browser tab. The callback page auto-closes itself after OAuth;
+        // the polling interval below detects the new connected state.
+        await router.open(authUrl);
+      } else {
+        throw new Error('No authUrl returned from backend');
       }
     } catch (e) {
       console.error('handleConnectGit failed:', e);
@@ -242,7 +243,11 @@ function App() {
   }
 
   async function handleDisconnect() {
-    if (!window.confirm('Are you sure you want to disconnect?')) return;
+    if (!confirmDisconnect) {
+      setConfirmDisconnect(true);
+      return;
+    }
+    setConfirmDisconnect(false);
     try {
       await invoke('disconnect');
       await refreshAuthStatus();
@@ -308,7 +313,16 @@ function App() {
       <Box xcss={headerStyles}>
         <Inline alignBlock="center" spread="space-between">
           <Heading size="medium">OliverAI</Heading>
-          {auth.connected && <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>}
+          {auth.connected && (
+            confirmDisconnect ? (
+              <Inline space="space.100">
+                <Button appearance="warning" onClick={handleDisconnect}>Confirm</Button>
+                <Button appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+              </Inline>
+            ) : (
+              <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+            )
+          )}
         </Inline>
       </Box>
 
