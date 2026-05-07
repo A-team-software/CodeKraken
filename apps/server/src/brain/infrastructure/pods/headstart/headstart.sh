@@ -256,11 +256,37 @@ parse_owner_repo() {
 	echo "${path_part%%/*} ${path_part#*/}"
 }
 
-build_json_for_plan_update() {
+build_json_for_job_update() {
 	node -e '
-		const plan = process.argv[1] || "";
-		process.stdout.write(JSON.stringify({ plan }));
-	' -- "$1"
+		const resultSuccess = process.argv[1] === "true";
+		const resultMessage = process.argv[2] || "OpenCode execution completed.";
+		const prId = process.argv[3] || "";
+		const plan = process.argv[4] || "";
+		const jobId = process.argv[5] || "";
+		const todoItemId = process.argv[6] || "";
+
+		const payload = {
+			result: {
+				success: resultSuccess,
+				message: resultMessage
+			},
+			...(jobId ? { jobId } : {})
+		};
+
+		if (prId) {
+			payload.prId = prId;
+		}
+
+		if (plan) {
+			payload.plan = plan;
+		}
+
+		if (todoItemId) {
+			payload.todoItemId = todoItemId;
+		}
+
+		process.stdout.write(JSON.stringify(payload));
+	' -- "$1" "$2" "$3" "$4" "$5" "$6"
 }
 
 find_latest_plan_file() {
@@ -308,40 +334,47 @@ find_latest_plan_file() {
 	' -- ".plans"
 }
 
-post_plan_to_api_server() {
-	local mode="$1"
-	local api_server_url="$2"
-	local job_id="$3"
-	local api_key="$4"
+post_job_update_to_api_server() {
+	local api_server_url="$1"
+	local job_id="$2"
+	local api_key="$3"
+	local pr_id="$4"
+	local execution_success="$5"
+	local execution_message="$6"
 	local max_attempts=10
 
-	if [[ "$mode" != "plan" ]]; then
-		return 0
-	fi
-
 	if [[ -z "$api_server_url" ]]; then
-		log "API_SERVER_URL is not set. Skipping plan upload."
+		log "API_SERVER_URL is not set. Skipping job update upload."
 		return 0
 	fi
 
 	if [[ -z "$job_id" ]]; then
-		log "JOB_ID/TASK_ID is not set. Skipping plan upload."
+		log "JOB_ID/TASK_ID is not set. Skipping job update upload."
 		return 0
 	fi
 
-	local plan_file
+	local plan_file plan_content
+	plan_content=""
 	plan_file="$(find_latest_plan_file || true)"
-	if [[ -z "$plan_file" || ! -f "$plan_file" ]]; then
-		log "No plan file found under .plans. Skipping plan upload."
-		return 0
+	if [[ -n "$plan_file" && -f "$plan_file" ]]; then
+		plan_content="$(cat "$plan_file")"
 	fi
 
-	local plan_content payload endpoint response http_code body
-	plan_content="$(cat "$plan_file")"
-	payload="$(build_json_for_plan_update "$plan_content")"
+	local todo_item_id
+	todo_item_id="$(first_non_empty TODO_ITEM_ID TASK_TODO_ITEM_ID || true)"
+	if [[ -z "$todo_item_id" && -n "$plan_content" ]]; then
+		todo_item_id="plan"
+	fi
+
+	local payload endpoint response http_code body
+	payload="$(build_json_for_job_update "$execution_success" "$execution_message" "$pr_id" "$plan_content" "$job_id" "$todo_item_id")"
 	endpoint="${api_server_url%/}/task?jobId=$(url_encode "$job_id")"
 
-	log "Uploading plan from '${plan_file}' to ${endpoint}."
+	if [[ -n "$plan_file" ]]; then
+		log "Uploading job update with plan from '${plan_file}' to ${endpoint}."
+	else
+		log "Uploading job update to ${endpoint}."
+	fi
 
 	local attempt=1
 	while ((attempt <= max_attempts)); do
@@ -365,27 +398,27 @@ post_plan_to_api_server() {
 			body="${response%$'\n'*}"
 
 			if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
-				log "Plan uploaded successfully for job '${job_id}' (attempt ${attempt}/${max_attempts})."
+				log "Job update uploaded successfully for job '${job_id}' (attempt ${attempt}/${max_attempts})."
 				return 0
 			fi
 
 			# Do not retry HTTP responses; only transport-level failures are retried.
-			log "Plan upload returned HTTP ${http_code}: ${body}"
+			log "Job update upload returned HTTP ${http_code}: ${body}"
 			return 0
 		fi
 
 		# Retry only for timeout/network transport failures.
 		if [[ "$curl_exit" -eq 7 || "$curl_exit" -eq 28 ]]; then
 			if ((attempt < max_attempts)); then
-				log "Plan upload transport failure (curl exit ${curl_exit}) on attempt ${attempt}/${max_attempts}; retrying."
+				log "Job update upload transport failure (curl exit ${curl_exit}) on attempt ${attempt}/${max_attempts}; retrying."
 				attempt=$((attempt + 1))
 				continue
 			fi
-			log "Plan upload transport failure (curl exit ${curl_exit}) after ${max_attempts} attempts."
+			log "Job update upload transport failure (curl exit ${curl_exit}) after ${max_attempts} attempts."
 			return 0
 		fi
 
-		log "Failed to upload plan to API server (curl exit ${curl_exit}); not retryable."
+		log "Failed to upload job update to API server (curl exit ${curl_exit}); not retryable."
 		return 0
 	done
 }
@@ -586,7 +619,15 @@ post_opencode_success() {
 	export PR_REPO_OWNER="$owner"
 	export PR_REPO_NAME="$repo_name"
 
-	bash "${headstart_dir}/create_pr.sh"
+	local pr_id
+	pr_id="$(bash "${headstart_dir}/create_pr.sh" || true)"
+	pr_id="$(printf "%s" "$pr_id" | tr -d '\r\n' | xargs)"
+
+	if [[ -n "$pr_id" ]]; then
+		log "Created PR with id '${pr_id}'."
+	fi
+
+	printf "%s" "$pr_id"
 	return 0
 }
 
@@ -716,10 +757,28 @@ main() {
 
 	apply_commit_if_present "$commit_hash"
 	ensure_pr_md_ignored
-	start_opencode "$mode" "$task" "$opencode_flags"
-	post_plan_to_api_server "$mode" "$api_server_url" "$job_id" "$api_key"
+	local execution_success execution_message
+	execution_success="false"
+	execution_message="OpenCode execution failed."
+	if start_opencode "$mode" "$task" "$opencode_flags"; then
+		execution_success="true"
+		execution_message="OpenCode execution completed successfully."
+	fi
+
+	local pr_id
+	pr_id=""
+	if [[ "$execution_success" == "true" && "$mode" != "plan" ]]; then
+		pr_id="$(post_opencode_success "$remote_repo" "$branch" "$clone_url" "$git_token" "$task_id" "$task_summary" "$task")"
+	fi
+
+	post_job_update_to_api_server "$api_server_url" "$job_id" "$api_key" "$pr_id" "$execution_success" "$execution_message"
+
+	if [[ "$execution_success" != "true" ]]; then
+		log "OpenCode execution failed."
+		return 1
+	fi
+
 	log "OpenCode completed successfully. Running post-processing."
-	post_opencode_success "$remote_repo" "$branch" "$clone_url" "$git_token" "$task_id" "$task_summary" "$task"
 }
 
 main "$@"

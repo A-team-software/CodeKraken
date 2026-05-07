@@ -1,6 +1,8 @@
 import { RunnerTaskConfig } from "../../services/base-project-manager-task-processor";
 import { ProjectManagerTaskProcessorFactory } from "../../services/project-manager-task-processor-factory";
 import { WebhookInvocation } from "../../services/task-processor";
+import { MongoJobPersistenceLayer } from "@/brain/runner/mongo-job-persistence-layer";
+import { OpenCodeRunner } from "@/brain/runner/opencode";
 import { JobResult } from "@/brain/shared";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
@@ -14,7 +16,7 @@ function readConfiguredApiToken(): string {
 }
 
 function isUnauthenticatedAccessAllowed(): boolean {
-	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED !== "false";
+	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
 }
 
 function extractBasicAuthPassword(authorizationHeader: string): string | null {
@@ -99,6 +101,58 @@ function mergePlanIntoResult(result: JobResult, plan: string): JobResult {
 	};
 }
 
+function parseOptionalPlan(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (typeof value !== "string") {
+		throw new Error("plan field must be a string when provided.");
+	}
+
+	const plan = value.trim();
+	return plan.length > 0 ? plan : undefined;
+}
+
+function parseOptionalPrId(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (typeof value !== "string") {
+		throw new Error("prId field must be a string when provided.");
+	}
+
+	const prId = value.trim();
+	return prId.length > 0 ? prId : undefined;
+}
+
+function parseOptionalJobId(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (typeof value !== "string") {
+		throw new Error("jobId field must be a string when provided.");
+	}
+
+	const jobId = value.trim();
+	return jobId.length > 0 ? jobId : undefined;
+}
+
+function parseOptionalTodoItemId(value: unknown): string | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	if (typeof value !== "string") {
+		throw new Error("todoItemId field must be a string when provided.");
+	}
+
+	const todoItemId = value.trim();
+	return todoItemId.length > 0 ? todoItemId : undefined;
+}
+
 function buildDefaultTaskConfig(): RunnerTaskConfig {
 	return {
 		repoUrl: process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "",
@@ -134,31 +188,9 @@ function resolveTaskConfig(body: Record<string, unknown>): [RunnerTaskConfig | n
 
 export async function POST(req: NextRequest) {
 	try {
-		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
-		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
-
-		if (!allowUnauthenticated) {
-			if (!configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
-			const authHeader = req.headers.get("authorization");
-			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
-
-			if (bearerToken !== configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
+		const unauthorized = getUnauthorizedResponse(req);
+		if (unauthorized) {
+			return unauthorized;
 		}
 
 		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
@@ -194,5 +226,100 @@ export async function POST(req: NextRequest) {
 			},
 			{ status: 400 }
 		);
+	}
+}
+
+export async function PATCH(req: NextRequest) {
+	try {
+		const unauthorized = getUnauthorizedResponse(req);
+		if (unauthorized) {
+			return unauthorized;
+		}
+
+		const jobId = req.nextUrl.searchParams.get("jobId")?.trim();
+		if (!jobId) {
+			return NextResponse.json({ success: false, error: "Missing jobId query parameter." }, { status: 400 });
+		}
+
+		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
+		if (bodyError) {
+			return NextResponse.json({ success: false, error: bodyError.message || "Invalid request body." }, { status: 400 });
+		}
+
+		const bodyRecord = (body && typeof body === "object") ? (body as Record<string, unknown>) : {};
+		const [parsed, parseError] = await SafeExecute.withSync(async () => {
+			const plan = parseOptionalPlan(bodyRecord.plan);
+			const prId = parseOptionalPrId(bodyRecord.prId);
+			const payloadJobId = parseOptionalJobId(bodyRecord.jobId);
+			const rawTodoItemId = parseOptionalTodoItemId(bodyRecord.todoItemId);
+			const todoItemId = rawTodoItemId ?? (plan && !prId ? "plan" : undefined);
+			let result = parseResultUpdate(bodyRecord.result);
+
+			if (payloadJobId && payloadJobId !== jobId) {
+				throw new Error("jobId in request body must match jobId query parameter when provided.");
+			}
+
+			if (result === undefined && plan === undefined && prId === undefined) {
+				throw new Error("Request body must include at least one of: non-empty plan, prId, result.");
+			}
+
+			if (result === null && plan !== undefined) {
+				throw new Error("Cannot combine plan with a null result update.");
+			}
+
+			if (result === undefined) {
+				result = {
+					success: true,
+					message: "Job metadata updated.",
+					data: {
+						...(plan ? { plan } : {}),
+						...(prId ? { prId } : {}),
+						...(todoItemId ? { todoItemId } : {})
+					}
+				};
+			} else if (plan !== undefined && result) {
+				result = mergePlanIntoResult(result, plan);
+			}
+
+			return {
+				plan,
+				prId,
+				todoItemId,
+				payloadJobId,
+				result
+			};
+		}).execute();
+
+		if (parseError || !parsed) {
+			return NextResponse.json({ success: false, error: parseError?.message || "Invalid patch payload." }, { status: 400 });
+		}
+
+		const [_, saveError] = await SafeExecute.withSync(async () => {
+			const persistenceLayer = new MongoJobPersistenceLayer();
+			await persistenceLayer.saveJob(jobId, {
+				result: parsed.result,
+				plan: parsed.plan,
+				prId: parsed.prId,
+				todoItemId: parsed.todoItemId
+			});
+		}).execute();
+
+		if (saveError) {
+			return NextResponse.json({ success: false, error: saveError.message || "Failed to persist job update." }, { status: 400 });
+		}
+
+		if (parsed.plan && !parsed.prId) {
+			void new OpenCodeRunner().startNextIteration(undefined, undefined, jobId).catch((error) => {
+				console.warn("PATCH /api/task: next iteration start failed.", {
+					jobId,
+					error: error instanceof Error ? error.message : String(error)
+				});
+			});
+		}
+
+		return NextResponse.json({ success: true, jobId });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Unexpected task patch processing error.";
+		return NextResponse.json({ success: false, error: message }, { status: 400 });
 	}
 }

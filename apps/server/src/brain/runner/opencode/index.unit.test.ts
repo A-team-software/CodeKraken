@@ -20,6 +20,7 @@ describe("OpenCodeRunner unit", () => {
             {
                 saveJob,
                 getJob: vi.fn().mockResolvedValue(null),
+                findLatestJobByPrId: vi.fn().mockResolvedValue(null),
                 deleteJob: vi.fn().mockResolvedValue(undefined)
             } as JobPersistenceLayer,
             {
@@ -60,6 +61,7 @@ describe("OpenCodeRunner unit", () => {
             {
                 saveJob,
                 getJob: vi.fn().mockResolvedValue(null),
+                findLatestJobByPrId: vi.fn().mockResolvedValue(null),
                 deleteJob: vi.fn().mockResolvedValue(undefined)
             } as JobPersistenceLayer,
             {
@@ -85,5 +87,60 @@ describe("OpenCodeRunner unit", () => {
         const launchedConfig = startProcess.mock.calls[0]?.[0] as { task?: string };
         expect(launchedConfig.task).toContain("PLAN OUTPUT INSTRUCTIONS:");
         expect(launchedConfig.task).toContain(".plans/");
+        expect(launchedConfig.task).toContain("todos:");
+        expect(launchedConfig.task).toContain("- id: (id of the todo)");
+    });
+
+    it("passes the selected todo item id into the iteration job", async () => {
+        const startProcess = vi.fn().mockResolvedValue({ success: true, message: "started" });
+        const saveJob = vi.fn().mockResolvedValue(undefined);
+
+        const runner = new OpenCodeRunner(
+            {
+                startProcess,
+                stopProcess: vi.fn().mockResolvedValue({ success: true }),
+                pauseProcess: vi.fn().mockResolvedValue({ success: true }),
+                resumeProcess: vi.fn().mockResolvedValue({ success: true })
+            },
+            {
+                saveJob,
+                getJob: vi.fn().mockResolvedValue({
+                    id: "job-123",
+                    config: {
+                        repoUrl: "https://example.com/repo.git",
+                        mode: "plan",
+                        task: "Initial planning task"
+                    },
+                    result: null,
+                    plan: [
+                        "todos:",
+                        "    - id: todo-1",
+                        "      content: Implement the first step",
+                        "      status: pending"
+                    ].join("\n"),
+                    steps: [{
+                        todoItemId: "plan",
+                        result: { success: true, message: "Plan created" },
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }],
+                    isIncremental: true
+                }),
+                findLatestJobByPrId: vi.fn().mockResolvedValue(null),
+                deleteJob: vi.fn().mockResolvedValue(undefined)
+            } as JobPersistenceLayer,
+            {
+                getTenantConfig: vi.fn().mockResolvedValue(null)
+            } as ConfigPersistenceLayer
+        );
+
+        const result = await runner.startNextIteration(undefined, undefined, "job-123");
+
+        expect(result.success).toBe(true);
+        expect(startProcess).toHaveBeenCalledTimes(1);
+
+        const launchedConfig = startProcess.mock.calls[0]?.[0] as { task?: string; vars?: Record<string, string> };
+        expect(launchedConfig.vars?.todoItemId).toBe("todo-1");
+        expect(launchedConfig.task).toContain("Work on todo item id 'todo-1'.");
     });
 });

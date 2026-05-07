@@ -279,7 +279,8 @@ export class GcpInfrastructure implements Infrastructure {
             ...(options.task ? { TASK: options.task } : {}),
             ...(options.branch ? { BRANCH: options.branch } : {}),
             ...(options.commitHash ? { COMMIT_HASH: options.commitHash } : {}),
-            ...(options.vars?.jobId ? { JOB_ID: options.vars.jobId } : {})
+            ...(options.vars?.jobId ? { JOB_ID: options.vars.jobId } : {}),
+            ...(options.vars?.todoItemId ? { TODO_ITEM_ID: options.vars.todoItemId } : {})
         };
 
         this.copyIfSet(env, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);

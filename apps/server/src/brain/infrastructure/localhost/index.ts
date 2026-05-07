@@ -388,6 +388,11 @@ export class LocalhostInfrastructure implements Infrastructure {
             entries.push(["TASK_SUMMARY", taskSummary]);
         }
 
+        const todoItemId = options.vars?.todoItemId?.trim();
+        if (todoItemId) {
+            entries.push(["TODO_ITEM_ID", todoItemId]);
+        }
+
         this.copyEnv(entries, "AI_PROVIDER", ["AI_PROVIDER", "OPENCODE_AI_PROVIDER"]);
         this.copyEnv(entries, "AI_API_KEY", ["AI_API_KEY", "OPENCODE_AI_API_KEY", "LLM_API_KEY"]);
         this.copyEnv(entries, "GIT_USERNAME", ["GIT_USERNAME", "GIT_USER"]);
