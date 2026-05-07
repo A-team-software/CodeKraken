@@ -76,9 +76,10 @@ export async function GET(
 
         // Create response with redirect
         // For Git providers, it used to redirect to /setup?step=repos&provider=${provider}
+        const baseUrl = 'https://oliver-oliver-client.vercel.app';
         const redirectUrl = metadata?.returnTo
-            ? `${request.nextUrl.origin}${metadata.returnTo}`
-            : `${request.nextUrl.origin}/setup?step=repos&provider=${provider}`;
+            ? `${baseUrl}/${metadata.returnTo}`
+            : `${baseUrl}/setup?step=repos&provider=${provider}`;
 
         const response = NextResponse.redirect(redirectUrl, {
             status: 302,

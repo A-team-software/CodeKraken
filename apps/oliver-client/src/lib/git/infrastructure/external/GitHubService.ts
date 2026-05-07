@@ -7,7 +7,7 @@ import {
 } from '@/lib/shared/types/providers';
 import { UnifiedRepository, ProviderCapabilities } from '../../domain/types';
 import { GitProviderError } from '@/lib/shared/errors/provider.errors';
-import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, CORS_PROXY, GITHUB_AUTH_URL, GITHUB_TOKEN_URL } from '@/lib/infrastructure/config/oauth.config';
+import { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_AUTH_URL, GITHUB_TOKEN_URL } from '@/lib/infrastructure/config/oauth.config';
 import { Logger } from '@/lib/infrastructure/logging/logger';
 import { BaseGitProvider } from './BaseGitProvider';
 import { UserProps } from '@/lib/user';
