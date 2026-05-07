@@ -165,60 +165,6 @@ const app = new Elysia({ prefix: "/api" })
         };
     })
 
-    .get('/forge/repositories', async ({ userId, query, set }) => {
-        if (!userId) {
-            set.status = 401;
-            return { error: 'Unauthorized' };
-        }
-
-        const provider = (query?.provider || 'github').toString().toLowerCase();
-
-        const [userModule, importUserError] = await SafeExecute.withSync(async () => import('@oliver/user')).execute();
-        if (importUserError || !userModule) {
-            set.status = 500;
-            return { error: 'Internal server error' };
-        }
-        const { MongoUserRepository } = userModule;
-        const userRepo = new MongoUserRepository();
-        const [user, userError] = await SafeExecute.withSync(async () => userRepo.findById(userId)).execute();
-        if (userError) {
-            set.status = 500;
-            return { error: 'Failed to fetch user' };
-        }
-
-        if (!user) {
-            set.status = 404;
-            return { error: 'User not found' };
-        }
-
-        const gitAccount = user.accounts.find(a => a.provider.toLowerCase() === provider);
-        if (!gitAccount?.accessToken) {
-            set.status = 400;
-            return { error: `No ${provider} connection found. Please connect ${provider} in the SCA dashboard.` };
-        }
-
-        const [gitModule, importGitError] = await SafeExecute.withSync(async () => import('@oliver/git')).execute();
-        if (importGitError || !gitModule) {
-            set.status = 500;
-            return { error: 'Internal server error' };
-        }
-        const { GetRepositoriesUseCase } = gitModule;
-        const useCase = new GetRepositoriesUseCase();
-        const [repos, reposError] = await SafeExecute.withSync(async () =>
-            useCase.execute({
-                providerType: provider,
-                token: gitAccount.accessToken!
-            })
-        ).execute();
-
-        if (reposError) {
-            set.status = 500;
-            return { error: 'Failed to fetch repositories' };
-        }
-
-        return { repositories: repos };
-    })
-
 
     .get('/forge/github/token', async ({ userId, set }) => {
         if (!userId) {
