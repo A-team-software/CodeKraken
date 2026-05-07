@@ -20,7 +20,11 @@ export class PullRequestServiceImpl implements PullRequestService {
     ) {}
 
     async onPullRequestMerged(input: OnPullRequestMergedInput): Promise<void> {
-        const tenantConfig = await this.configPersistenceLayer.getTenantConfig(input.clientId);
+        const timeoutMs = 500;
+        const tenantConfig = await Promise.race<Awaited<ReturnType<ConfigPersistenceLayer["getTenantConfig"]>> | null>([
+            this.configPersistenceLayer.getTenantConfig(input.clientId).catch(() => null),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs))
+        ]);
         if (!tenantConfig?.incrementalPrsOn) {
             return;
         }

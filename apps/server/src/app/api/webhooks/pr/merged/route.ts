@@ -26,9 +26,10 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapte
 			return new GitLabPullRequestPayloadAdapter();
 		case "bitbucket":
 			return new BitbucketPullRequestPayloadAdapter();
-		default:
-			throw new Error(`Unsupported platform: ${platform}`);
 	}
+
+	const exhaustiveCheck: never = platform;
+	throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
 }
 
 function resolveClientId(req: NextRequest, body: unknown): string {

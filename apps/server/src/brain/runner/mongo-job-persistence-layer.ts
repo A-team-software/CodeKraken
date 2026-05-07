@@ -74,6 +74,7 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 						setFields.steps = [...existingSteps, step];
 					}
 				} else {
+					console.warn(`MongoJobPersistenceLayer.saveJob: no todoItemId for incremental job '${jobId}'. Step will be appended without deduplication.`);
 					setFields.steps = [...existingSteps, step];
 				}
 			} else {

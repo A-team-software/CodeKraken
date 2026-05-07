@@ -16,7 +16,7 @@ function readConfiguredApiToken(): string {
 }
 
 function isUnauthenticatedAccessAllowed(): boolean {
-	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED !== "false";
+	return process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
 }
 
 function extractBasicAuthPassword(authorizationHeader: string): string | null {
@@ -188,31 +188,9 @@ function resolveTaskConfig(body: Record<string, unknown>): [RunnerTaskConfig | n
 
 export async function POST(req: NextRequest) {
 	try {
-		const configuredToken = process.env.OPENCODE_TASK_API_TOKEN?.trim();
-		const allowUnauthenticated = process.env.OPENCODE_TASK_API_ALLOW_UNAUTHENTICATED?.trim().toLowerCase() === "true";
-
-		if (!allowUnauthenticated) {
-			if (!configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
-			const authHeader = req.headers.get("authorization");
-			const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
-
-			if (bearerToken !== configuredToken) {
-				return NextResponse.json(
-					{
-						success: false,
-						error: "Unauthorized"
-					},
-					{ status: 401 }
-				);
-			}
+		const unauthorized = getUnauthorizedResponse(req);
+		if (unauthorized) {
+			return unauthorized;
 		}
 
 		const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
@@ -274,6 +252,7 @@ export async function PATCH(req: NextRequest) {
 			const prId = parseOptionalPrId(bodyRecord.prId);
 			const payloadJobId = parseOptionalJobId(bodyRecord.jobId);
 			const rawTodoItemId = parseOptionalTodoItemId(bodyRecord.todoItemId);
+			const todoItemId = rawTodoItemId ?? (plan && !prId ? "plan" : undefined);
 			let result = parseResultUpdate(bodyRecord.result);
 
 			if (payloadJobId && payloadJobId !== jobId) {
@@ -295,14 +274,12 @@ export async function PATCH(req: NextRequest) {
 					data: {
 						...(plan ? { plan } : {}),
 						...(prId ? { prId } : {}),
-						...((rawTodoItemId ?? (plan && !prId ? "plan" : undefined)) ? { todoItemId: rawTodoItemId ?? "plan" } : {})
+						...(todoItemId ? { todoItemId } : {})
 					}
 				};
 			} else if (plan !== undefined && result) {
 				result = mergePlanIntoResult(result, plan);
 			}
-
-			const todoItemId = rawTodoItemId ?? (plan && !prId ? "plan" : undefined);
 
 			return {
 				plan,
@@ -332,18 +309,12 @@ export async function PATCH(req: NextRequest) {
 		}
 
 		if (parsed.plan && !parsed.prId) {
-			const [startResult, startError] = await SafeExecute.withSync(async () => {
-				const runner = new OpenCodeRunner();
-				return runner.startNextIteration(undefined, undefined, jobId);
-			}).execute();
-
-			if (startError || !startResult?.success) {
-				console.warn("PATCH /api/task: next iteration start was attempted but did not complete successfully.", {
+			void new OpenCodeRunner().startNextIteration(undefined, undefined, jobId).catch((error) => {
+				console.warn("PATCH /api/task: next iteration start failed.", {
 					jobId,
-					error: startError?.message,
-					message: startResult?.message
+					error: error instanceof Error ? error.message : String(error)
 				});
-			}
+			});
 		}
 
 		return NextResponse.json({ success: true, jobId });
