@@ -15,5 +15,10 @@ export function assertId(value: unknown, fieldName: string): string {
         throw new Error(`Invalid pull request payload: missing or invalid ${fieldName}.`);
     }
 
-    return String(value);
+    const str = String(value).trim();
+    if (!str) {
+        throw new Error(`Invalid pull request payload: missing or invalid ${fieldName}.`);
+    }
+
+    return str;
 }

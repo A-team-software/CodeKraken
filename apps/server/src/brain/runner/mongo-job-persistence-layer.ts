@@ -11,7 +11,10 @@ export class MongoJobPersistenceLayer implements JobPersistenceLayer {
 	async saveJob(jobId: string, data: { config?: JobConfig; result?: JobResult | null; plan?: string; prId?: string; todoItemId?: string; isIncremental?: boolean }): Promise<void> {
 		const collection = await this.getCollection();
 		const now = new Date();
-		const existing = await collection.findOne({ _id: jobId }) as Record<string, unknown> | null;
+		const existing = await collection.findOne(
+			{ _id: jobId },
+			{ projection: { isIncremental: 1, plan: 1, steps: 1 } }
+		) as Record<string, unknown> | null;
 		const isIncremental = data.isIncremental !== undefined
 			? data.isIncremental
 			: existing?.isIncremental === true;
