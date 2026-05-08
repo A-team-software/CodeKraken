@@ -24,6 +24,7 @@ export class GitHubPullRequestCommentPayloadAdapter implements PullRequestCommen
             id: assertId(comment?.id, "comment.id"),
             body,
             author: assertString(comment?.user?.login ?? comment?.user?.name, "comment.user.login"),
+            branch: assertString(payload?.pull_request?.head?.ref, "pull_request.head.ref"),
             mentionedUsers: extractMentionedUsers(body)
         };
     }

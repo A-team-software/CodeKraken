@@ -33,4 +33,43 @@ export class PullRequestServiceImpl implements PullRequestService {
 
         await this.runner.startNextIteration(input.prId, input.platform);
     }
+
+    async onPullRequestCommentAdded(comment: PullRequestCommentPayload, platform: PullRequestPlatform): Promise<void> {
+        const appUserByPlatform: Record<PullRequestPlatform, string | undefined> = {
+            github: process.env.GITHUB_APP_USER,
+            gitlab: process.env.GITLAB_APP_USER,
+            bitbucket: process.env.BITBUCKET_APP_USER
+        };
+
+        const configuredAppUser = appUserByPlatform[platform]?.trim().toLowerCase();
+        if (!configuredAppUser) {
+            return;
+        }
+
+        const isAppMentioned = comment.mentionedUsers.some((mentionedUser) => mentionedUser.trim().toLowerCase() === configuredAppUser);
+        if (!isAppMentioned) {
+            return;
+        }
+
+        const repoUrl = (process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "").trim();
+        if (!repoUrl) {
+            throw new Error("Missing repoUrl. Set OPENCODE_TASK_REPO_URL or OPENCODE_REPO_URL to process PR comments.");
+        }
+
+        const branch = comment.branch?.trim();
+        if (!branch) {
+            throw new Error("Missing pull request branch in comment payload.");
+        }
+
+        await this.runner.start({
+            repoUrl,
+            mode: "agent",
+            task: comment.body,
+            branch,
+            vars: {
+                sourcePlatform: platform,
+                prId: comment.id
+            }
+        });
+    }
 }

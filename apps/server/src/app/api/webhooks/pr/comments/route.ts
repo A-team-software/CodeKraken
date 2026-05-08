@@ -2,7 +2,8 @@ import {
 	BitbucketPullRequestCommentPayloadAdapter,
 	GitHubPullRequestCommentPayloadAdapter,
 	GitLabPullRequestCommentPayloadAdapter,
-	PullRequestCommentPayloadAdapter
+	PullRequestCommentPayloadAdapter,
+	PullRequestServiceImpl
 } from "@/app/services/pr";
 import { PullRequestPlatform } from "@/brain/runner/runner";
 import { NextRequest, NextResponse } from "next/server";
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 		const adapter = resolveAdapter(platform);
 		const commentPayload = adapter.adapt(payload);
+		const service = new PullRequestServiceImpl();
+		await service.onPullRequestCommentAdded(commentPayload, platform);
 
 		return NextResponse.json({
 			success: true,

@@ -31,6 +31,7 @@ export class GitLabPullRequestCommentPayloadAdapter implements PullRequestCommen
             id: assertId(attributes?.id, "object_attributes.id"),
             body,
             author: assertString(payload?.user?.username ?? payload?.user?.name, "user.username"),
+            branch: assertString(payload?.merge_request?.source_branch, "merge_request.source_branch"),
             mentionedUsers: extractMentionedUsers(body)
         };
     }

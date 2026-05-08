@@ -27,6 +27,7 @@ export class BitbucketPullRequestCommentPayloadAdapter implements PullRequestCom
                 payload?.actor?.username ?? payload?.actor?.nickname ?? payload?.actor?.display_name,
                 "actor.username"
             ),
+            branch: assertString(payload?.pullrequest?.source?.branch?.name, "pullrequest.source.branch.name"),
             mentionedUsers: extractMentionedUsers(body)
         };
     }
