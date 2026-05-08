@@ -68,7 +68,10 @@ export class PullRequestCommentsProcessorService {
 
         const repoUrl = (process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "").trim();
         if (!repoUrl) {
-            throw new Error("Missing repoUrl. Set OPENCODE_TASK_REPO_URL or OPENCODE_REPO_URL to process buffered PR comments.");
+            console.error(
+                "Skipping buffered PR comments processing because repoUrl is missing. Set OPENCODE_TASK_REPO_URL or OPENCODE_REPO_URL to process buffered PR comments."
+            );
+            return;
         }
 
         const task = buffer.comments
