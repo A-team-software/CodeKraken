@@ -45,6 +45,10 @@ The server package includes opt-in integration tests for task execution and PR a
 
 ### Incremental PR Integration Test
 
+Warning: this test performs destructive remote operations. It creates and merges pull requests, deletes remote branches, and can reset the target repository's default branch to an empty commit during cleanup.
+
+Only run this test against a disposable repository created specifically for integration testing.
+
 This scenario validates incremental progression across three stages:
 
 1. Plan persistence
@@ -60,6 +64,8 @@ Required environment variables:
 - `TEST_GITHUB_TOKEN=<token with repo access>` (or `GITHUB_TOKEN`)
 - Optional: `TEST_GITHUB_USER=<github-username>`
 - Optional override: `TEST_INCREMENTAL_PR_REPO_URL=https://github.com/hervinhio/test-repo.git`
+- Required for destructive cleanup: `TEST_ALLOW_GITHUB_REPO_RESET=true`
+- Optional allowlist override for cleanup safety: `TEST_GITHUB_REPO_RESET_ALLOWLIST=hervinhio/test-repo`
 
 Run only this integration test:
 

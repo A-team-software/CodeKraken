@@ -8,12 +8,26 @@ import { execa } from "execa";
 import { NextRequest } from "next/server";
 import { afterEach, expect, test, type TestContext, vi } from "vitest";
 
+import {
+    closeGithubPR,
+    closeOpenPRsForBranch,
+    deleteGithubBranch,
+    fetchGithubPRFiles,
+    getGithubPR,
+    githubApiRequest,
+    isCommandAvailable,
+    mergeGithubPR,
+    parseGitHubRepoUrl,
+    pollForGithubPR,
+    restoreEnv
+} from "./test-utils/integration-helpers";
 import { POST as postMergedWebhook } from "../webhooks/pr/merged/route";
 import { PATCH, POST } from "./route";
 
 const TEST_TIMEOUT_MS = 15 * 60 * 1000;
 const DEFAULT_TEST_REPO_URL = "https://github.com/hervinhio/test-repo.git";
 const TEST_REPO_URL = process.env.TEST_INCREMENTAL_PR_REPO_URL?.trim() || DEFAULT_TEST_REPO_URL;
+const DEFAULT_REPO_RESET_ALLOWLIST = "hervinhio/test-repo";
 const TEST_CLIENT_KEY = "forge-client-incremental-pr";
 const TODO_ONE_ID = "TODO-1";
 const TODO_TWO_ID = "TODO-2";
@@ -139,7 +153,7 @@ incrementalIntegrationTest("incremental PR flow runs plan, first todo, and secon
 
         const record: InMemoryJobRecord = {
             id: jobId,
-            config: data.config !== undefined ? (data.config as Record<string, unknown>) : existing?.config,
+            config: data.config !== undefined ? (data.config as unknown as Record<string, unknown>) : existing?.config,
             result: data.result !== undefined ? (data.result as Record<string, unknown> | null) : existing?.result,
             plan: data.plan !== undefined ? data.plan : existing?.plan,
             isIncremental,
@@ -341,19 +355,6 @@ function trackPrForCleanup(owner: string, repo: string, prNumber: number): void 
     createdPrsByRepo.set(key, existing);
 }
 
-function parseGitHubRepoUrl(repoUrl: string): { owner: string; name: string } {
-    const normalized = repoUrl.endsWith(".git") ? repoUrl.slice(0, -4) : repoUrl;
-    const match = normalized.match(/github\.com[:/]([^/]+)\/([^/]+)$/i);
-    if (!match) {
-        throw new Error(`Unable to parse GitHub owner/repo from URL '${repoUrl}'.`);
-    }
-
-    return {
-        owner: match[1],
-        name: match[2]
-    };
-}
-
 function joinPatches(files: Array<{ patch?: string }>): string {
     return files
         .filter((file) => typeof file.patch === "string")
@@ -373,150 +374,23 @@ function buildTaskApiHeaders(baseHeaders: Record<string, string>): Record<string
     };
 }
 
-async function isCommandAvailable(command: string): Promise<boolean> {
-    const result = await execa("sh", ["-lc", `command -v ${command}`], {
-        reject: false,
-        stdout: "pipe",
-        stderr: "pipe"
-    });
-
-    return result.exitCode === 0;
-}
-
-function restoreEnv(originalEnv: Record<string, string | undefined>): void {
-    for (const [key, value] of Object.entries(originalEnv)) {
-        if (value === undefined) {
-            delete process.env[key];
-            continue;
-        }
-
-        process.env[key] = value;
-    }
-}
-
-async function githubApiRequest(path: string, token: string, options: RequestInit = {}): Promise<Response> {
-    return fetch(`https://api.github.com${path}`, {
-        ...options,
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-            ...(options.headers as Record<string, string> ?? {})
-        }
-    });
-}
-
-async function pollForGithubPR(
-    owner: string,
-    repo: string,
-    branch: string,
-    token: string,
-    {
-        maxAttempts = 10,
-        intervalMs = 3000,
-        excludePrNumbers = []
-    }: { maxAttempts?: number; intervalMs?: number; excludePrNumbers?: number[] } = {}
-): Promise<{ number: number; html_url: string }> {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const response = await githubApiRequest(
-            `/repos/${owner}/${repo}/pulls?head=${owner}:${encodeURIComponent(branch)}&state=open`,
-            token
-        );
-
-        if (response.ok) {
-            const prs = await response.json() as Array<{ number: number; html_url: string }>;
-            const candidate = prs.find((pr) => !excludePrNumbers.includes(pr.number));
-            if (candidate) {
-                return candidate;
-            }
-        }
-
-        if (attempt < maxAttempts - 1) {
-            await new Promise(resolve => setTimeout(resolve, intervalMs));
-        }
-    }
-
-    throw new Error(`Timed out waiting for open PR on ${owner}/${repo} for branch '${branch}'.`);
-}
-
-async function getGithubPR(owner: string, repo: string, prNumber: number, token: string): Promise<{ title: string; body: string }> {
-    const response = await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}`, token);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch PR #${prNumber}: HTTP ${response.status}`);
-    }
-
-    const pr = await response.json() as { title?: string; body?: string | null };
-    return {
-        title: typeof pr.title === "string" && pr.title.trim().length > 0 ? pr.title : `PR ${prNumber}`,
-        body: typeof pr.body === "string" ? pr.body : ""
-    };
-}
-
-async function fetchGithubPRFiles(
-    owner: string,
-    repo: string,
-    prNumber: number,
-    token: string
-): Promise<Array<{ filename: string; patch?: string }>> {
-    const response = await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/files`, token);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch PR files for #${prNumber}: HTTP ${response.status}`);
-    }
-
-    return response.json() as Promise<Array<{ filename: string; patch?: string }>>;
-}
-
-async function mergeGithubPR(
-    owner: string,
-    repo: string,
-    prNumber: number,
-    token: string
-): Promise<{ merged: boolean; message?: string }> {
-    const response = await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/merge`, token, {
-        method: "PUT",
-        body: JSON.stringify({ merge_method: "merge" })
-    });
-
-    if (!response.ok) {
-        const bodyText = await response.text();
-        throw new Error(`Failed to merge PR #${prNumber}: HTTP ${response.status} ${bodyText}`);
-    }
-
-    return response.json() as Promise<{ merged: boolean; message?: string }>;
-}
-
-async function closeOpenPRsForBranch(owner: string, repo: string, branch: string, token: string): Promise<void> {
-    const response = await githubApiRequest(
-        `/repos/${owner}/${repo}/pulls?head=${owner}:${encodeURIComponent(branch)}&state=open`,
-        token
-    );
-
-    if (!response.ok) {
-        throw new Error(`Failed to list open PRs for branch '${branch}': HTTP ${response.status}`);
-    }
-
-    const prs = await response.json() as Array<{ number: number }>;
-    for (const pr of prs) {
-        await closeGithubPR(owner, repo, pr.number, token);
-    }
-}
-
-async function closeGithubPR(owner: string, repo: string, prNumber: number, token: string): Promise<void> {
-    await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}`, token, {
-        method: "PATCH",
-        body: JSON.stringify({ state: "closed" })
-    });
-}
-
-async function deleteGithubBranch(owner: string, repo: string, branch: string, token: string): Promise<void> {
-    await githubApiRequest(`/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, token, {
-        method: "DELETE"
-    });
-}
-
 async function emptyGithubRepository(owner: string, repo: string, token: string): Promise<void> {
+    const allowReset = process.env.TEST_ALLOW_GITHUB_REPO_RESET?.trim().toLowerCase() === "true";
+    if (!allowReset) {
+        throw new Error("Refusing to reset repository: set TEST_ALLOW_GITHUB_REPO_RESET=true to enable destructive cleanup.");
+    }
+
+    const allowlist = (process.env.TEST_GITHUB_REPO_RESET_ALLOWLIST || DEFAULT_REPO_RESET_ALLOWLIST)
+        .split(",")
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean);
+    const repoKey = `${owner}/${repo}`.toLowerCase();
+    if (!allowlist.includes(repoKey)) {
+        throw new Error(`Refusing to reset repository '${owner}/${repo}': not present in TEST_GITHUB_REPO_RESET_ALLOWLIST.`);
+    }
+
     if (!token) {
-        return;
+        throw new Error("Refusing to reset repository without a GitHub token.");
     }
 
     const metadataResponse = await githubApiRequest(`/repos/${owner}/${repo}`, token);

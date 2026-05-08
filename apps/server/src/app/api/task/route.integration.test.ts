@@ -5,6 +5,14 @@ import { execa } from "execa";
 import { NextRequest } from "next/server";
 import { afterEach, expect, test, type TestContext } from "vitest";
 
+import {
+    closeGithubPR,
+    deleteGithubBranch,
+    fetchGithubPRFiles,
+    isCommandAvailable,
+    pollForGithubPR,
+    restoreEnv
+} from "./test-utils/integration-helpers";
 import { POST } from "./route";
 
 const TEST_TIMEOUT_MS = 10 * 60 * 1000;
@@ -265,89 +273,3 @@ prIntegrationTest("POST /api/task creates GitHub PR with valid fibonnacy impleme
     }
 });
 
-async function isCommandAvailable(command: string): Promise<boolean> {
-    const result = await execa("sh", ["-lc", `command -v ${command}`], {
-        reject: false,
-        stdout: "pipe",
-        stderr: "pipe"
-    });
-
-    return result.exitCode === 0;
-}
-
-function restoreEnv(originalEnv: Record<string, string | undefined>): void {
-    for (const [key, value] of Object.entries(originalEnv)) {
-        if (value === undefined) {
-            delete process.env[key];
-            continue;
-        }
-
-        process.env[key] = value;
-    }
-}
-
-async function githubApiRequest(path: string, token: string, options: RequestInit = {}): Promise<Response> {
-    return fetch(`https://api.github.com${path}`, {
-        ...options,
-        headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "Content-Type": "application/json",
-            ...(options.headers as Record<string, string> ?? {})
-        }
-    });
-}
-
-async function pollForGithubPR(
-    owner: string,
-    repo: string,
-    branch: string,
-    token: string,
-    { maxAttempts = 10, intervalMs = 3000 }: { maxAttempts?: number; intervalMs?: number } = {}
-): Promise<{ number: number; html_url: string } | undefined> {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const response = await githubApiRequest(
-            `/repos/${owner}/${repo}/pulls?head=${owner}:${encodeURIComponent(branch)}&state=open`,
-            token
-        );
-
-        if (response.ok) {
-            const prs = await response.json() as Array<{ number: number; html_url: string }>;
-            if (prs.length > 0) {
-                return prs[0];
-            }
-        }
-
-        if (attempt < maxAttempts - 1) {
-            await new Promise(resolve => setTimeout(resolve, intervalMs));
-        }
-    }
-
-    return undefined;
-}
-
-async function fetchGithubPRFiles(
-    owner: string,
-    repo: string,
-    prNumber: number,
-    token: string
-): Promise<Array<{ filename: string; patch?: string }>> {
-    const response = await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}/files`, token);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch PR files: HTTP ${response.status}`);
-    }
-    return response.json() as Promise<Array<{ filename: string; patch?: string }>>;
-}
-
-async function closeGithubPR(owner: string, repo: string, prNumber: number, token: string): Promise<void> {
-    await githubApiRequest(`/repos/${owner}/${repo}/pulls/${prNumber}`, token, {
-        method: "PATCH",
-        body: JSON.stringify({ state: "closed" })
-    });
-}
-
-async function deleteGithubBranch(owner: string, repo: string, branch: string, token: string): Promise<void> {
-    await githubApiRequest(`/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, token, {
-        method: "DELETE"
-    });
-}
