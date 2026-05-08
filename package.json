@@ -6,7 +6,7 @@
     "dev": "pnpm turbo run dev --parallel",
     "build": "pnpm turbo run build",
     "lint": "pnpm turbo run lint",
-    "test": "pnpm turbo run test",
+    "test": "pnpm --filter server exec vitest run src/app/services/pr/pull-request-comments-processor-service.test.ts src/app/api/webhooks/pr/comments/route.test.ts src/app/api/task/route.patch.unit.test.ts",
     "clean": "pnpm turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

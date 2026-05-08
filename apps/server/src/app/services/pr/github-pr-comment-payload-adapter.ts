@@ -1,0 +1,32 @@
+import { assertId, assertString } from "./helpers";
+import { PullRequestCommentPayload, PullRequestCommentPayloadAdapter } from "./comment-payload-adapter";
+
+const MENTION_REGEX = /@([a-zA-Z0-9][a-zA-Z0-9._-]*)/g;
+
+function extractMentionedUsers(body: string): string[] {
+    const mentionedUsers = new Set<string>();
+    for (const match of body.matchAll(MENTION_REGEX)) {
+        const username = (match[1] || "").trim();
+        if (username) {
+            mentionedUsers.add(username);
+        }
+    }
+
+    return [...mentionedUsers];
+}
+
+export class GitHubPullRequestCommentPayloadAdapter implements PullRequestCommentPayloadAdapter {
+    adapt(payload: any): PullRequestCommentPayload {
+        const comment = payload?.comment;
+        const body = assertString(comment?.body, "comment.body");
+
+        return {
+            id: assertId(comment?.id, "comment.id"),
+            prId: assertId(payload?.pull_request?.number, "pull_request.number"),
+            body,
+            author: assertString(comment?.user?.login ?? comment?.user?.name, "comment.user.login"),
+            branch: assertString(payload?.pull_request?.head?.ref, "pull_request.head.ref"),
+            mentionedUsers: extractMentionedUsers(body)
+        };
+    }
+}
