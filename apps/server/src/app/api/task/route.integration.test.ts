@@ -14,7 +14,7 @@ async function isCommandAvailable(command: string): Promise<boolean> {
     }
 }
 
-function restoreEnv(previousEnv: NodeJS.ProcessEnv): void {
+function restoreEnv(previousEnv: Record<string, string | undefined>): void {
     for (const key of Object.keys(process.env)) {
         if (!(key in previousEnv)) {
             delete process.env[key];
@@ -44,12 +44,12 @@ async function pollForGithubPR(
     repo: string,
     headBranch: string,
     token: string,
-    timeoutMs = 120_000,
-    intervalMs = 5_000
+    {
+        maxAttempts = 24,
+        intervalMs = 5_000
+    }: { maxAttempts?: number; intervalMs?: number } = {}
 ): Promise<any> {
-    const deadline = Date.now() + timeoutMs;
-
-    while (Date.now() < deadline) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const response = await fetch(
             `https://api.github.com/repos/${owner}/${repo}/pulls?state=open&head=${owner}:${encodeURIComponent(headBranch)}`,
             {
@@ -66,7 +66,9 @@ async function pollForGithubPR(
             return pullRequests[0];
         }
 
-        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        }
     }
 
     throw new Error(`Timed out waiting for PR for branch "${headBranch}"`);
@@ -381,4 +383,3 @@ prIntegrationTest("POST /api/task creates GitHub PR with valid fibonnacy impleme
         }
     }
 });
-

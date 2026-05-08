@@ -2,6 +2,7 @@ import { OpenCodeRunner } from "@/brain/runner/opencode";
 import { PullRequestPlatform, Runner } from "@/brain/runner/runner";
 import { ConfigPersistenceLayer } from "@/brain/runner/config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "@/brain/runner/mongo-config-persistence-layer";
+import { PullRequestCommentPayload } from "./comment-payload-adatper";
 
 export interface OnPullRequestMergedInput {
     prId: string;
@@ -11,6 +12,7 @@ export interface OnPullRequestMergedInput {
 
 export interface PullRequestService {
     onPullRequestMerged: (input: OnPullRequestMergedInput) => Promise<void>;
+    onPullRequestCommentAdded: (comment: PullRequestCommentPayload, platform: PullRequestPlatform) => Promise<void>;
 }
 
 export class PullRequestServiceImpl implements PullRequestService {
