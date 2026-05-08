@@ -43,6 +43,9 @@ function App() {
 
   const [repos, setRepos] = useState([]);
   const [reposLoading, setReposLoading] = useState(false);
+  const [workspace, setWorkspace] = useState('');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   const [auth, setAuth] = useState({ connected: false, loading: true });
   const [tokenInput, setTokenInput] = useState('');
@@ -117,6 +120,31 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ─── Load workspaces for Bitbucket ──────────────────────────────────────────
+  useEffect(() => {
+    if (!auth.connected || provider !== 'bitbucket') {
+      setWorkspaces([]);
+      return;
+    }
+
+    let mounted = true;
+    setWorkspacesLoading(true);
+    (async () => {
+      try {
+        const res = await invoke('getWorkspaces', { provider });
+        if (!mounted) return;
+        const fetchedWorkspaces = Array.isArray(res?.workspaces) ? res.workspaces : [];
+        setWorkspaces(fetchedWorkspaces);
+      } catch (e) {
+        if (!mounted) return;
+        setWorkspaces([]);
+      } finally {
+        if (mounted) setWorkspacesLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [auth.connected, provider]);
+
   // ─── Load repositories once connected ─────────────────────────────────────
   useEffect(() => {
     if (!auth.connected) {
@@ -124,7 +152,13 @@ function App() {
       return;
     }
 
-    const cacheKey = `repos-${provider}`;
+    // For Bitbucket, wait until a workspace is selected
+    if (provider === 'bitbucket' && !workspace) {
+      setRepos([]);
+      return;
+    }
+
+    const cacheKey = `repos-${provider}-${workspace || 'default'}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -144,6 +178,7 @@ function App() {
       try {
         const res = await invoke('getRepositories', {
           provider,
+          workspace,
           page: 1,
           perPage: 50,
         });
@@ -163,7 +198,7 @@ function App() {
       }
     })();
     return () => { mounted = false; };
-  }, [auth.connected, provider]);
+  }, [auth.connected, provider, workspace]);
 
   // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
@@ -216,15 +251,10 @@ function App() {
 
   // ─── Connect logic (OAuth flow) ───────────────────────────────────────────
   async function handleConnectGit(targetProvider) {
-    if (targetProvider !== 'github') {
-      setError("Only GitHub is currently supported in this architecture.");
-      return;
-    }
-
     setConnecting(true);
     setError(null);
     try {
-      const data = await invoke('getGithubAuthUrl');
+      const data = await invoke('getGithubAuthUrl', { provider: targetProvider });
       console.log('getGithubAuthUrl response:', data);
       const { authUrl } = data;
       if (authUrl) {
@@ -394,6 +424,37 @@ function App() {
               {/* Task Section */}
               <Box xcss={cardStyles} className="oliver-card">
                 <Stack space="space.200">
+                  {provider === 'bitbucket' && (
+                    <Stack space="space.075">
+                      <Box as="label" htmlFor="workspaceSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
+                        Workspace
+                      </Box>
+                      <Box className="oliver-field">
+                        <Select
+                          inputId="workspaceSelect"
+                          value={(() => {
+                            const matched = workspaces.find((w) => w.slug === workspace);
+                            if (matched) return { label: matched.name || matched.slug, value: workspace };
+                            if (workspace) return { label: workspace, value: workspace };
+                            return null;
+                          })()}
+                          options={workspaces.map((w) => ({
+                            label: w.name || w.slug,
+                            value: w.slug,
+                          }))}
+                          onChange={(opt) => {
+                            if (opt?.value && opt.value !== workspace) {
+                              setWorkspace(opt.value);
+                              setRepoUrl('');
+                            }
+                          }}
+                          placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
+                          isLoading={workspacesLoading}
+                        />
+                      </Box>
+                    </Stack>
+                  )}
+
                   <Stack space="space.075">
                     <Box as="label" htmlFor="repoSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
                       Repository

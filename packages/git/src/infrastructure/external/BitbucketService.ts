@@ -137,9 +137,31 @@ export class BitbucketService extends BaseGitProvider {
         return data.account_id || data.uuid || data.username;
     }
 
-    // Stubs for other methods to satisfy abstract class
-    async getRepositories(page = 1, perPage = 30): Promise<UnifiedRepository[]> {
-        return [];
+    async getWorkspaces(): Promise<{ slug: string; name: string; }[]> {
+        const data = await this.request<any>('/workspaces');
+        return (data.values || []).map((w: any) => ({
+            slug: w.slug,
+            name: w.name,
+        }));
+    }
+
+    async getRepositories(page = 1, perPage = 30, workspace?: string): Promise<UnifiedRepository[]> {
+        if (!workspace) return [];
+        const data = await this.request<any>(`/repositories/${workspace}?page=${page}&pagelen=${perPage}`);
+        return (data.values || []).map((r: any) => ({
+            id: r.uuid,
+            name: r.name,
+            fullName: r.full_name,
+            description: r.description,
+            private: r.is_private,
+            owner: r.workspace?.slug,
+            htmlUrl: r.links?.html?.href,
+            cloneUrl: r.links?.clone?.find((c: any) => c.name === 'https')?.href || '',
+            defaultBranch: r.mainbranch?.name || 'main',
+            createdAt: new Date(r.created_on),
+            updatedAt: new Date(r.updated_on),
+            provider: 'bitbucket',
+        }));
     }
 
     async getWebhooks(repo: UnifiedRepository): Promise<UnifiedWebhook[]> {

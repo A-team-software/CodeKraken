@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
         const provider = (searchParams.get('provider') || 'github').toLowerCase();
         const page = parseInt(searchParams.get('page') || '1', 10);
         const perPage = parseInt(searchParams.get('perPage') || '50', 10);
+        const workspace = searchParams.get('workspace') || undefined;
 
         // ── Look up OAuth token by Forge identity ─────────────────────────────
         const tokenRepo = new MongoOAuthTokenRepository();
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
                 token: oauthToken.accessToken,
                 page,
                 perPage,
+                workspace,
             })
         ).execute();
 
