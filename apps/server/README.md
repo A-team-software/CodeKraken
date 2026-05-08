@@ -38,3 +38,37 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 This directory contains example API routes for the headless API app.
 
 For more details, see [route.js file convention](https://nextjs.org/docs/app/api-reference/file-conventions/route).
+
+## Integration Tests
+
+The server package includes opt-in integration tests for task execution and PR automation.
+
+### Incremental PR Integration Test
+
+Warning: this test performs destructive remote operations. It creates and merges pull requests, deletes remote branches, and can reset the target repository's default branch to an empty commit during cleanup.
+
+Only run this test against a disposable repository created specifically for integration testing.
+
+This scenario validates incremental progression across three stages:
+
+1. Plan persistence
+2. First implementation todo (fibonacci)
+3. Second implementation todo (factorial) after merged-PR webhook
+
+It uses a real GitHub PR lifecycle for PR 1 (including merge), then invokes the merged webhook route to trigger the next iteration.
+
+Required environment variables:
+
+- `TEST_ENABLE_PR_INTEGRATION_TEST=true`
+- `TEST_ENABLE_INCREMENTAL_PR_INTEGRATION_TEST=true`
+- `TEST_GITHUB_TOKEN=<token with repo access>` (or `GITHUB_TOKEN`)
+- Optional: `TEST_GITHUB_USER=<github-username>`
+- Optional override: `TEST_INCREMENTAL_PR_REPO_URL=https://github.com/hervinhio/test-repo.git`
+- Required for destructive cleanup: `TEST_ALLOW_GITHUB_REPO_RESET=true`
+- Optional allowlist override for cleanup safety: `TEST_GITHUB_REPO_RESET_ALLOWLIST=hervinhio/test-repo`
+
+Run only this integration test:
+
+```bash
+pnpm vitest src/app/api/task/route.incremental-pr.integration.test.ts --run
+```
