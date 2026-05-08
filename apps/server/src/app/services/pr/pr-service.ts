@@ -3,6 +3,7 @@ import { PullRequestPlatform, Runner } from "@/brain/runner/runner";
 import { ConfigPersistenceLayer } from "@/brain/runner/config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "@/brain/runner/mongo-config-persistence-layer";
 import { PullRequestCommentPayload } from "./comment-payload-adatper";
+import { CommentJobBufferPersistanceLayer, MongoCommentJobBufferPersistanceLayer } from "./comment-job-buffer-persistance-layer";
 
 export interface OnPullRequestMergedInput {
     prId: string;
@@ -18,7 +19,8 @@ export interface PullRequestService {
 export class PullRequestServiceImpl implements PullRequestService {
     constructor(
         private readonly runner: Runner = new OpenCodeRunner(),
-        private readonly configPersistenceLayer: ConfigPersistenceLayer = new MongoConfigPersistenceLayer()
+        private readonly configPersistenceLayer: ConfigPersistenceLayer = new MongoConfigPersistenceLayer(),
+        private readonly commentJobBufferPersistanceLayer: CommentJobBufferPersistanceLayer = new MongoCommentJobBufferPersistanceLayer()
     ) {}
 
     async onPullRequestMerged(input: OnPullRequestMergedInput): Promise<void> {
@@ -51,25 +53,14 @@ export class PullRequestServiceImpl implements PullRequestService {
             return;
         }
 
-        const repoUrl = (process.env.OPENCODE_TASK_REPO_URL || process.env.OPENCODE_REPO_URL || "").trim();
-        if (!repoUrl) {
-            throw new Error("Missing repoUrl. Set OPENCODE_TASK_REPO_URL or OPENCODE_REPO_URL to process PR comments.");
-        }
-
         const branch = comment.branch?.trim();
         if (!branch) {
             throw new Error("Missing pull request branch in comment payload.");
         }
 
-        await this.runner.start({
-            repoUrl,
-            mode: "agent",
-            task: comment.body,
-            branch,
-            vars: {
-                sourcePlatform: platform,
-                prId: comment.id
-            }
+        await this.commentJobBufferPersistanceLayer.bufferComment({
+            ...comment,
+            branch
         });
     }
 }
