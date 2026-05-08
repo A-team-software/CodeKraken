@@ -28,14 +28,14 @@ export class MongoCommentJobBufferPersistanceLayer implements CommentJobBufferPe
     async bufferComment(comment: PullRequestCommentPayload): Promise<void> {
         const collection = await this.getCollection();
         const now = Date.now();
-        const bufferId = this.toBufferId(comment.branch, comment.id);
+        const bufferId = this.toBufferId(comment.branch, comment.prId);
 
         await collection.updateOne(
             { _id: bufferId },
             {
                 $set: {
                     branch: comment.branch,
-                    prId: comment.id,
+                    prId: comment.prId,
                     processed: false,
                     updatedAt: now
                 },
