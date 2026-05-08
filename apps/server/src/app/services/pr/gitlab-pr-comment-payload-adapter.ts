@@ -26,13 +26,16 @@ export class GitLabPullRequestCommentPayloadAdapter implements PullRequestCommen
         }
 
         const body = assertString(attributes?.note, "object_attributes.note");
+        const mergeRequestId = assertId(payload?.merge_request?.iid ?? payload?.merge_request?.id, "merge_request.iid");
+        const commentId = assertId(attributes?.id, "object_attributes.id");
 
         return {
-            id: assertId(attributes?.id, "object_attributes.id"),
+            id: mergeRequestId,
+            commentId,
             body,
             author: assertString(payload?.user?.username ?? payload?.user?.name, "user.username"),
             branch: assertString(payload?.merge_request?.source_branch, "merge_request.source_branch"),
             mentionedUsers: extractMentionedUsers(body)
-        };
+        } as PullRequestCommentPayload;
     }
 }
