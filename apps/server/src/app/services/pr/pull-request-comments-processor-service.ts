@@ -48,8 +48,17 @@ export class PullRequestCommentsProcessorService {
             }
 
             for (const buffer of buffers) {
-                await this.processBuffer(buffer);
+                try {
+                    await this.processBuffer(buffer);
+                } catch (error) {
+                    console.error(
+                        `Failed to process buffered comments for branch "${buffer.branch}" and PR "${buffer.prId}":`,
+                        error
+                    );
+                }
             }
+        } catch (error) {
+            console.error("Failed to process due buffers:", error);
         } finally {
             this.isProcessing = false;
         }
