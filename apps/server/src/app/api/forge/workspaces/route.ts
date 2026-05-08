@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
-import { GetWorkspacesUseCase } from '@oliver/git/src/application/use_cases/GetWorkspacesUseCase';
+import { GetWorkspacesUseCase } from '@oliver/git';
 import { Logger, SafeExecute } from '@oliver/core';
 
 export async function GET(request: NextRequest) {
