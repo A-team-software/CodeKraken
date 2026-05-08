@@ -43,11 +43,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run processor service unit tests
-        run: pnpm --filter server exec vitest run src/app/services/pr/pull-request-comments-processor-service.test.ts
-
-      - name: Run comments route unit tests
-        run: pnpm --filter server exec vitest run src/app/api/webhooks/pr/comments/route.test.ts
-
-      - name: Run patch route unit tests
-        run: pnpm --filter server exec vitest run src/app/api/task/route.patch.unit.test.ts
+      - name: Run unit tests
+        run: pnpm test
