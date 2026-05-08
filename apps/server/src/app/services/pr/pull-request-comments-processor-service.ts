@@ -2,7 +2,7 @@ import { SafeExecute } from "@oliver/core";
 import { OpenCodeRunner } from "@/brain/runner/opencode";
 import { Runner } from "@/brain/runner/runner";
 
-import { CommentJobBufferPersistanceLayer, CommentsJobBuffer, MongoCommentJobBufferPersistanceLayer } from "./comment-job-buffer-persistance-layer";
+import { CommentJobBufferPersistenceLayer, CommentsJobBuffer, MongoCommentJobBufferPersistenceLayer } from "./comment-job-buffer-persistence-layer";
 
 const TWO_MINUTES_MS = 2 * 60 * 1000;
 
@@ -12,7 +12,7 @@ export class PullRequestCommentsProcessorService {
 
     constructor(
         private readonly runner: Runner = new OpenCodeRunner(),
-        private readonly commentJobBufferPersistanceLayer: CommentJobBufferPersistanceLayer = new MongoCommentJobBufferPersistanceLayer(),
+        private readonly commentJobBufferPersistenceLayer: CommentJobBufferPersistenceLayer = new MongoCommentJobBufferPersistenceLayer(),
         private readonly pollingIntervalMs = 30_000
     ) {}
 
@@ -44,7 +44,7 @@ export class PullRequestCommentsProcessorService {
         try {
             const cutoff = Date.now() - TWO_MINUTES_MS;
             const [buffers, findError] = await SafeExecute.withSync(async () =>
-                this.commentJobBufferPersistanceLayer.findUnprocessedBuffersOlderThan(cutoff)
+                this.commentJobBufferPersistenceLayer.findUnprocessedBuffersOlderThan(cutoff)
             ).execute();
 
             if (findError || !buffers) {
@@ -74,7 +74,7 @@ export class PullRequestCommentsProcessorService {
     private async processBuffer(buffer: CommentsJobBuffer): Promise<void> {
         if (!buffer.comments.length) {
             const [, markError] = await SafeExecute.withSync(async () =>
-                this.commentJobBufferPersistanceLayer.markProcessed(buffer.branch, buffer.prId)
+                this.commentJobBufferPersistenceLayer.markProcessed(buffer.branch, buffer.prId)
             ).execute();
             if (markError) {
                 console.warn("Failed to mark buffer processed:", markError);
@@ -97,7 +97,7 @@ export class PullRequestCommentsProcessorService {
 
         if (!task) {
             const [, markError] = await SafeExecute.withSync(async () =>
-                this.commentJobBufferPersistanceLayer.markProcessed(buffer.branch, buffer.prId)
+                this.commentJobBufferPersistenceLayer.markProcessed(buffer.branch, buffer.prId)
             ).execute();
             if (markError) {
                 console.warn("Failed to mark buffer processed:", markError);
@@ -124,7 +124,7 @@ export class PullRequestCommentsProcessorService {
         }
 
         const [, markError] = await SafeExecute.withSync(async () =>
-            this.commentJobBufferPersistanceLayer.markProcessed(buffer.branch, buffer.prId)
+            this.commentJobBufferPersistenceLayer.markProcessed(buffer.branch, buffer.prId)
         ).execute();
         if (markError) {
             console.warn("Failed to mark buffer processed:", markError);

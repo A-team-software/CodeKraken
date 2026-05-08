@@ -69,7 +69,7 @@ vi.mock("@/app/services/pr", () => ({
 			onPullRequestMerged: vi.fn()
 		};
 	}),
-	MongoCommentJobBufferPersistanceLayer: vi.fn().mockImplementation(function () {
+	MongoCommentJobBufferPersistenceLayer: vi.fn().mockImplementation(function () {
 		return {
 			bufferComment: bufferCommentMock,
 			findUnprocessedBuffersOlderThan: findUnprocessedBuffersOlderThanMock,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PullRequestCommentsProcessorService } from "./pull-request-comments-processor-service";
-import { CommentJobBufferPersistanceLayer, CommentsJobBuffer } from "./comment-job-buffer-persistance-layer";
+import { CommentJobBufferPersistenceLayer, CommentsJobBuffer } from "./comment-job-buffer-persistence-layer";
 import { Runner } from "@/brain/runner/runner";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -9,16 +9,24 @@ const {
 	findUnprocessedBuffersOlderThanMock,
 	markProcessedMock,
 	bufferCommentMock,
-	startMock
+	startMock,
+	stopMock,
+	pauseMock,
+	resumeMock,
+	saveJobMock
 } = vi.hoisted(() => ({
 	findUnprocessedBuffersOlderThanMock: vi.fn(),
 	markProcessedMock: vi.fn(),
 	bufferCommentMock: vi.fn(),
-	startMock: vi.fn().mockResolvedValue(undefined)
+	startMock: vi.fn().mockResolvedValue(undefined),
+	stopMock: vi.fn().mockResolvedValue(undefined),
+	pauseMock: vi.fn().mockResolvedValue(undefined),
+	resumeMock: vi.fn().mockResolvedValue(undefined),
+	saveJobMock: vi.fn().mockResolvedValue(undefined)
 }));
 
-// Mock CommentJobBufferPersistanceLayer
-const mockCommentJobBufferPersistanceLayer: CommentJobBufferPersistanceLayer = {
+// Mock CommentJobBufferPersistenceLayer
+const mockCommentJobBufferPersistenceLayer: CommentJobBufferPersistenceLayer = {
 	bufferComment: bufferCommentMock,
 	findUnprocessedBuffersOlderThan: findUnprocessedBuffersOlderThanMock,
 	markProcessed: markProcessedMock
@@ -27,7 +35,11 @@ const mockCommentJobBufferPersistanceLayer: CommentJobBufferPersistanceLayer = {
 // Mock Runner
 const mockRunner: Runner = {
 	start: startMock,
-	startNextIteration: vi.fn()
+	stop: stopMock,
+	pause: pauseMock,
+	startNextIteration: vi.fn(),
+	resume: resumeMock,
+	saveJob: saveJobMock
 };
 
 describe("PullRequestCommentsProcessorService", () => {
@@ -39,7 +51,7 @@ describe("PullRequestCommentsProcessorService", () => {
 		process.env.OPENCODE_TASK_REPO_URL = "https://github.com/test/repo.git";
 		service = new PullRequestCommentsProcessorService(
 			mockRunner,
-			mockCommentJobBufferPersistanceLayer,
+			mockCommentJobBufferPersistenceLayer,
 			1000 // 1 second polling interval for tests
 		);
 	});

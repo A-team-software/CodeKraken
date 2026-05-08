@@ -1,6 +1,6 @@
 import { MongoConnectionManager } from "@oliver/db";
 
-import { PullRequestCommentPayload } from "./comment-payload-adatper";
+import { PullRequestCommentPayload } from "./comment-payload-adapter";
 
 export interface CommentsJobBuffer {
     branch: string;
@@ -11,7 +11,7 @@ export interface CommentsJobBuffer {
     updatedAt: number;
 }
 
-export interface CommentJobBufferPersistanceLayer {
+export interface CommentJobBufferPersistenceLayer {
     bufferComment(comment: PullRequestCommentPayload): Promise<void>;
     findUnprocessedBuffersOlderThan(cutoffTimestamp: number): Promise<CommentsJobBuffer[]>;
     markProcessed(branch: string, prId: string): Promise<void>;
@@ -21,7 +21,7 @@ interface CommentsJobBufferDocument extends CommentsJobBuffer {
     _id: string;
 }
 
-export class MongoCommentJobBufferPersistanceLayer implements CommentJobBufferPersistanceLayer {
+export class MongoCommentJobBufferPersistenceLayer implements CommentJobBufferPersistenceLayer {
     private static readonly collectionName = "comments_job_buffers";
     private static ensureIndexPromise: Promise<void> | null = null;
 
@@ -76,7 +76,8 @@ export class MongoCommentJobBufferPersistanceLayer implements CommentJobBufferPe
             {
                 $set: {
                     processed: true,
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
+                    comments: []
                 }
             }
         );
@@ -88,16 +89,16 @@ export class MongoCommentJobBufferPersistanceLayer implements CommentJobBufferPe
 
     private async getCollection() {
         const db = await MongoConnectionManager.getDb();
-        const collection = db.collection<CommentsJobBufferDocument>(MongoCommentJobBufferPersistanceLayer.collectionName);
+        const collection = db.collection<CommentsJobBufferDocument>(MongoCommentJobBufferPersistenceLayer.collectionName);
 
-        if (!MongoCommentJobBufferPersistanceLayer.ensureIndexPromise) {
-            MongoCommentJobBufferPersistanceLayer.ensureIndexPromise = Promise.all([
+        if (!MongoCommentJobBufferPersistenceLayer.ensureIndexPromise) {
+            MongoCommentJobBufferPersistenceLayer.ensureIndexPromise = Promise.all([
                 collection.createIndex({ processed: 1, updatedAt: 1 }, { name: "processed_updatedAt_asc" }),
                 collection.createIndex({ branch: 1, prId: 1 }, { name: "branch_prId_asc" })
             ]).then(() => undefined);
         }
 
-        await MongoCommentJobBufferPersistanceLayer.ensureIndexPromise;
+        await MongoCommentJobBufferPersistenceLayer.ensureIndexPromise;
         return collection;
     }
 }

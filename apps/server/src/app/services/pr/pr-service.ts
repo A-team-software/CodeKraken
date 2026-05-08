@@ -2,8 +2,8 @@ import { OpenCodeRunner } from "@/brain/runner/opencode";
 import { PullRequestPlatform, Runner } from "@/brain/runner/runner";
 import { ConfigPersistenceLayer } from "@/brain/runner/config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "@/brain/runner/mongo-config-persistence-layer";
-import { PullRequestCommentPayload } from "./comment-payload-adatper";
-import { CommentJobBufferPersistanceLayer, MongoCommentJobBufferPersistanceLayer } from "./comment-job-buffer-persistance-layer";
+import { PullRequestCommentPayload } from "./comment-payload-adapter";
+import { CommentJobBufferPersistenceLayer, MongoCommentJobBufferPersistenceLayer } from "./comment-job-buffer-persistence-layer";
 
 export interface OnPullRequestMergedInput {
     prId: string;
@@ -20,7 +20,7 @@ export class PullRequestServiceImpl implements PullRequestService {
     constructor(
         private readonly runner: Runner = new OpenCodeRunner(),
         private readonly configPersistenceLayer: ConfigPersistenceLayer = new MongoConfigPersistenceLayer(),
-        private readonly commentJobBufferPersistanceLayer: CommentJobBufferPersistanceLayer = new MongoCommentJobBufferPersistanceLayer()
+        private readonly commentJobBufferPersistenceLayer: CommentJobBufferPersistenceLayer = new MongoCommentJobBufferPersistenceLayer()
     ) {}
 
     async onPullRequestMerged(input: OnPullRequestMergedInput): Promise<void> {
@@ -58,7 +58,7 @@ export class PullRequestServiceImpl implements PullRequestService {
             throw new Error("Missing pull request branch in comment payload.");
         }
 
-        await this.commentJobBufferPersistanceLayer.bufferComment({
+        await this.commentJobBufferPersistenceLayer.bufferComment({
             ...comment,
             branch
         });

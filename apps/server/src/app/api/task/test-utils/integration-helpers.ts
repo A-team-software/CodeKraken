@@ -11,6 +11,12 @@ export async function isCommandAvailable(command: string): Promise<boolean> {
 }
 
 export function restoreEnv(originalEnv: Record<string, string | undefined>): void {
+    for (const key of Object.keys(process.env)) {
+        if (!(key in originalEnv)) {
+            delete process.env[key];
+        }
+    }
+
     for (const [key, value] of Object.entries(originalEnv)) {
         if (value === undefined) {
             delete process.env[key];
