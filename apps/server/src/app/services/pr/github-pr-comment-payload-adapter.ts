@@ -22,6 +22,7 @@ export class GitHubPullRequestCommentPayloadAdapter implements PullRequestCommen
 
         return {
             id: assertId(comment?.id, "comment.id"),
+            prId: assertId(payload?.pull_request?.number, "pull_request.number"),
             body,
             author: assertString(comment?.user?.login ?? comment?.user?.name, "comment.user.login"),
             branch: assertString(payload?.pull_request?.head?.ref, "pull_request.head.ref"),

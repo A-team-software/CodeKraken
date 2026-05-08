@@ -47,8 +47,7 @@ describe("PullRequestCommentsProcessorService", () => {
 	afterEach(() => {
 		process.env = { ...ORIGINAL_ENV };
 		if (service) {
-			// Clear any active intervals
-			vi.clearAllTimers();
+			service.stop();
 		}
 	});
 
@@ -64,6 +63,15 @@ describe("PullRequestCommentsProcessorService", () => {
 			service.start();
 			service.start();
 			expect(intervalSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it("should allow restart after stop()", () => {
+			const intervalSpy = vi.spyOn(global, "setInterval");
+			findUnprocessedBuffersOlderThanMock.mockResolvedValue([]);
+			service.start();
+			service.stop();
+			service.start();
+			expect(intervalSpy).toHaveBeenCalledTimes(2);
 		});
 
 		it("should call processDueBuffers immediately", async () => {
@@ -117,7 +125,7 @@ describe("PullRequestCommentsProcessorService", () => {
 					branch: "feature-1",
 					prId: "101",
 					comments: [
-						{ id: "1", body: "Fix the bug", author: "user1", branch: "feature-1" }
+						{ id: "1", prId: "101", body: "Fix the bug", author: "user1", branch: "feature-1", mentionedUsers: [] }
 					],
 					processed: false,
 					createdAt: Date.now(),
@@ -127,7 +135,7 @@ describe("PullRequestCommentsProcessorService", () => {
 					branch: "feature-2",
 					prId: "102",
 					comments: [
-						{ id: "2", body: "Add feature", author: "user2", branch: "feature-2" }
+						{ id: "2", prId: "102", body: "Add feature", author: "user2", branch: "feature-2", mentionedUsers: [] }
 					],
 					processed: false,
 					createdAt: Date.now(),
@@ -164,7 +172,7 @@ describe("PullRequestCommentsProcessorService", () => {
 			expect(startMock).not.toHaveBeenCalled();
 		});
 
-		it("should throw error when repoUrl is not configured", async () => {
+		it("should skip processing and log error when repoUrl is not configured", async () => {
 			delete process.env.OPENCODE_TASK_REPO_URL;
 			delete process.env.OPENCODE_REPO_URL;
 
@@ -172,16 +180,19 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "test", author: "user1", branch: "feature" }
+					{ id: "1", prId: "123", body: "test", author: "user1", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
 				updatedAt: Date.now()
 			};
 
-			await expect((service as any).processBuffer(buffer)).rejects.toThrow(
-				"Missing repoUrl. Set OPENCODE_TASK_REPO_URL or OPENCODE_REPO_URL to process buffered PR comments."
-			);
+			const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+			await (service as any).processBuffer(buffer);
+
+			expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("OPENCODE_TASK_REPO_URL"));
+			expect(startMock).not.toHaveBeenCalled();
+			consoleSpy.mockRestore();
 		});
 
 		it("should use OPENCODE_REPO_URL as fallback", async () => {
@@ -192,7 +203,7 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "test", author: "user1", branch: "feature" }
+					{ id: "1", prId: "123", body: "test", author: "user1", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -216,9 +227,9 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "First comment", author: "user1", branch: "feature" },
-					{ id: "2", body: "  Second comment  ", author: "user2", branch: "feature" },
-					{ id: "3", body: "Third comment", author: "user3", branch: "feature" }
+					{ id: "1", prId: "123", body: "First comment", author: "user1", branch: "feature", mentionedUsers: [] },
+					{ id: "2", prId: "123", body: "  Second comment  ", author: "user2", branch: "feature", mentionedUsers: [] },
+					{ id: "3", prId: "123", body: "Third comment", author: "user3", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -242,7 +253,7 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "develop",
 				prId: "456",
 				comments: [
-					{ id: "1", body: "Deploy to production", author: "user1", branch: "develop" }
+					{ id: "1", prId: "456", body: "Deploy to production", author: "user1", branch: "develop", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -271,7 +282,7 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "test", author: "user1", branch: "feature" }
+					{ id: "1", prId: "123", body: "test", author: "user1", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -295,7 +306,7 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "789",
 				comments: [
-					{ id: "1", body: "test task", author: "user1", branch: "feature" }
+					{ id: "1", prId: "789", body: "test task", author: "user1", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -315,7 +326,7 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "test", author: "user1", branch: "feature" }
+					{ id: "1", prId: "123", body: "test", author: "user1", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),
@@ -339,8 +350,8 @@ describe("PullRequestCommentsProcessorService", () => {
 				branch: "feature",
 				prId: "123",
 				comments: [
-					{ id: "1", body: "   ", author: "user1", branch: "feature" },
-					{ id: "2", body: "\n\n", author: "user2", branch: "feature" }
+					{ id: "1", prId: "123", body: "   ", author: "user1", branch: "feature", mentionedUsers: [] },
+					{ id: "2", prId: "123", body: "\n\n", author: "user2", branch: "feature", mentionedUsers: [] }
 				],
 				processed: false,
 				createdAt: Date.now(),

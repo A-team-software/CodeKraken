@@ -28,6 +28,13 @@ export class PullRequestCommentsProcessorService {
         void this.processDueBuffers();
     }
 
+    stop(): void {
+        if (this.intervalHandle) {
+            clearInterval(this.intervalHandle);
+            this.intervalHandle = null;
+        }
+    }
+
     private async processDueBuffers(): Promise<void> {
         if (this.isProcessing) {
             return;

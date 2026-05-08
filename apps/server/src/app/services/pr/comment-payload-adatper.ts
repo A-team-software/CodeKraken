@@ -1,5 +1,6 @@
 export interface PullRequestCommentPayload {
     id: string;
+    prId: string;
     body: string;
     author: string;
     branch: string;

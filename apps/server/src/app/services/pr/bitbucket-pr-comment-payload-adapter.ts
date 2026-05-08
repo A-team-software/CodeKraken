@@ -22,6 +22,7 @@ export class BitbucketPullRequestCommentPayloadAdapter implements PullRequestCom
 
         return {
             id: assertId(comment?.id, "comment.id"),
+            prId: assertId(payload?.pullrequest?.id, "pullrequest.id"),
             body,
             author: assertString(
                 payload?.actor?.username ?? payload?.actor?.nickname ?? payload?.actor?.display_name,

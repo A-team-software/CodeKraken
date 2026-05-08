@@ -14,6 +14,7 @@ const {
 	const githubAdapterMock = {
 		adapt: vi.fn((payload: any) => ({
 			id: payload.comment?.id?.toString() || "1",
+			prId: payload.pull_request?.number?.toString() || "1",
 			body: payload.comment?.body || "",
 			author: payload.comment?.user?.login || "user",
 			branch: payload.pull_request?.head?.ref || "main",
@@ -23,6 +24,7 @@ const {
 	const gitlabAdapterMock = {
 		adapt: vi.fn((payload: any) => ({
 			id: payload.object_attributes?.id?.toString() || "1",
+			prId: payload.merge_request?.iid?.toString() || payload.merge_request?.id?.toString() || "1",
 			body: payload.object_attributes?.note || "",
 			author: payload.user?.username || "user",
 			branch: payload.object_attributes?.merge_request?.source_branch || "main",
@@ -32,6 +34,7 @@ const {
 	const bitbucketAdapterMock = {
 		adapt: vi.fn((payload: any) => ({
 			id: payload.comment?.id?.toString() || "1",
+			prId: payload.pullrequest?.id?.toString() || "1",
 			body: payload.comment?.content?.raw || "",
 			author: payload.actor?.username || payload.actor?.nickname || payload.actor?.display_name || "user",
 			branch: payload.pullrequest?.source?.branch?.name || "main",
