@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "../../components/ui/button";
-import { LoginModal } from "../../components/auth/LoginModal";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
@@ -338,13 +337,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLogin={handleSignIn}
-      />
     </div>
   );
 }
