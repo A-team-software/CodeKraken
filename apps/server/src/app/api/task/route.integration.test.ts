@@ -5,14 +5,123 @@ import { execa } from "execa";
 import { NextRequest } from "next/server";
 import { afterEach, expect, test, type TestContext } from "vitest";
 
-import {
-    closeGithubPR,
-    deleteGithubBranch,
-    fetchGithubPRFiles,
-    isCommandAvailable,
-    pollForGithubPR,
-    restoreEnv
-} from "./test-utils/integration-helpers";
+async function isCommandAvailable(command: string): Promise<boolean> {
+    try {
+        await execa(command, ["--version"]);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function restoreEnv(previousEnv: NodeJS.ProcessEnv): void {
+    for (const key of Object.keys(process.env)) {
+        if (!(key in previousEnv)) {
+            delete process.env[key];
+        }
+    }
+
+    for (const [key, value] of Object.entries(previousEnv)) {
+        if (typeof value === "undefined") {
+            delete process.env[key];
+        } else {
+            process.env[key] = value;
+        }
+    }
+}
+
+function getGithubHeaders(token: string): Record<string, string> {
+    return {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "User-Agent": "vitest-integration-test",
+        "X-GitHub-Api-Version": "2022-11-28"
+    };
+}
+
+async function pollForGithubPR(
+    owner: string,
+    repo: string,
+    headBranch: string,
+    token: string,
+    timeoutMs = 120_000,
+    intervalMs = 5_000
+): Promise<any> {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+        const response = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/pulls?state=open&head=${owner}:${encodeURIComponent(headBranch)}`,
+            {
+                headers: getGithubHeaders(token)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Failed to poll GitHub PRs: ${response.status} ${response.statusText}`);
+        }
+
+        const pullRequests = (await response.json()) as any[];
+        if (pullRequests.length > 0) {
+            return pullRequests[0];
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+
+    throw new Error(`Timed out waiting for PR for branch "${headBranch}"`);
+}
+
+async function fetchGithubPRFiles(
+    owner: string,
+    repo: string,
+    pullNumber: number,
+    token: string
+): Promise<any[]> {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}/files`, {
+        headers: getGithubHeaders(token)
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch GitHub PR files: ${response.status} ${response.statusText}`);
+    }
+
+    return (await response.json()) as any[];
+}
+
+async function closeGithubPR(owner: string, repo: string, pullNumber: number, token: string): Promise<void> {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${pullNumber}`, {
+        method: "PATCH",
+        headers: {
+            ...getGithubHeaders(token),
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ state: "closed" })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to close GitHub PR #${pullNumber}: ${response.status} ${response.statusText}`);
+    }
+}
+
+async function deleteGithubBranch(owner: string, repo: string, branch: string, token: string): Promise<void> {
+    const response = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`,
+        {
+            method: "DELETE",
+            headers: getGithubHeaders(token)
+        }
+    );
+
+    if (response.status === 404 || response.status === 422) {
+        return;
+    }
+
+    if (!response.ok) {
+        throw new Error(`Failed to delete GitHub branch "${branch}": ${response.status} ${response.statusText}`);
+    }
+}
+
 import { POST } from "./route";
 
 const TEST_TIMEOUT_MS = 10 * 60 * 1000;
