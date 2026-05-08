@@ -76,7 +76,8 @@ export class MongoCommentJobBufferPersistanceLayer implements CommentJobBufferPe
             {
                 $set: {
                     processed: true,
-                    updatedAt: Date.now()
+                    updatedAt: Date.now(),
+                    comments: []
                 }
             }
         );
