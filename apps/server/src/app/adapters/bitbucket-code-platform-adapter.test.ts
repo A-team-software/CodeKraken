@@ -27,7 +27,7 @@ describe("BitbucketCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new BitbucketCodePlatformAdapter();
-        await expect(adapter.getPullRequestAuthorUsername("88", "bitbucket")).resolves.toBe("reviewer");
+        await expect(adapter.getPullRequestAuthorUsername("88")).resolves.toBe("reviewer");
         expect(fetchMock).toHaveBeenCalledWith(
             "https://api.bitbucket.org/2.0/repositories/acme/repo/pullrequests/88",
             expect.objectContaining({
@@ -60,7 +60,7 @@ describe("BitbucketCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new BitbucketCodePlatformAdapter();
-        await expect(adapter.getPullRequestComments("88", "bitbucket")).resolves.toEqual([
+        await expect(adapter.getPullRequestComments("88")).resolves.toEqual([
             {
                 id: "31",
                 prId: "88",
@@ -84,7 +84,7 @@ describe("BitbucketCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new BitbucketCodePlatformAdapter();
-        await adapter.postCommentOnPullRequest("88", "bitbucket", [
+        await adapter.postCommentOnPullRequest("88", [
             { id: "1", authorUsername: "oliver", content: "First", createdAt: new Date() },
             { id: "2", authorUsername: "oliver", content: "Second", createdAt: new Date() }
         ]);

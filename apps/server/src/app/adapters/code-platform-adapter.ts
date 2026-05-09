@@ -29,13 +29,13 @@ export function createCodePlatformAdapter(platform: PullRequestPlatform): CodePl
 
     return {
         getPullRequestAuthorUsername(prId: string) {
-            return adapter.getPullRequestAuthorUsername(prId, platform);
+            return adapter.getPullRequestAuthorUsername(prId);
         },
         getPullRequestComments(prId: string) {
-            return adapter.getPullRequestComments(prId, platform);
+            return adapter.getPullRequestComments(prId);
         },
         postCommentOnPullRequest(prId: string, comments: PullRequestComment[]) {
-            return adapter.postCommentOnPullRequest(prId, platform, comments);
+            return adapter.postCommentOnPullRequest(prId, comments);
         },
     };
 }

@@ -88,8 +88,8 @@ function createPostRequest(
 	body: unknown = { comment: { id: 1, body: "test", user: { login: "user" } }, pull_request: { head: { ref: "main" } } }
 ): NextRequest {
 	const url = platform 
-		? `http://localhost:3000/api/webhooks/pr/comments?platform=${platform}`
-		: "http://localhost:3000/api/webhooks/pr/comments";
+		? `http://localhost:3000/api/webhooks/pr/commented?platform=${platform}`
+		: "http://localhost:3000/api/webhooks/pr/commented";
 
 	return new NextRequest(url, {
 		method: "POST",
@@ -98,7 +98,7 @@ function createPostRequest(
 	});
 }
 
-describe("POST /api/webhooks/pr/comments", () => {
+describe("POST /api/webhooks/pr/commented", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});

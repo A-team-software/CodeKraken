@@ -27,7 +27,7 @@ describe("GitLabCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitLabCodePlatformAdapter();
-        await expect(adapter.getPullRequestAuthorUsername("99", "gitlab")).resolves.toBe("reviewer");
+        await expect(adapter.getPullRequestAuthorUsername("99")).resolves.toBe("reviewer");
         expect(fetchMock).toHaveBeenCalledWith(
             "https://gitlab.example.com/api/v4/projects/123/merge_requests/99",
             expect.objectContaining({
@@ -41,6 +41,7 @@ describe("GitLabCodePlatformAdapter", () => {
             .mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ source_branch: "feature-y" }),
+                headers: new Headers(),
                 text: async () => ""
             })
             .mockResolvedValueOnce({
@@ -60,12 +61,13 @@ describe("GitLabCodePlatformAdapter", () => {
                         ]
                     }
                 ]),
+                headers: new Headers(),
                 text: async () => ""
             });
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitLabCodePlatformAdapter();
-        await expect(adapter.getPullRequestComments("99", "gitlab")).resolves.toEqual([
+        await expect(adapter.getPullRequestComments("99")).resolves.toEqual([
             {
                 id: "21",
                 prId: "99",
@@ -89,7 +91,7 @@ describe("GitLabCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitLabCodePlatformAdapter();
-        await adapter.postCommentOnPullRequest("99", "gitlab", [
+        await adapter.postCommentOnPullRequest("99", [
             { id: "1", authorUsername: "oliver", content: "First", createdAt: new Date() },
             { id: "2", authorUsername: "oliver", content: "Second", createdAt: new Date() }
         ]);

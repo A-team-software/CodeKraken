@@ -106,7 +106,6 @@ describe("PullRequestServiceImpl", () => {
         expect(createCodePlatformAdapterMock).toHaveBeenCalledWith("github");
         expect(adapterMock.postCommentOnPullRequest).toHaveBeenCalledWith(
             "123",
-            "github",
             expect.arrayContaining([
                 expect.objectContaining({
                     content: expect.stringContaining("incremental workflow")
@@ -125,7 +124,6 @@ describe("PullRequestServiceImpl", () => {
 
         expect(adapterMock.postCommentOnPullRequest).toHaveBeenCalledWith(
             "123",
-            "github",
             expect.arrayContaining([
                 expect.objectContaining({
                     content: expect.stringContaining("go ahead and merge")
@@ -144,7 +142,6 @@ describe("PullRequestServiceImpl", () => {
 
         expect(adapterMock.postCommentOnPullRequest).toHaveBeenCalledWith(
             "123",
-            "github",
             expect.arrayContaining([
                 expect.objectContaining({
                     content: expect.stringContaining("detailed explanation")
@@ -174,7 +171,6 @@ describe("PullRequestServiceImpl", () => {
 
         expect(adapterMock.postCommentOnPullRequest).toHaveBeenCalledWith(
             "123",
-            "github",
             expect.arrayContaining([
                 expect.objectContaining({
                     content: expect.stringContaining("code-specific explanation")

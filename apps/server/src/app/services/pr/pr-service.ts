@@ -88,7 +88,7 @@ export class PullRequestServiceImpl implements PullRequestService {
             }
         ];
 
-        await adapter.postCommentOnPullRequest(review.id, platform, comments);
+            await adapter.postCommentOnPullRequest(review.id, comments);
     }
 
     private async handleChangesRequestedReview(
@@ -96,11 +96,11 @@ export class PullRequestServiceImpl implements PullRequestService {
         platform: PullRequestPlatform,
         adapter: ReturnType<typeof createCodePlatformAdapter>
     ): Promise<void> {
-        const allComments = await adapter.getPullRequestComments(review.id, platform);
+        const allComments = await adapter.getPullRequestComments(review.id);
         const unresolvedComments = allComments.filter((comment) => comment.resolved !== true);
 
         if (!unresolvedComments.length) {
-            await adapter.postCommentOnPullRequest(review.id, platform, [
+            await adapter.postCommentOnPullRequest(review.id, [
                 this.buildServiceComment(
                     review.id,
                     "Thanks for the review. Could you provide a detailed explanation of the requested changes and point us to the relevant code sections?"
@@ -114,7 +114,7 @@ export class PullRequestServiceImpl implements PullRequestService {
         );
 
         if (!codeChangeComments.length) {
-            await adapter.postCommentOnPullRequest(review.id, platform, [
+            await adapter.postCommentOnPullRequest(review.id, [
                 this.buildServiceComment(
                     review.id,
                     "Thanks for the requested changes. Please share a detailed, code-specific explanation (file and line references) so we can address the feedback precisely."

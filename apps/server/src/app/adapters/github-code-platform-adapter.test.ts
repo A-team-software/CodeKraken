@@ -27,7 +27,7 @@ describe("GitHubCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitHubCodePlatformAdapter();
-        await expect(adapter.getPullRequestAuthorUsername("123", "github")).resolves.toBe("octocat");
+        await expect(adapter.getPullRequestAuthorUsername("123")).resolves.toBe("octocat");
         expect(fetchMock).toHaveBeenCalledWith(
             "https://api.github.com/repos/acme/repo/pulls/123",
             expect.objectContaining({
@@ -45,22 +45,40 @@ describe("GitHubCodePlatformAdapter", () => {
             })
             .mockResolvedValueOnce({
                 ok: true,
-                json: async () => ([
-                    {
-                        id: 11,
-                        body: "Looks good",
-                        user: { login: "reviewer" },
-                        path: "src/app.ts",
-                        line: 10,
-                        original_line: 10
+                json: async () => ({
+                    data: {
+                        repository: {
+                            pullRequest: {
+                                reviewThreads: {
+                                    nodes: [
+                                        {
+                                            isResolved: true,
+                                            comments: {
+                                                nodes: [
+                                                    {
+                                                        databaseId: 11,
+                                                        id: "comment-11",
+                                                        body: "Looks good",
+                                                        path: "src/app.ts",
+                                                        line: 10,
+                                                        author: { login: "reviewer" }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    pageInfo: { hasNextPage: false, endCursor: null }
+                                }
+                            }
+                        }
                     }
-                ]),
+                }),
                 text: async () => ""
             });
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitHubCodePlatformAdapter();
-        await expect(adapter.getPullRequestComments("123", "github")).resolves.toEqual([
+        await expect(adapter.getPullRequestComments("123")).resolves.toEqual([
             {
                 id: "11",
                 prId: "123",
@@ -70,7 +88,7 @@ describe("GitHubCodePlatformAdapter", () => {
                 mentionedUsers: [],
                 filePath: "src/app.ts",
                 lineNumber: 10,
-                resolved: false
+                resolved: true
             }
         ]);
     });
@@ -84,7 +102,7 @@ describe("GitHubCodePlatformAdapter", () => {
         vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
         const adapter = new GitHubCodePlatformAdapter();
-        await adapter.postCommentOnPullRequest("123", "github", [
+        await adapter.postCommentOnPullRequest("123", [
             { id: "1", authorUsername: "oliver", content: "First", createdAt: new Date() },
             { id: "2", authorUsername: "oliver", content: "Second", createdAt: new Date() }
         ]);

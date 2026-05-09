@@ -1,6 +1,5 @@
 import { PullRequestCommentPayload } from "@/app/services/pr/comment-payload-adapter";
 import { PullRequestComment } from "@/types/pull-request-comment";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { CodePlatformAdapter } from "./code-platform-adapter";
 
 const MENTION_REGEX = /@([a-zA-Z0-9][a-zA-Z0-9._-]*)/g;
@@ -44,8 +43,55 @@ async function request<T>(baseUrl: string, path: string, token: string, options:
     return response.json() as Promise<T>;
 }
 
+async function requestWithHeaders<T>(baseUrl: string, path: string, token: string, options: RequestInit = {}): Promise<{ data: T; headers: Headers }> {
+    const url = `${baseUrl}/api/v4${path}`;
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            "PRIVATE-TOKEN": token,
+            "Content-Type": "application/json",
+            ...((options.headers as Record<string, string>) ?? {}),
+        },
+    });
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(`GitLab API error ${response.status} on ${path}: ${text}`);
+    }
+
+    return { data: (await response.json()) as T, headers: response.headers };
+}
+
+async function loadAllGitLabPages<T>(baseUrl: string, path: string, token: string): Promise<T[]> {
+    const items: T[] = [];
+    let page = 1;
+
+    while (true) {
+        const separator = path.includes("?") ? "&" : "?";
+        const { data, headers } = await requestWithHeaders<T[]>(
+            baseUrl,
+            `${path}${separator}per_page=100&page=${page}`,
+            token
+        );
+
+        items.push(...data);
+
+        const nextPage = headers.get("x-next-page")?.trim();
+        if (!nextPage) {
+            break;
+        }
+
+        page = Number(nextPage);
+        if (!Number.isFinite(page) || page <= 0) {
+            break;
+        }
+    }
+
+    return items;
+}
+
 export class GitLabCodePlatformAdapter implements CodePlatformAdapter {
-    async getPullRequestAuthorUsername(prId: string, _platform: PullRequestPlatform): Promise<string | null> {
+    async getPullRequestAuthorUsername(prId: string): Promise<string | null> {
         const { token, baseUrl, projectId } = getConfig();
         const mr = await request<{ author: { username: string } }>(
             baseUrl,
@@ -55,7 +101,7 @@ export class GitLabCodePlatformAdapter implements CodePlatformAdapter {
         return mr.author?.username ?? null;
     }
 
-    async getPullRequestComments(prId: string, _platform: PullRequestPlatform): Promise<PullRequestCommentPayload[]> {
+    async getPullRequestComments(prId: string): Promise<PullRequestCommentPayload[]> {
         const { token, baseUrl, projectId } = getConfig();
         const encodedProjectId = encodeURIComponent(projectId);
 
@@ -65,7 +111,7 @@ export class GitLabCodePlatformAdapter implements CodePlatformAdapter {
                 `/projects/${encodedProjectId}/merge_requests/${prId}`,
                 token
             ),
-            request<Array<{
+            loadAllGitLabPages<{
                 notes: Array<{
                     id: number;
                     body: string;
@@ -75,7 +121,7 @@ export class GitLabCodePlatformAdapter implements CodePlatformAdapter {
                     resolved?: boolean;
                     position?: { new_path?: string; old_path?: string; new_line?: number; old_line?: number };
                 }>;
-            }>>(
+            }>(
                 baseUrl,
                 `/projects/${encodedProjectId}/merge_requests/${prId}/discussions`,
                 token
@@ -100,7 +146,7 @@ export class GitLabCodePlatformAdapter implements CodePlatformAdapter {
             }));
     }
 
-    async postCommentOnPullRequest(prId: string, _platform: PullRequestPlatform, comments: PullRequestComment[]): Promise<void> {
+    async postCommentOnPullRequest(prId: string, comments: PullRequestComment[]): Promise<void> {
         const { token, baseUrl, projectId } = getConfig();
         for (const comment of comments) {
             await request(

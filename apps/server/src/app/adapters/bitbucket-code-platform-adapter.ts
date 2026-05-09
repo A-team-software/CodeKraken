@@ -1,6 +1,5 @@
 import { PullRequestCommentPayload } from "@/app/services/pr/comment-payload-adapter";
 import { PullRequestComment } from "@/types/pull-request-comment";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { CodePlatformAdapter } from "./code-platform-adapter";
 
 const MENTION_REGEX = /@([a-zA-Z0-9][a-zA-Z0-9._-]*)/g;
@@ -46,8 +45,34 @@ async function request<T>(path: string, token: string, options: RequestInit = {}
     return response.json() as Promise<T>;
 }
 
+type BitbucketPage<T> = {
+    next?: string | null;
+    values?: T[];
+};
+
+async function loadAllBitbucketPages<T>(path: string, token: string): Promise<T[]> {
+    const items: T[] = [];
+    let nextPath: string | null = path;
+
+    while (nextPath) {
+        const page: BitbucketPage<T> = await request<BitbucketPage<T>>(nextPath, token);
+        if (Array.isArray(page.values)) {
+            items.push(...page.values);
+        }
+
+        if (page.next) {
+            const nextUrl: URL = new URL(page.next);
+            nextPath = `${nextUrl.pathname}${nextUrl.search}`;
+        } else {
+            nextPath = null;
+        }
+    }
+
+    return items;
+}
+
 export class BitbucketCodePlatformAdapter implements CodePlatformAdapter {
-    async getPullRequestAuthorUsername(prId: string, _platform: PullRequestPlatform): Promise<string | null> {
+    async getPullRequestAuthorUsername(prId: string): Promise<string | null> {
         const { token, workspace, repoSlug } = getConfig();
         const pr = await request<{ author: { nickname: string; display_name: string } }>(
             `/repositories/${workspace}/${repoSlug}/pullrequests/${prId}`,
@@ -56,28 +81,25 @@ export class BitbucketCodePlatformAdapter implements CodePlatformAdapter {
         return pr.author?.nickname ?? pr.author?.display_name ?? null;
     }
 
-    async getPullRequestComments(prId: string, _platform: PullRequestPlatform): Promise<PullRequestCommentPayload[]> {
+    async getPullRequestComments(prId: string): Promise<PullRequestCommentPayload[]> {
         const { token, workspace, repoSlug } = getConfig();
         const basePath = `/repositories/${workspace}/${repoSlug}/pullrequests/${prId}`;
 
         const [pr, commentsPage] = await Promise.all([
             request<{ source: { branch: { name: string } } }>(basePath, token),
-            request<{ values: Array<{
+            loadAllBitbucketPages<{
                 id: number;
                 content: { raw: string };
                 user: { nickname: string; display_name: string };
                 inline?: { path?: string; to?: number; from?: number };
                 deleted?: boolean;
                 resolution?: unknown;
-            }> }>(
-                `${basePath}/comments`,
-                token
-            ),
+            }>(`${basePath}/comments?pagelen=100`, token),
         ]);
 
         const branch = pr.source?.branch?.name ?? "";
 
-        return commentsPage.values.map((c) => {
+        return commentsPage.map((c) => {
             const body = c.content?.raw ?? "";
             return {
                 id: String(c.id),
@@ -93,7 +115,7 @@ export class BitbucketCodePlatformAdapter implements CodePlatformAdapter {
         });
     }
 
-    async postCommentOnPullRequest(prId: string, _platform: PullRequestPlatform, comments: PullRequestComment[]): Promise<void> {
+    async postCommentOnPullRequest(prId: string, comments: PullRequestComment[]): Promise<void> {
         const { token, workspace, repoSlug } = getConfig();
         for (const comment of comments) {
             await request(
