@@ -251,6 +251,7 @@ function App() {
 
   // ─── Connect logic (OAuth flow) ───────────────────────────────────────────
   async function handleConnectGit(targetProvider) {
+    setProvider(targetProvider);
     setConnecting(true);
     setError(null);
     try {
