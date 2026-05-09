@@ -145,23 +145,37 @@ export class BitbucketService extends BaseGitProvider {
         }));
     }
 
+    private mapRepository(r: any): UnifiedRepository {
+        return {
+            id: r.uuid,
+            name: r.name,
+            slug: r.slug,
+            owner: r.workspace?.slug || r.owner?.username || 'unknown',
+            fullName: r.full_name,
+            description: r.description || null,
+            isPrivate: r.is_private,
+            htmlUrl: r.links?.html?.href,
+            language: r.language || null,
+            defaultBranch: r.mainbranch?.name || 'main',
+            updatedAt: r.updated_on,
+            stats: {
+                stars: 0,
+                forks: 0,
+                issues: 0,
+                watchers: 0,
+            },
+            permissions: {
+                admin: false,
+                push: false,
+                pull: false,
+            },
+        };
+    }
+
     async getRepositories(page = 1, perPage = 30, workspace?: string): Promise<UnifiedRepository[]> {
         if (!workspace) return [];
         const data = await this.request<any>(`/repositories/${workspace}?page=${page}&pagelen=${perPage}`);
-        return (data.values || []).map((r: any) => ({
-            id: r.uuid,
-            name: r.name,
-            fullName: r.full_name,
-            description: r.description,
-            private: r.is_private,
-            owner: r.workspace?.slug,
-            htmlUrl: r.links?.html?.href,
-            cloneUrl: r.links?.clone?.find((c: any) => c.name === 'https')?.href || '',
-            defaultBranch: r.mainbranch?.name || 'main',
-            createdAt: new Date(r.created_on),
-            updatedAt: new Date(r.updated_on),
-            provider: 'bitbucket',
-        }));
+        return (data.values || []).map((r: any) => this.mapRepository(r));
     }
 
     async getWebhooks(repo: UnifiedRepository): Promise<UnifiedWebhook[]> {
