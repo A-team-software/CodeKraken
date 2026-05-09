@@ -55,6 +55,14 @@ vi.mock("@/brain/runner/config-persistence-layer", () => ({
     })
 }));
 
+vi.mock("@/brain/runner/mongo-config-persistence-layer", () => ({
+    MongoConfigPersistenceLayer: vi.fn().mockImplementation(function () {
+        return {
+            getTenantConfig: getTenantConfigMock
+        };
+    })
+}));
+
 vi.mock("@/brain/runner/mongo-job-persistence-layer", () => ({
     MongoJobPersistenceLayer: vi.fn().mockImplementation(function () {
         return {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PullRequestCommentsProcessorService } from "./pull-request-comments-processor-service";
-import { CommentJobBufferPersistenceLayer, CommentsJobBuffer } from "./comment-job-buffer-persistence-layer";
-import { Runner } from "@/brain/runner/runner";
+import type { CommentJobBufferPersistenceLayer, CommentsJobBuffer } from "./comment-job-buffer-persistence-layer";
+import type { Runner } from "@/brain/runner/runner";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -13,7 +13,8 @@ const {
 	stopMock,
 	pauseMock,
 	resumeMock,
-	saveJobMock
+	saveJobMock,
+	startNextIterationMock
 } = vi.hoisted(() => ({
 	findUnprocessedBuffersOlderThanMock: vi.fn(),
 	markProcessedMock: vi.fn(),
@@ -22,7 +23,31 @@ const {
 	stopMock: vi.fn().mockResolvedValue(undefined),
 	pauseMock: vi.fn().mockResolvedValue(undefined),
 	resumeMock: vi.fn().mockResolvedValue(undefined),
-	saveJobMock: vi.fn().mockResolvedValue(undefined)
+	saveJobMock: vi.fn().mockResolvedValue(undefined),
+	startNextIterationMock: vi.fn().mockResolvedValue(undefined)
+}));
+
+vi.mock("@/brain/runner/opencode", () => ({
+	OpenCodeRunner: vi.fn().mockImplementation(function () {
+		return {
+			start: startMock,
+			stop: stopMock,
+			pause: pauseMock,
+			startNextIteration: startNextIterationMock,
+			resume: resumeMock,
+			saveJob: saveJobMock
+		};
+	})
+}));
+
+vi.mock("./comment-job-buffer-persistence-layer", () => ({
+	MongoCommentJobBufferPersistenceLayer: vi.fn().mockImplementation(function () {
+		return {
+			bufferComment: bufferCommentMock,
+			findUnprocessedBuffersOlderThan: findUnprocessedBuffersOlderThanMock,
+			markProcessed: markProcessedMock
+		};
+	})
 }));
 
 // Mock CommentJobBufferPersistenceLayer

@@ -23,5 +23,18 @@ export default defineConfig({
             "@oliver/shared": path.resolve(rootDir, "../../packages/shared/index.ts"),
             "@oliver/user": path.resolve(rootDir, "../../packages/user/index.ts"),
         }
+    },
+    ssr: {
+        noExternal: [/^@oliver\//]
+    },
+    test: {
+        exclude: [
+            "../../packages/**"
+        ],
+        server: {
+            deps: {
+                inline: [/^@oliver\//]
+            }
+        }
     }
 });
