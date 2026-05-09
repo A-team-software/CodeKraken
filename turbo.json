@@ -4,6 +4,20 @@
   "tasks": {
     "server#build": {
       "dependsOn": ["^build", "oliver-client#build"],
+      "env": [
+        "MONGO_DB_URI",
+        "REDIS_URL",
+        "APP_SECRET",
+        "API_KEY",
+        "TRELLO_SECRET",
+        "COOKIE_SECRET",
+        "SESSION_COOKIE_NAME",
+        "ACCESS_TOKEN_COOKIE_NAME",
+        "FORGE_SHARED_SECRET",
+        "MONGO_ROOT_USER",
+        "MONGO_ROOT_PASSWORD",
+        "DB_NAME"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "**/*.tsbuildinfo"]
     },
     "build": {
