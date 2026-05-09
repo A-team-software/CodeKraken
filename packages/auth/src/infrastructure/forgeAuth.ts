@@ -9,7 +9,7 @@ import { Logger } from "@oliver/core";
 export function validateForgeRequest(req: Request) {
   const authHeader = req.headers.get('authorization');
   const token = authHeader?.split(' ')[1];
-  const secret = process.env.API_SECRET || process.env.FORGE_SHARED_SECRET;
+  const secret = process.env.API_SECRET;
 
   if (!token) {
     Logger.warn(`Forge Auth: Missing token in Authorization header`);
@@ -21,7 +21,7 @@ export function validateForgeRequest(req: Request) {
   }
 
   if (!secret) {
-    Logger.error(`Forge Auth: API_SECRET (or FORGE_SHARED_SECRET) not configured on server`);
+    Logger.error(`Forge Auth: API_SECRET not configured on server`);
     return {
       isValid: false,
       error: 'Server Configuration Error',
