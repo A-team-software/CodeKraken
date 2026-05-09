@@ -20,7 +20,7 @@ export const JIRA_SCOPES = 'read:jira-work read:jira-user offline_access read:me
 export const BITBUCKET_CLIENT_ID = process.env.NEXT_PUBLIC_BITBUCKET_CLIENT_ID || '';
 export const BITBUCKET_CLIENT_SECRET = process.env.BITBUCKET_CLIENT_SECRET || '';
 export const BITBUCKET_CALLBACK_URL = process.env.BITBUCKET_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/git/bitbucket/callback';
-export const FORGE_BITBUCKET_CALLBACK_URL = process.env.FORGE_BITBUCKET_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/forge/oauth/bitbucket/callback';
+export const FORGE_BITBUCKET_CALLBACK_URL = process.env.FORGE_BITBUCKET_CALLBACK_URL || 'https://oliver-server-qw6b.vercel.app/api/git/bitbucket/callback';
 
 // Trello OAuth Configuration
 export const TRELLO_CLIENT_ID = process.env.NEXT_PUBLIC_TRELLO_CLIENT_ID || '';
