@@ -1,12 +1,12 @@
 {
-  "name": "jira-command-custom-ui",
+  "name": "jira-forge",
   "version": "1.0.32",
   "main": "index.js",
   "license": "MIT",
   "private": true,
   "scripts": {
     "lint": "eslint src/**/*",
-    "build": "npm --prefix static/oliverai ci && npm --prefix static/oliverai run build"
+    "build": "pnpm --prefix static/oliverai install && pnpm --prefix static/oliverai run build"
   },
   "devDependencies": {
     "eslint": "^8.56.0",
