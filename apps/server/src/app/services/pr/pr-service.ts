@@ -4,6 +4,7 @@ import { ConfigPersistenceLayer } from "@/brain/runner/config-persistence-layer"
 import { MongoConfigPersistenceLayer } from "@/brain/runner/mongo-config-persistence-layer";
 import { PullRequestCommentPayload } from "./comment-payload-adapter";
 import { CommentJobBufferPersistenceLayer, MongoCommentJobBufferPersistenceLayer } from "./comment-job-buffer-persistence-layer";
+import { ReviewPayload } from "./review-payload-adapter";
 
 export interface OnPullRequestMergedInput {
     prId: string;
@@ -14,6 +15,7 @@ export interface OnPullRequestMergedInput {
 export interface PullRequestService {
     onPullRequestMerged: (input: OnPullRequestMergedInput) => Promise<void>;
     onPullRequestCommentAdded: (comment: PullRequestCommentPayload, platform: PullRequestPlatform) => Promise<void>;
+    onPullRequestReviewed: (review: ReviewPayload, platform: PullRequestPlatform) => Promise<void>;
 }
 
 export class PullRequestServiceImpl implements PullRequestService {
@@ -34,6 +36,10 @@ export class PullRequestServiceImpl implements PullRequestService {
         }
 
         await this.runner.startNextIteration(input.prId, input.platform);
+    }
+
+    async onPullRequestReviewed(_review: ReviewPayload, _platform: PullRequestPlatform): Promise<void> {
+        // Reserved for future processing of review events.
     }
 
     async onPullRequestCommentAdded(comment: PullRequestCommentPayload, platform: PullRequestPlatform): Promise<void> {
