@@ -4,7 +4,7 @@ import { MongoOAuthStateRepository } from '@oliver/auth';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { SynchronizeUserUseCase } from '@oliver/user';
 import { MongoUserRepository } from '@oliver/user';
-import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger, FORGE_GITHUB_CALLBACK_URL } from '@oliver/core';
+import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger, FORGE_GITHUB_CALLBACK_URL, FORGE_BITBUCKET_CALLBACK_URL } from '@oliver/core';
 import { SafeExecute } from '@oliver/core/src/errors';
 
 /**
@@ -53,15 +53,15 @@ export async function GET(
         const processCallbackUseCase = new ProcessOAuthCallbackUseCase(stateRepo, tokenRepo, syncUserUseCase);
 
         // Execute Use Case
-        // Do NOT pass redirectUri — the authorize step does not send redirect_uri either,
-        // and GitHub requires both steps to match (both omit or both identical).
+        const redirectUri = provider === 'bitbucket' ? FORGE_BITBUCKET_CALLBACK_URL : FORGE_GITHUB_CALLBACK_URL;
+
         const [result, executeError] = await SafeExecute.withSync(async () =>
             processCallbackUseCase.execute({
                 provider,
                 providerType: 'git',
                 code,
                 state,
-                redirectUri: FORGE_GITHUB_CALLBACK_URL // Ensure we use the same URI as authorize step
+                redirectUri
             })
         ).execute();
 
@@ -71,7 +71,7 @@ export async function GET(
 
         // If this is a Forge flow, return the auto-closing HTML instead of redirecting
         if (metadata?.forge) {
-            return closeWindowResponse(true);
+            return closeWindowResponse(true, undefined, provider);
         }
 
         // Create response with redirect
@@ -127,8 +127,9 @@ export async function GET(
 /**
  * Returns an HTML page that posts a message back to the opener and closes itself.
  */
-function closeWindowResponse(success: boolean, errorMsg?: string) {
-    const payload = JSON.stringify({ success, error: errorMsg });
+function closeWindowResponse(success: boolean, errorMsg?: string, provider?: string) {
+    const payload = JSON.stringify({ success, error: errorMsg, provider });
+    const providerName = provider ? (provider.charAt(0).toUpperCase() + provider.slice(1)) : 'Git';
 
     const html = `
         <!DOCTYPE html>
@@ -148,15 +149,24 @@ function closeWindowResponse(success: boolean, errorMsg?: string) {
         <body>
             <div class="card">
                 <h2 class="${success ? '' : 'error-h2'}">${success ? 'Connected!' : 'Connection Failed'}</h2>
-                <p>${success ? 'Successfully connected to GitHub. This window will close automatically.' : (errorMsg || 'An error occurred during authentication.')}</p>
+                <p>${success ? `Successfully connected to ${providerName}. This window will close automatically.` : (errorMsg || 'An error occurred during authentication.')}</p>
                 ${success ? '<div class="spinner"></div>' : '<button class="btn" onclick="window.close()">Close Window</button>'}
             </div>
             <script>
                 try {
                     if (window.opener) {
+                        // Send generic complete event
                         window.opener.postMessage({ type: 'OAUTH_COMPLETE', payload: ${payload} }, '*');
-                        window.opener.postMessage({ type: 'GITHUB_CONNECTED', success: ${success} }, '*');
-                        window.opener.postMessage({ type: 'SCA_AUTH_SUCCESS', success: ${success} }, '*');
+                        
+                        // Legacy events for backward compatibility
+                        if ('${provider}' === 'github') {
+                            window.opener.postMessage({ type: 'GITHUB_CONNECTED', success: ${success} }, '*');
+                        } else if ('${provider}' === 'bitbucket') {
+                            window.opener.postMessage({ type: 'BITBUCKET_CONNECTED', success: ${success} }, '*');
+                        }
+                        
+                        // Universal success event
+                        window.opener.postMessage({ type: 'SCA_AUTH_SUCCESS', success: ${success}, provider: '${provider}' }, '*');
                     }
                 } catch(e) {
                     console.error('Failed to post message to opener', e);

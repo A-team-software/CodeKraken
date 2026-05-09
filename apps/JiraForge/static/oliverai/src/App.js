@@ -61,17 +61,16 @@ function App() {
   const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
 
   // ─── Auth check — checks for stored token ──────────────────────────────────
-  async function refreshAuthStatus() {
+  async function refreshAuthStatus(p = provider) {
     setAuth((a) => ({ ...a, loading: true }));
     try {
-      console.log('Invoking getGithubStatus...');
-      // NOTE: invoke returns the resolver's return value directly — not wrapped in { data: ... }
-      const status = await invoke('getGithubStatus');
-      console.log('GitHub Status:', status);
+      console.log(`Invoking getGithubStatus for provider: ${p}...`);
+      const status = await invoke('getGithubStatus', { provider: p });
+      console.log('Provider Status:', status);
       setAuth({
         connected: !!status?.connected,
         loading: false,
-        username: status?.username || 'GitHub User',
+        username: status?.username || (p === 'bitbucket' ? 'Bitbucket User' : 'GitHub User'),
       });
     } catch (e) {
       console.error('refreshAuthStatus failed:', e);
@@ -114,11 +113,11 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Check auth on mount ──────────────────────────────────
+  // ─── Check auth on mount or provider change ──────────────────────────────────
   useEffect(() => {
-    refreshAuthStatus();
+    refreshAuthStatus(provider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [provider]);
 
   // ─── Load workspaces for Bitbucket ──────────────────────────────────────────
   useEffect(() => {
@@ -203,15 +202,25 @@ function App() {
   // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data?.type === 'GITHUB_CONNECTED') {
-        refreshAuthStatus();
-        setConnecting(false);
+      // Handle generic completion or provider-specific legacy messages
+      if (
+        event.data?.type === 'OAUTH_COMPLETE' || 
+        event.data?.type === 'GITHUB_CONNECTED' || 
+        event.data?.type === 'BITBUCKET_CONNECTED' ||
+        event.data?.type === 'SCA_AUTH_SUCCESS'
+      ) {
+        // If the payload contains a provider, ensure it matches the current one or refresh regardless
+        const msgProvider = event.data?.payload?.provider || event.data?.provider;
+        if (!msgProvider || msgProvider === provider) {
+          refreshAuthStatus(provider);
+          setConnecting(false);
+        }
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [provider]);
 
   // ─── Polling fallback if connection is pending ────────────────────────────
   useEffect(() => {
@@ -225,12 +234,12 @@ function App() {
 
     const interval = setInterval(async () => {
       try {
-        const status = await invoke('getGithubStatus');
+        const status = await invoke('getGithubStatus', { provider });
         if (status.connected) {
           setAuth({
             connected: true,
             loading: false,
-            username: status.username || 'GitHub User'
+            username: status.username || (provider === 'bitbucket' ? 'Bitbucket User' : 'GitHub User')
           });
           setConnecting(false);
           clearInterval(interval);
@@ -238,8 +247,6 @@ function App() {
         }
       } catch (err) {
         console.error('Error during polling:', err);
-        // We don't stop the interval on a single error, 
-        // but the timeout will eventually catch it.
       }
     }, 2000);
 
@@ -247,7 +254,7 @@ function App() {
       clearInterval(interval);
       clearTimeout(timeoutId);
     };
-  }, [connecting]);
+  }, [connecting, provider]);
 
   // ─── Connect logic (OAuth flow) ───────────────────────────────────────────
   async function handleConnectGit(targetProvider) {
@@ -280,8 +287,8 @@ function App() {
     }
     setConfirmDisconnect(false);
     try {
-      await invoke('disconnect');
-      await refreshAuthStatus();
+      await invoke('disconnect', { provider });
+      await refreshAuthStatus(provider);
     } catch (e) {
       setError(e?.message || String(e));
     }

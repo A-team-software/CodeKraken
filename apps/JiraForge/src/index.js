@@ -84,9 +84,10 @@ resolver.define('getGithubStatus', async (req) => {
 
 resolver.define('disconnect', async (req) => {
   const { accountId, cloudId } = req.context;
+  const provider = req.payload?.provider || 'github';
   const secret = getApiSecret();
 
-  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
+  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
   const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect', {
     method: 'POST',
@@ -94,7 +95,7 @@ resolver.define('disconnect', async (req) => {
       Authorization: `Bearer ${secret}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId })
+    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
   });
 
   if (!res.ok) {

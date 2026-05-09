@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
     const accountId = body.accountId;
     const cloudId = body.cloudId || body.clientKey;
 
+    const provider = body.provider || 'github';
+
     if (!accountId || !cloudId) {
         return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
     }
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
         
         // Delete by Atlassian identifiers directly - this is the most reliable way for Forge flows
         const [deleted, deleteError] = await SafeExecute.withSync(async () => 
-            tokenRepo.deleteByAtlassianAccountIdAndCloudId(accountId, cloudId, 'git', 'github')
+            tokenRepo.deleteByAtlassianAccountIdAndCloudId(accountId, cloudId, 'git', provider)
         ).execute();
 
         if (deleteError) {
