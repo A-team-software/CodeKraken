@@ -39,7 +39,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         className={
           "relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in zoom-in-95 duration-200" +
-          className
+          (className ? ` ${className}` : "")
         }
       >
         {/* Header */}
