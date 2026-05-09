@@ -160,9 +160,15 @@ export class PullRequestServiceImpl implements PullRequestService {
     private buildChangesRequestedTask(comments: PullRequestCommentPayload[]): string {
         const commentsSection = comments
             .map((comment, index) => {
-                const location = comment.filePath
-                    ? `${comment.filePath}${typeof comment.lineNumber === "number" ? `:${comment.lineNumber}` : ""}`
-                    : "(no file/line provided)";
+                const hasFilePath = Boolean(comment.filePath);
+                const hasLineNumber = typeof comment.lineNumber === "number";
+                const location = hasFilePath && hasLineNumber
+                    ? `${comment.filePath}:${comment.lineNumber}`
+                    : hasFilePath
+                        ? comment.filePath!
+                        : hasLineNumber
+                            ? `line ${comment.lineNumber} (file path unavailable)`
+                            : "(no file/line provided)";
                 return `${index + 1}. [${location}] ${comment.author}: ${comment.body}`;
             })
             .join("\n");
