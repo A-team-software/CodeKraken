@@ -1,7 +1,7 @@
 import {
-	BitbucketPullRequestPayloadAdapter,
-	GitHubPullRequestPayloadAdapter,
-	GitLabPullRequestPayloadAdapter,
+	BitbucketPullRequestUpdatedPayloadAdapter,
+	GitHubPullRequestUpdatedPayloadAdapter,
+	GitLabPullRequestUpdatedPayloadAdapter,
 	PullRequestPayloadAdapter,
 } from "@/app/services/pr";
 import { PullRequestPlatform } from "@/types/pull-request-platform";
@@ -11,11 +11,11 @@ import { NextRequest, NextResponse } from "next/server";
 function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapter {
 	switch (platform) {
 		case "github":
-			return new GitHubPullRequestPayloadAdapter();
+			return new GitHubPullRequestUpdatedPayloadAdapter();
 		case "gitlab":
-			return new GitLabPullRequestPayloadAdapter();
+			return new GitLabPullRequestUpdatedPayloadAdapter();
 		case "bitbucket":
-			return new BitbucketPullRequestPayloadAdapter();
+			return new BitbucketPullRequestUpdatedPayloadAdapter();
 		default: {
 			const exhaustiveCheck: never = platform;
 			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
