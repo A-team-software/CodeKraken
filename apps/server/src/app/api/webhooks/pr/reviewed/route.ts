@@ -5,7 +5,7 @@ import {
 	PullRequestServiceImpl,
 } from "@/app/services/pr";
 import { ReviewPayloadAdapter } from "@/app/services/pr/review-payload-adapter";
-import { PullRequestPlatform } from "@/brain/runner/runner";
+import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { resolvePlatform, verifyWebhookSignature } from "../webhook-helpers";
 import { NextRequest, NextResponse } from "next/server";
 

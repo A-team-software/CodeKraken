@@ -1,0 +1,1 @@
+export type PullRequestPlatform = "github" | "gitlab" | "bitbucket";

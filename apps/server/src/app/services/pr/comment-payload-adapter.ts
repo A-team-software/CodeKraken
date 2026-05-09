@@ -5,6 +5,9 @@ export interface PullRequestCommentPayload {
     author: string;
     branch: string;
     mentionedUsers: string[];
+    filePath?: string;
+    lineNumber?: number;
+    resolved?: boolean;
 }
 
 export interface PullRequestCommentPayloadAdapter {
