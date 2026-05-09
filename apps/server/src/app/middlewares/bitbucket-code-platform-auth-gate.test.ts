@@ -5,9 +5,11 @@ import { BitbucketCodePlatformAuthGate } from "./bitbucket-code-platform-auth-ga
 
 describe("BitbucketCodePlatformAuthGate", () => {
     const originalSecret = process.env.BITBUCKET_WEBHOOK_AUTH_SECRET;
+    const originalLegacySecret = process.env.BITBUCKET_WEBHOOK_SECRET;
 
     beforeEach(() => {
         delete process.env.BITBUCKET_WEBHOOK_AUTH_SECRET;
+        delete process.env.BITBUCKET_WEBHOOK_SECRET;
     });
 
     afterEach(() => {
@@ -15,6 +17,12 @@ describe("BitbucketCodePlatformAuthGate", () => {
             delete process.env.BITBUCKET_WEBHOOK_AUTH_SECRET;
         } else {
             process.env.BITBUCKET_WEBHOOK_AUTH_SECRET = originalSecret;
+        }
+
+        if (originalLegacySecret === undefined) {
+            delete process.env.BITBUCKET_WEBHOOK_SECRET;
+        } else {
+            process.env.BITBUCKET_WEBHOOK_SECRET = originalLegacySecret;
         }
     });
 
@@ -29,6 +37,20 @@ describe("BitbucketCodePlatformAuthGate", () => {
         process.env.BITBUCKET_WEBHOOK_AUTH_SECRET = "bitbucket-secret";
         const rawBody = JSON.stringify({ hello: "world" });
         const signature = `sha256=${createHmac("sha256", "bitbucket-secret").update(rawBody).digest("hex")}`;
+
+        const gate = new BitbucketCodePlatformAuthGate();
+        const result = await gate.authorizeRequest(
+            new Headers({ "x-hub-signature": signature }),
+            rawBody
+        );
+
+        expect(result).toEqual({ authorized: true, platform: "bitbucket" });
+    });
+
+    it("authorizes when legacy webhook secret is configured", async () => {
+        process.env.BITBUCKET_WEBHOOK_SECRET = "legacy-bitbucket-secret";
+        const rawBody = JSON.stringify({ hello: "legacy" });
+        const signature = `sha256=${createHmac("sha256", "legacy-bitbucket-secret").update(rawBody).digest("hex")}`;
 
         const gate = new BitbucketCodePlatformAuthGate();
         const result = await gate.authorizeRequest(

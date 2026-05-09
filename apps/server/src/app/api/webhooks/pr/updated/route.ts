@@ -23,21 +23,6 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapte
 	}
 }
 
-function resolveWebhookSecret(platform: PullRequestPlatform): string | undefined {
-	switch (platform) {
-		case "github":
-			return process.env.GITHUB_WEBHOOK_SECRET;
-		case "gitlab":
-			return process.env.GITLAB_WEBHOOK_SECRET;
-		case "bitbucket":
-			return process.env.BITBUCKET_WEBHOOK_SECRET;
-		default: {
-			const exhaustiveCheck: never = platform;
-			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
-		}
-	}
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
 		const rawBody = await req.text();

@@ -1,13 +1,15 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { GithubCodePlatformAuthGate } from "./github-code-platform-auth-gate";
+import { GitHubCodePlatformAuthGate } from "./github-code-platform-auth-gate";
 
-describe("GithubCodePlatformAuthGate", () => {
+describe("GitHubCodePlatformAuthGate", () => {
     const originalSecret = process.env.GITHUB_WEBHOOK_AUTH_SECRET;
+    const originalLegacySecret = process.env.GITHUB_WEBHOOK_SECRET;
 
     beforeEach(() => {
         delete process.env.GITHUB_WEBHOOK_AUTH_SECRET;
+        delete process.env.GITHUB_WEBHOOK_SECRET;
     });
 
     afterEach(() => {
@@ -16,10 +18,16 @@ describe("GithubCodePlatformAuthGate", () => {
         } else {
             process.env.GITHUB_WEBHOOK_AUTH_SECRET = originalSecret;
         }
+
+        if (originalLegacySecret === undefined) {
+            delete process.env.GITHUB_WEBHOOK_SECRET;
+        } else {
+            process.env.GITHUB_WEBHOOK_SECRET = originalLegacySecret;
+        }
     });
 
     it("authorizes when secret is not configured", async () => {
-        const gate = new GithubCodePlatformAuthGate();
+        const gate = new GitHubCodePlatformAuthGate();
         const result = await gate.authorizeRequest(new Headers(), "{}");
 
         expect(result).toEqual({ authorized: true, platform: "github" });
@@ -30,7 +38,21 @@ describe("GithubCodePlatformAuthGate", () => {
         const rawBody = JSON.stringify({ hello: "world" });
         const signature = `sha256=${createHmac("sha256", "github-secret").update(rawBody).digest("hex")}`;
 
-        const gate = new GithubCodePlatformAuthGate();
+        const gate = new GitHubCodePlatformAuthGate();
+        const result = await gate.authorizeRequest(
+            new Headers({ "x-hub-signature-256": signature }),
+            rawBody
+        );
+
+        expect(result).toEqual({ authorized: true, platform: "github" });
+    });
+
+    it("authorizes when legacy webhook secret is configured", async () => {
+        process.env.GITHUB_WEBHOOK_SECRET = "legacy-github-secret";
+        const rawBody = JSON.stringify({ hello: "legacy" });
+        const signature = `sha256=${createHmac("sha256", "legacy-github-secret").update(rawBody).digest("hex")}`;
+
+        const gate = new GitHubCodePlatformAuthGate();
         const result = await gate.authorizeRequest(
             new Headers({ "x-hub-signature-256": signature }),
             rawBody
@@ -41,7 +63,7 @@ describe("GithubCodePlatformAuthGate", () => {
 
     it("rejects when signature header is missing or malformed", async () => {
         process.env.GITHUB_WEBHOOK_AUTH_SECRET = "github-secret";
-        const gate = new GithubCodePlatformAuthGate();
+        const gate = new GitHubCodePlatformAuthGate();
 
         const missingResult = await gate.authorizeRequest(new Headers(), "{}");
         const malformedResult = await gate.authorizeRequest(
@@ -55,7 +77,7 @@ describe("GithubCodePlatformAuthGate", () => {
 
     it("rejects when signature does not match", async () => {
         process.env.GITHUB_WEBHOOK_AUTH_SECRET = "github-secret";
-        const gate = new GithubCodePlatformAuthGate();
+        const gate = new GitHubCodePlatformAuthGate();
 
         const result = await gate.authorizeRequest(
             new Headers({ "x-hub-signature-256": "sha256=deadbeef" }),

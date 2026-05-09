@@ -2,9 +2,9 @@ import { createHmac } from "node:crypto";
 
 import { CodePlatformAuthGate, compareSecrets } from "@/app/middlewares/code-platform-auth-gate";
 
-export class GithubCodePlatformAuthGate implements CodePlatformAuthGate {
+export class GitHubCodePlatformAuthGate implements CodePlatformAuthGate {
     async authorizeRequest(headers: Headers, rawBody: string): Promise<{ authorized: boolean; platform?: "github" }> {
-        const secret = process.env.GITHUB_WEBHOOK_AUTH_SECRET?.trim();
+        const secret = process.env.GITHUB_WEBHOOK_AUTH_SECRET?.trim() || process.env.GITHUB_WEBHOOK_SECRET?.trim();
         if (!secret) {
             return { authorized: true, platform: "github" };
         }

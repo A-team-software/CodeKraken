@@ -4,7 +4,7 @@ import { CodePlatformAuthGate, compareSecrets } from "@/app/middlewares/code-pla
 
 export class BitbucketCodePlatformAuthGate implements CodePlatformAuthGate {
     async authorizeRequest(headers: Headers, rawBody: string): Promise<{ authorized: boolean; platform?: "bitbucket" }> {
-        const secret = process.env.BITBUCKET_WEBHOOK_AUTH_SECRET?.trim();
+        const secret = process.env.BITBUCKET_WEBHOOK_AUTH_SECRET?.trim() || process.env.BITBUCKET_WEBHOOK_SECRET?.trim();
         if (!secret) {
             return { authorized: true, platform: "bitbucket" };
         }

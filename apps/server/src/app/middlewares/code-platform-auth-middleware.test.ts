@@ -18,7 +18,7 @@ vi.mock("@/app/api/webhooks/pr/webhook-helpers", () => ({
 }));
 
 vi.mock("@/app/middlewares/github-code-platform-auth-gate", () => ({
-    GithubCodePlatformAuthGate: vi.fn().mockImplementation(function () {
+    GitHubCodePlatformAuthGate: vi.fn().mockImplementation(function () {
         return {
             authorizeRequest: githubAuthorizeRequestMock,
         };
@@ -26,7 +26,7 @@ vi.mock("@/app/middlewares/github-code-platform-auth-gate", () => ({
 }));
 
 vi.mock("@/app/middlewares/gitlab-code-platform-auth-gate", () => ({
-    GitlabCodePlatformAuthGate: vi.fn().mockImplementation(function () {
+    GitLabCodePlatformAuthGate: vi.fn().mockImplementation(function () {
         return {
             authorizeRequest: gitlabAuthorizeRequestMock,
         };
