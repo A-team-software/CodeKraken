@@ -12,7 +12,7 @@ import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const TEST_TIMEOUT_MS = 8 * 60 * 1000;
-const PUBLIC_FIBONNACY_REPO_URL = "https://github.com/hervinhio/fibonacci";
+const PUBLIC_FIBONACCI_REPO_URL = "https://github.com/hervinhio/fibonacci";
 
 const githubToken = process.env.TEST_GITHUB_TOKEN ?? process.env.GITHUB_TOKEN ?? process.env.GIT_TOKEN ?? "";
 const prReviewIntegrationEnabled =
@@ -20,7 +20,7 @@ const prReviewIntegrationEnabled =
     process.env.TEST_ENABLE_PR_INTEGRATION_TEST === "true";
 
 const reviewIntegrationTest = githubToken.length > 0 && prReviewIntegrationEnabled ? test : test.skip;
-const { owner: repoOwner, name: repoName } = parseGitHubRepoUrl(PUBLIC_FIBONNACY_REPO_URL);
+const { owner: repoOwner, name: repoName } = parseGitHubRepoUrl(PUBLIC_FIBONACCI_REPO_URL);
 
 type CreatedPr = {
     number: number;
@@ -261,7 +261,7 @@ beforeEach(() => {
     process.env.GITHUB_TOKEN = githubToken;
     process.env.GITHUB_REPO_OWNER = repoOwner;
     process.env.GITHUB_REPO_NAME = repoName;
-    process.env.OPENCODE_TASK_REPO_URL = PUBLIC_FIBONNACY_REPO_URL;
+    process.env.OPENCODE_TASK_REPO_URL = PUBLIC_FIBONACCI_REPO_URL;
 });
 
 afterEach(async () => {
@@ -385,7 +385,7 @@ reviewIntegrationTest(
         expect(runner.starts.length).toBe(1);
         expect(runner.starts[0]).toEqual(
             expect.objectContaining({
-                repoUrl: PUBLIC_FIBONNACY_REPO_URL,
+                repoUrl: PUBLIC_FIBONACCI_REPO_URL,
                 mode: "agent",
                 branch,
                 vars: expect.objectContaining({

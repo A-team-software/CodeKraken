@@ -6,7 +6,7 @@
     "dev": "pnpm turbo run dev --parallel",
     "build": "pnpm turbo run build",
     "lint": "pnpm turbo run lint",
-    "test": "pnpm --filter server exec vitest run src/app/services/pr/pull-request-comments-processor-service.test.ts src/app/services/pr/github-pr-review-payload-adapter.test.ts src/app/services/pr/gitlab-pr-review-payload-adapter.test.ts src/app/services/pr/bitbucket-pr-review-payload-adapter.test.ts src/app/services/pr/pr-service.test.ts src/app/adapters/github-code-platform-adapter.test.ts src/app/adapters/gitlab-code-platform-adapter.test.ts src/app/adapters/bitbucket-code-platform-adapter.test.ts src/app/api/webhooks/pr/comments/route.test.ts src/app/api/webhooks/pr/reviewed/route.test.ts src/app/api/task/route.patch.unit.test.ts",
+    "test": "pnpm --filter server exec vitest run src/app/services/pr/pull-request-comments-processor-service.test.ts src/app/services/pr/github-pr-review-payload-adapter.test.ts src/app/services/pr/gitlab-pr-review-payload-adapter.test.ts src/app/services/pr/bitbucket-pr-review-payload-adapter.test.ts src/app/services/pr/pr-service.test.ts src/app/adapters/github-code-platform-adapter.test.ts src/app/adapters/gitlab-code-platform-adapter.test.ts src/app/adapters/bitbucket-code-platform-adapter.test.ts src/app/api/webhooks/pr/comments/route.test.ts src/app/api/webhooks/pr/commented/route.test.ts src/app/api/webhooks/pr/reviewed/route.test.ts src/app/api/task/route.patch.unit.test.ts",
     "clean": "pnpm turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

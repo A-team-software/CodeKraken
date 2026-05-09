@@ -201,7 +201,7 @@ describe("POST /api/webhooks/pr/commented", () => {
 
 	describe("Payload Parsing", () => {
 		it("should reject invalid JSON payload", async () => {
-			const url = "http://localhost:3000/api/webhooks/pr/comments?platform=github";
+			const url = "http://localhost:3000/api/webhooks/pr/commented?platform=github";
 			const req = new NextRequest(url, {
 				method: "POST",
 				headers: { "content-type": "application/json" },
