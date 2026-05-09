@@ -1,12 +1,11 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     adapterMocks,
     reviewServiceMock,
     createdServiceMock,
-    verifyWebhookSignatureMock,
-    resolvePlatformMock,
+    authorizeWebhookRequestMock,
 } = vi.hoisted(() => {
     const githubReviewAdapterMock = {
         adapt: vi.fn((payload: any) => ({
@@ -44,14 +43,25 @@ const {
                 onPullRequestCommentAdded: vi.fn()
             };
         }),
-        verifyWebhookSignatureMock: vi.fn().mockReturnValue(true),
-        resolvePlatformMock: vi.fn((value: string | null) => (value?.trim().toLowerCase() as any) || "github")
+        authorizeWebhookRequestMock: vi.fn(async (_req: NextRequest, _rawBody: string, platformValue: string | null) => {
+            const normalized = (platformValue || "").trim().toLowerCase();
+            if (normalized === "github" || normalized === "gitlab" || normalized === "bitbucket") {
+                return { authorized: true as const, platform: normalized };
+            }
+
+            return {
+                authorized: false as const,
+                response: NextResponse.json(
+                    { success: false, error: "Missing or invalid platform query parameter. Use one of: github, gitlab, bitbucket." },
+                    { status: 400 }
+                )
+            };
+        })
     };
 });
 
-vi.mock("../webhook-helpers", () => ({
-    resolvePlatform: resolvePlatformMock,
-    verifyWebhookSignature: verifyWebhookSignatureMock
+vi.mock("@/app/middlewares/code-platform-auth-middleware", () => ({
+    authorizeWebhookRequest: authorizeWebhookRequestMock
 }));
 
 vi.mock("@/app/services/pr", () => ({
@@ -128,7 +138,10 @@ describe("POST /api/webhooks/pr/reviewed", () => {
     });
 
     it("returns 401 when signature verification fails", async () => {
-        verifyWebhookSignatureMock.mockReturnValueOnce(false);
+        authorizeWebhookRequestMock.mockResolvedValueOnce({
+            authorized: false,
+            response: NextResponse.json({ success: false, error: "Webhook authentication failed." }, { status: 401 })
+        });
 
         const response = await POST(createRequest("github", {
             review: { state: "approved" },
@@ -138,7 +151,7 @@ describe("POST /api/webhooks/pr/reviewed", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(401);
-        expect(payload.error).toContain("Webhook signature verification failed");
+        expect(payload.error).toContain("Webhook authentication failed");
         expect(reviewServiceMock).not.toHaveBeenCalled();
     });
 

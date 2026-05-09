@@ -1,10 +1,9 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
     adapterMocks,
-    verifyWebhookSignatureMock,
-    resolvePlatformMock,
+    authorizeWebhookRequestMock,
 } = vi.hoisted(() => {
     const githubAdapterMock = {
         adapt: vi.fn((payload: any) => ({
@@ -34,20 +33,25 @@ const {
             gitlab: gitlabAdapterMock,
             bitbucket: bitbucketAdapterMock,
         },
-        verifyWebhookSignatureMock: vi.fn().mockReturnValue(true),
-        resolvePlatformMock: vi.fn((value: string | null) => {
-            const normalized = (value || "").trim().toLowerCase();
+        authorizeWebhookRequestMock: vi.fn(async (_req: NextRequest, _rawBody: string, platformValue: string | null) => {
+            const normalized = (platformValue || "").trim().toLowerCase();
             if (normalized === "github" || normalized === "gitlab" || normalized === "bitbucket") {
-                return normalized;
+                return { authorized: true as const, platform: normalized };
             }
-            throw new Error("Missing or invalid platform query parameter. Use one of: github, gitlab, bitbucket.");
+
+            return {
+                authorized: false as const,
+                response: NextResponse.json(
+                    { success: false, error: "Missing or invalid platform query parameter. Use one of: github, gitlab, bitbucket." },
+                    { status: 400 }
+                )
+            };
         })
     };
 });
 
-vi.mock("../webhook-helpers", () => ({
-    resolvePlatform: resolvePlatformMock,
-    verifyWebhookSignature: verifyWebhookSignatureMock
+vi.mock("@/app/middlewares/code-platform-auth-middleware", () => ({
+    authorizeWebhookRequest: authorizeWebhookRequestMock
 }));
 
 vi.mock("@/app/services/pr", () => ({
@@ -115,7 +119,10 @@ describe("POST /api/webhooks/pr/updated", () => {
     });
 
     it("returns 401 when signature verification fails", async () => {
-        verifyWebhookSignatureMock.mockReturnValueOnce(false);
+        authorizeWebhookRequestMock.mockResolvedValueOnce({
+            authorized: false,
+            response: NextResponse.json({ success: false, error: "Webhook authentication failed." }, { status: 401 })
+        });
 
         const response = await POST(createRequest("gitlab", {
             object_kind: "merge_request",
@@ -125,7 +132,7 @@ describe("POST /api/webhooks/pr/updated", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(401);
-        expect(payload.error).toContain("Webhook signature verification failed");
+        expect(payload.error).toContain("Webhook authentication failed");
     });
 
     it("returns 400 for unsupported payload shape", async () => {
