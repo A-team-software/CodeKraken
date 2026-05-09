@@ -1,6 +1,6 @@
 import { PullRequestCommentPayload } from "@/app/services/pr/comment-payload-adapter";
-import { PullRequestComment } from "@/types/pull-request-comment";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestComment } from "@/app/types/pull-request-comment";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { GitHubCodePlatformAdapter } from "./github-code-platform-adapter";
 import { GitLabCodePlatformAdapter } from "./gitlab-code-platform-adapter";
 import { BitbucketCodePlatformAdapter } from "./bitbucket-code-platform-adapter";

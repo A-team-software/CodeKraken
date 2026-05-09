@@ -8,7 +8,7 @@ import {
 import { GitHubCodePlatformAdapter } from "@/app/adapters/github-code-platform-adapter";
 import { PullRequestCommentPayload } from "@/app/services/pr/comment-payload-adapter";
 import { PullRequestServiceImpl } from "@/app/services/pr/pr-service";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const TEST_TIMEOUT_MS = 8 * 60 * 1000;

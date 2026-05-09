@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { PullRequestCommentsProcessorService } from "./pull-request-comments-processor-service";
 import type { CommentJobBufferPersistenceLayer, CommentsJobBuffer } from "./comment-job-buffer-persistence-layer";
-import type { Runner } from "@/brain/runner/runner";
+import type { Runner } from "@/app/brain/runner/runner";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -27,7 +27,7 @@ const {
 	startNextIterationMock: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock("@/brain/runner/opencode", () => ({
+vi.mock("@/app/brain/runner/opencode", () => ({
 	OpenCodeRunner: vi.fn().mockImplementation(function () {
 		return {
 			start: startMock,

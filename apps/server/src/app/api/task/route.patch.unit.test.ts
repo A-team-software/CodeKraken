@@ -54,7 +54,7 @@ vi.mock("@oliver/core", () => ({
     }
 }));
 
-vi.mock("@/brain/runner/opencode", () => ({
+vi.mock("@/app/brain/runner/opencode", () => ({
     OpenCodeRunner: vi.fn().mockImplementation(function () {
         return {
         startNextIteration: startNextIterationMock

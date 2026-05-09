@@ -1,4 +1,4 @@
-import { Runner } from "@/brain/runner/runner";
+import { Runner } from "@/app/brain/runner/runner";
 
 import { JiraProjectManagerAdapter, JiraTicket } from "./jira-project-manager-adapter";
 import { BaseProjectManagerTaskProcessor, RunnerTaskConfig } from "./base-project-manager-task-processor";

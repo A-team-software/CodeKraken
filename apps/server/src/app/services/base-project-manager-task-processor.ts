@@ -1,5 +1,5 @@
-import { JobConfig, JobResult } from "@/brain/shared";
-import { Runner } from "@/brain/runner/runner";
+import { JobConfig, JobResult } from "@/app/brain/shared";
+import { Runner } from "@/app/brain/runner/runner";
 
 import { ProjectManagerAdapter } from "./project-manager-adapter";
 import { TaskProcessor, WebhookInvocation } from "./task-processor";

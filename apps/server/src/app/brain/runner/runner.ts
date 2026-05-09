@@ -1,5 +1,5 @@
 import { JobConfig, JobResult } from "../shared";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 
 export interface Runner {
     start(config: JobConfig): Promise<JobResult>;
