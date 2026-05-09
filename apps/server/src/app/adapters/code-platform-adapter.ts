@@ -6,22 +6,36 @@ import { GitLabCodePlatformAdapter } from "./gitlab-code-platform-adapter";
 import { BitbucketCodePlatformAdapter } from "./bitbucket-code-platform-adapter";
 
 export interface CodePlatformAdapter {
-    getPullRequestAuthorUsername(prId: string, platform: PullRequestPlatform): Promise<string | null>;
-    getPullRequestComments(prId: string, platform: PullRequestPlatform): Promise<PullRequestCommentPayload[]>;
-    postCommentOnPullRequest(prId: string, platform: PullRequestPlatform, comments: PullRequestComment[]): Promise<void>;
+    getPullRequestAuthorUsername(prId: string): Promise<string | null>;
+    getPullRequestComments(prId: string): Promise<PullRequestCommentPayload[]>;
+    postCommentOnPullRequest(prId: string, comments: PullRequestComment[]): Promise<void>;
 }
 
 export function createCodePlatformAdapter(platform: PullRequestPlatform): CodePlatformAdapter {
-    switch (platform) {
-        case "github":
-            return new GitHubCodePlatformAdapter();
-        case "gitlab":
-            return new GitLabCodePlatformAdapter();
-        case "bitbucket":
-            return new BitbucketCodePlatformAdapter();
-        default: {
-            const exhaustiveCheck: never = platform;
-            throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
+    const adapter = (() => {
+        switch (platform) {
+            case "github":
+                return new GitHubCodePlatformAdapter();
+            case "gitlab":
+                return new GitLabCodePlatformAdapter();
+            case "bitbucket":
+                return new BitbucketCodePlatformAdapter();
+            default: {
+                const exhaustiveCheck: never = platform;
+                throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
+            }
         }
-    }
+    })();
+
+    return {
+        getPullRequestAuthorUsername(prId: string) {
+            return adapter.getPullRequestAuthorUsername(prId, platform);
+        },
+        getPullRequestComments(prId: string) {
+            return adapter.getPullRequestComments(prId, platform);
+        },
+        postCommentOnPullRequest(prId: string, comments: PullRequestComment[]) {
+            return adapter.postCommentOnPullRequest(prId, platform, comments);
+        },
+    };
 }
