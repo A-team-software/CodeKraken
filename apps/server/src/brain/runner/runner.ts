@@ -1,6 +1,5 @@
 import { JobConfig, JobResult } from "../shared";
-
-export type PullRequestPlatform = "github" | "gitlab" | "bitbucket";
+import { PullRequestPlatform } from "@/types/pull-request-platform";
 
 export interface Runner {
     start(config: JobConfig): Promise<JobResult>;

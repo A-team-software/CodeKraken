@@ -1,4 +1,4 @@
-import { PullRequestPlatform } from "@/brain/runner/runner";
+import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest } from "next/server";
 

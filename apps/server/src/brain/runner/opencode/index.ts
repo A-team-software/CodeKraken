@@ -1,13 +1,14 @@
 import { LocalhostInfrastructure } from "../../infrastructure/localhost/index";
 import { Infrastructure } from "../../infrastructure/infrastructure";
 import { JobConfig, JobResult } from "../../shared";
-import { PullRequestPlatform, Runner } from "../runner";
+import { Runner } from "../runner";
 import { JobDocument, JobPersistenceLayer } from "../job-persistence-layer";
 import { MongoJobPersistenceLayer } from "../mongo-job-persistence-layer";
 import { ConfigPersistenceLayer } from "../config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "../mongo-config-persistence-layer";
 import { randomUUID } from "node:crypto";
 import { PlanProcessor } from "../plan-processor";
+import { PullRequestPlatform } from "@/types/pull-request-platform";
 
 export class OpenCodeRunner implements Runner {
 	private readonly planProcessor = new PlanProcessor();

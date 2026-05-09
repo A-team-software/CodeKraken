@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "pnpm run test:integration",
-    "test:integration": "vitest run src/brain/runner/opencode/index.local.integration.test.ts src/brain/runner/opencode/index.gcp.integration.test.ts src/app/api/task/route.integration.test.ts"
+    "test:integration": "vitest run src/brain/runner/opencode/index.local.integration.test.ts src/brain/runner/opencode/index.gcp.integration.test.ts src/app/api/task/route.integration.test.ts src/app/services/pr/pr-service.integration.test.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",

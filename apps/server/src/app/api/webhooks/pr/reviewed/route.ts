@@ -1,29 +1,28 @@
 import {
-	BitbucketPullRequestCommentPayloadAdapter,
-	GitHubPullRequestCommentPayloadAdapter,
-	GitLabPullRequestCommentPayloadAdapter,
-	PullRequestCommentPayloadAdapter,
-	PullRequestServiceImpl
+	BitbucketPullRequestReviewPayloadAdapter,
+	GitHubPullRequestReviewPayloadAdapter,
+	GitLabPullRequestReviewPayloadAdapter,
+	PullRequestServiceImpl,
 } from "@/app/services/pr";
+import { ReviewPayloadAdapter } from "@/app/services/pr/review-payload-adapter";
 import { PullRequestPlatform } from "@/types/pull-request-platform";
 import { resolvePlatform, verifyWebhookSignature } from "../webhook-helpers";
 import { NextRequest, NextResponse } from "next/server";
 
-function resolveAdapter(platform: PullRequestPlatform): PullRequestCommentPayloadAdapter {
+function resolveAdapter(platform: PullRequestPlatform): ReviewPayloadAdapter {
 	switch (platform) {
 		case "github":
-			return new GitHubPullRequestCommentPayloadAdapter();
+			return new GitHubPullRequestReviewPayloadAdapter();
 		case "gitlab":
-			return new GitLabPullRequestCommentPayloadAdapter();
+			return new GitLabPullRequestReviewPayloadAdapter();
 		case "bitbucket":
-			return new BitbucketPullRequestCommentPayloadAdapter();
+			return new BitbucketPullRequestReviewPayloadAdapter();
 		default: {
 			const exhaustiveCheck: never = platform;
 			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
 		}
 	}
 }
-
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
@@ -42,17 +41,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 		}
 
 		const adapter = resolveAdapter(platform);
-		const commentPayload = adapter.adapt(payload);
+		const reviewPayload = adapter.adapt(payload);
 		const service = new PullRequestServiceImpl();
-		await service.onPullRequestCommentAdded(commentPayload, platform);
+		await service.onPullRequestReviewed(reviewPayload, platform);
 
 		return NextResponse.json({
 			success: true,
 			platform,
-			comment: commentPayload
+			review: reviewPayload,
 		});
 	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unexpected error while processing PR comment webhook.";
+		const message = error instanceof Error ? error.message : "Unexpected error while processing PR review webhook.";
 		return NextResponse.json({ success: false, error: message }, { status: 400 });
 	}
 }
