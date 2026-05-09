@@ -168,10 +168,10 @@ resolver.define('getRepositories', async ({ payload, context }) => {
   const page = payload?.page ?? 1;
   const perPage = payload?.perPage ?? 50;
 
-  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage), provider });
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
   if (workspace) qs.append('workspace', workspace);
   return await backendFetch(
-    `/api/forge/repositories?${qs.toString()}`,
+    `/api/git/${provider}/repositories?${qs.toString()}`,
     { context }
   );
 });
