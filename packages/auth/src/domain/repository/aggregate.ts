@@ -35,7 +35,7 @@ export class OAuthTokenAggregate extends AggregateRoot {
     get atlassianAccountId(): string | undefined { return this.props.atlassianAccountId; }
     get provider(): string { return this.props.provider; }
     get providerType(): ProviderType { return this.props.providerType; }
-    get accessToken(): string { return this.props.accessToken; }
+    get accessToken(): string | undefined | null { return this.props.accessToken; }
     get refreshToken(): string | undefined { return this.props.refreshToken; }
     get expiresAt(): Date | undefined { return this.props.expiresAt; }
     get tokenType(): string { return this.props.tokenType; }

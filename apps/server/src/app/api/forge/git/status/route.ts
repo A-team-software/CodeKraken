@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
         if (queryError) return NextResponse.json({ connected: false, error: queryError.message || 'Internal error' }, { status: 500 });
 
-        if (!oauthToken) {
+        if (!oauthToken || !oauthToken.accessToken) {
             return NextResponse.json({ connected: false });
         }
 

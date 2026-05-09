@@ -23,18 +23,18 @@ export async function POST(req: NextRequest) {
         const { MongoOAuthTokenRepository } = auth;
 
         const tokenRepo = new MongoOAuthTokenRepository();
-        
-        // Delete by Atlassian identifiers directly - this is the most reliable way for Forge flows
-        const [deleted, deleteError] = await SafeExecute.withSync(async () => 
-            tokenRepo.deleteByAtlassianAccountIdAndCloudId(accountId, cloudId, 'git', provider)
+
+        // Invalidate by Atlassian identifiers - sets tokens to null instead of deleting record
+        const [invalidated, invalidateError] = await SafeExecute.withSync(async () =>
+            tokenRepo.invalidateByAtlassianAccountIdAndCloudId(accountId, cloudId, 'git', provider)
         ).execute();
 
-        if (deleteError) {
-            console.error('Forge github disconnect deletion failed:', deleteError);
-            return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 });
+        if (invalidateError) {
+            console.error('Forge git disconnect invalidation failed:', invalidateError);
+            return NextResponse.json({ success: false, error: invalidateError.message }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, deleted });
+        return NextResponse.json({ success: true, invalidated });
     } catch (e: any) {
         console.error('Forge github disconnect failed:', e);
         return NextResponse.json({ success: false, error: e.message }, { status: 500 });

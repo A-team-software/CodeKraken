@@ -58,11 +58,19 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const accessToken = oauthToken.accessToken;
+        if (!accessToken) {
+            return NextResponse.json(
+                { error: `${provider} connection is inactive. Please reconnect.` },
+                { status: 401 }
+            );
+        }
+
         const useCase = new GetWorkspacesUseCase();
         const [workspaces, workspacesError] = await SafeExecute.withSync(async () =>
             useCase.execute({
                 providerType: provider,
-                token: oauthToken.accessToken,
+                token: accessToken,
             })
         ).execute();
 
