@@ -1,6 +1,3 @@
-import { PullRequestCommentsProcessorService } from "@/app/services/pr";
-
-const pullRequestCommentsProcessorService = new PullRequestCommentsProcessorService();
 let hasStartedPullRequestCommentsProcessor = false;
 
 export async function register(): Promise<void> {
@@ -12,6 +9,8 @@ export async function register(): Promise<void> {
         return;
     }
 
+    const { PullRequestCommentsProcessorService } = await import("@/app/services/pr");
+    const pullRequestCommentsProcessorService = new PullRequestCommentsProcessorService();
     pullRequestCommentsProcessorService.start();
     hasStartedPullRequestCommentsProcessor = true;
 }
