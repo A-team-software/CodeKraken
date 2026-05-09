@@ -5,8 +5,8 @@ import {
 	PullRequestPayloadAdapter,
 	PullRequestServiceImpl
 } from "@/app/services/pr";
+import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-middleware";
 import { PullRequestPlatform } from "@/types/pull-request-platform";
-import { resolvePlatform, verifyWebhookSignature } from "../webhook-helpers";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -52,12 +52,16 @@ function resolveClientId(req: NextRequest, body: unknown): string {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
-		const platform = resolvePlatform(req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider"));
 		const rawBody = await req.text();
-
-		if (!verifyWebhookSignature(req, platform, rawBody)) {
-			return NextResponse.json({ success: false, error: "Webhook signature verification failed." }, { status: 401 });
+		const authResult = await authorizeWebhookRequest(
+			req,
+			rawBody,
+			req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
+		);
+		if (!authResult.authorized) {
+			return authResult.response;
 		}
+		const platform = authResult.platform;
 
 		let payload: unknown;
 		try {

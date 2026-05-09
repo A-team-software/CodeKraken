@@ -1,48 +1,25 @@
 {
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "target": "ES2017",
-        "lib": [
-            "dom",
-            "dom.iterable",
-            "esnext"
-        ],
-        "allowJs": true,
-        "skipLibCheck": true,
-        "strict": true,
-        "esModuleInterop": true,
+        "target": "ES2020",
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "jsx": "react-jsx",
-        "incremental": true,
-        "plugins": [
-            {
-                "name": "next"
-            }
-        ],
-        "paths": {
-            "@/*": [
-                "./*"
-            ]
-        }
+        "strict": true,
+        "outDir": "./dist",
+        "rootDir": "./",
+        "declaration": true,
+        "declarationMap": true,
+        "composite": true,
+        "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+        "noEmit": false
     },
     "include": [
-        "next-env.d.ts",
-        "**/*.ts",
-        "**/*.tsx",
-        ".next/types/**/*.ts",
-        ".next/dev/types/**/*.ts",
-        "**/*.mts",
-        "../db/src/database.ts",
-        "../db/src/initialization.ts",
-        "../core/src/entities/jira/user_jira_siteAccess.model.ts",
-        "../core/src/entities/AtlassianTenant.model.ts",
-        "../core/src/entities/index.ts",
-        "../core/src/entities/oauthState.model.ts"
+        "index.ts",
+        "src/**/*.ts",
+        "src/**/*.mts"
     ],
     "exclude": [
-        "node_modules"
+        "node_modules",
+        "dist"
     ]
 }

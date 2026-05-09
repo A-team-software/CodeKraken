@@ -1,21 +1,21 @@
 import {
-	BitbucketPullRequestPayloadAdapter,
-	GitHubPullRequestPayloadAdapter,
-	GitLabPullRequestPayloadAdapter,
+	BitbucketPullRequestUpdatedPayloadAdapter,
+	GitHubPullRequestUpdatedPayloadAdapter,
+	GitLabPullRequestUpdatedPayloadAdapter,
 	PullRequestPayloadAdapter,
 } from "@/app/services/pr";
+import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-middleware";
 import { PullRequestPlatform } from "@/types/pull-request-platform";
-import { resolvePlatform, verifyWebhookSignature } from "../webhook-helpers";
 import { NextRequest, NextResponse } from "next/server";
 
 function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapter {
 	switch (platform) {
 		case "github":
-			return new GitHubPullRequestPayloadAdapter();
+			return new GitHubPullRequestUpdatedPayloadAdapter();
 		case "gitlab":
-			return new GitLabPullRequestPayloadAdapter();
+			return new GitLabPullRequestUpdatedPayloadAdapter();
 		case "bitbucket":
-			return new BitbucketPullRequestPayloadAdapter();
+			return new BitbucketPullRequestUpdatedPayloadAdapter();
 		default: {
 			const exhaustiveCheck: never = platform;
 			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
@@ -23,14 +23,14 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapte
 	}
 }
 
-function resolveWebhookSecret(platform: PullRequestPlatform): string | undefined {
+function resolveWebhookSecret(platform: PullRequestPlatform): string {
 	switch (platform) {
 		case "github":
-			return process.env.GITHUB_WEBHOOK_SECRET;
+			return (process.env.GITHUB_WEBHOOK_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "").trim();
 		case "gitlab":
-			return process.env.GITLAB_WEBHOOK_SECRET;
+			return (process.env.GITLAB_WEBHOOK_AUTH_SECRET || process.env.GITLAB_WEBHOOK_SECRET || "").trim();
 		case "bitbucket":
-			return process.env.BITBUCKET_WEBHOOK_SECRET;
+			return (process.env.BITBUCKET_WEBHOOK_AUTH_SECRET || process.env.BITBUCKET_WEBHOOK_SECRET || "").trim();
 		default: {
 			const exhaustiveCheck: never = platform;
 			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
@@ -40,16 +40,19 @@ function resolveWebhookSecret(platform: PullRequestPlatform): string | undefined
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
-		const platform = resolvePlatform(req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider"));
 		const rawBody = await req.text();
-		const webhookSecret = resolveWebhookSecret(platform);
-
-		if (!webhookSecret || webhookSecret.trim().length === 0) {
-			return NextResponse.json({ success: false, error: "Webhook secret is not configured." }, { status: 401 });
+		const authResult = await authorizeWebhookRequest(
+			req,
+			rawBody,
+			req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
+		);
+		if (!authResult.authorized) {
+			return authResult.response;
 		}
-
-		if (!verifyWebhookSignature(req, platform, rawBody)) {
-			return NextResponse.json({ success: false, error: "Webhook signature verification failed." }, { status: 401 });
+		const platform = authResult.platform;
+		const webhookSecret = resolveWebhookSecret(platform);
+		if (!webhookSecret) {
+			return NextResponse.json({ success: false, error: "Webhook secret is not configured." }, { status: 401 });
 		}
 
 		let payload: unknown;
