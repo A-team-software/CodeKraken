@@ -109,7 +109,8 @@ export abstract class BaseGitProvider implements IGitProvider {
     abstract authenticate(token?: string): Promise<boolean>;
     abstract getUser(): Promise<UserProps>;
     abstract getProviderAccountId(): Promise<string>;
-    abstract getRepositories(page?: number, perPage?: number): Promise<UnifiedRepository[]>;
+    async getWorkspaces(): Promise<{ slug: string; name: string; }[]> { return []; }
+    abstract getRepositories(page?: number, perPage?: number, workspace?: string): Promise<UnifiedRepository[]>;
     abstract getWebhooks(repo: UnifiedRepository): Promise<UnifiedWebhook[]>;
     abstract createWebhook(repo: UnifiedRepository, params: WebhookConfigParams): Promise<UnifiedWebhook>;
     abstract updateWebhook(repo: UnifiedRepository, hookId: string, params: Partial<WebhookConfigParams>): Promise<UnifiedWebhook>;

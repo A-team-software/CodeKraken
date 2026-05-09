@@ -30,9 +30,10 @@ function getApiSecret() {
 
 resolver.define('getGithubAuthUrl', async (req) => {
   const { accountId, cloudId } = req.context;
+  const provider = req.payload?.provider || 'github';
   const secret = getApiSecret();
 
-  console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
+  console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
   const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url', {
     method: 'POST',
@@ -40,14 +41,14 @@ resolver.define('getGithubAuthUrl', async (req) => {
       Authorization: `Bearer ${getApiSecret()}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ accountId, cloudId })
+    body: JSON.stringify({ accountId, cloudId, provider })
   });
 
   console.log(`Forge: getGithubAuthUrl response status: ${res.status}`);
   if (!res.ok) {
     const text = await res.text();
     console.error(`Forge: getGithubAuthUrl failed: ${text}`);
-    throw new Error(`Failed to get auth URL: ${res.status}`);
+    return { error: text, status: res.status };
   }
 
   return res.json();
@@ -83,9 +84,10 @@ resolver.define('getGithubStatus', async (req) => {
 
 resolver.define('disconnect', async (req) => {
   const { accountId, cloudId } = req.context;
+  const provider = req.payload?.provider || 'github';
   const secret = getApiSecret();
 
-  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, secretPresented=${!!secret}`);
+  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
   const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect', {
     method: 'POST',
@@ -93,7 +95,7 @@ resolver.define('disconnect', async (req) => {
       Authorization: `Bearer ${secret}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId })
+    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
   });
 
   if (!res.ok) {
@@ -154,14 +156,22 @@ resolver.define('getGithubToken', async ({ context }) => {
   return await backendFetch('/api/forge/github/token', { context });
 });
 
+resolver.define('getWorkspaces', async ({ payload, context }) => {
+  const provider = payload?.provider || 'github';
+  const qs = new URLSearchParams({ provider });
+  return await backendFetch(`/api/forge/workspaces?${qs.toString()}`, { context });
+});
+
 resolver.define('getRepositories', async ({ payload, context }) => {
   const provider = payload?.provider || 'github';
+  const workspace = payload?.workspace;
   const page = payload?.page ?? 1;
   const perPage = payload?.perPage ?? 50;
 
-  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage), provider });
+  const qs = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (workspace) qs.append('workspace', workspace);
   return await backendFetch(
-    `/api/forge/repositories?${qs.toString()}`,
+    `/api/git/${provider}/repositories?${qs.toString()}`,
     { context }
   );
 });

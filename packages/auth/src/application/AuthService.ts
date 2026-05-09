@@ -89,4 +89,53 @@ export class AuthService {
 
         return { accessToken: validAccessToken, userId };
     }
+
+    /**
+     * Unified method to resolve a valid Git token from cookies, headers, or Forge identity.
+     */
+    async resolveGitToken(
+        request: any,
+        cookies: any,
+        provider: string
+    ): Promise<{ token: string; userId?: string; source: 'header' | 'cookie' | 'forge' } | null> {
+        // 1. Try Bearer / x-provider-token headers
+        let token = request.headers.get('authorization')?.replace('Bearer ', '')
+            || request.headers.get('x-provider-token');
+
+        if (token) {
+            // Check if it's a Forge request (Auth: Bearer API_SECRET + Forge headers)
+            const expectedSecret = process.env.API_SECRET;
+            if (token === expectedSecret) {
+                const accountId = request.headers.get('x-forge-account-id');
+                const cloudId = request.headers.get('x-forge-client-key');
+
+                if (accountId && cloudId) {
+                    const oauthToken = await this.tokenRepo.findByAtlassianAccountIdAndCloudId(
+                        accountId,
+                        cloudId,
+                        'git',
+                        provider
+                    );
+
+                    if (oauthToken && oauthToken.accessToken) {
+                        // Check expiry
+                        if (oauthToken.expiresAt && oauthToken.expiresAt.getTime() < Date.now()) {
+                            return null; // Expired
+                        }
+                        return { token: oauthToken.accessToken, userId: oauthToken.userId, source: 'forge' };
+                    }
+                }
+            }
+            // If not Forge or Forge lookup failed, treat as direct provider token
+            return { token, source: 'header' };
+        }
+
+        // 2. Try cookies (web client)
+        const authData = await this.getValidTokenAndUserFromRequest(cookies, request, provider, 'git');
+        if (authData) {
+            return { token: authData.accessToken, userId: authData.userId, source: 'cookie' };
+        }
+
+        return null;
+    }
 }

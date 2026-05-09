@@ -2,7 +2,6 @@
 
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils"; // Assuming utils exists, if not I'll handle it.
 
 interface ModalProps {
   isOpen: boolean;
@@ -38,10 +37,10 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={cn(
-          "relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in zoom-in-95 duration-200",
-          className,
-        )}
+        className={
+          "relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in zoom-in-95 duration-200" +
+          (className ? ` ${className}` : "")
+        }
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">

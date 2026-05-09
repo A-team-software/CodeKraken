@@ -48,15 +48,7 @@ export function EnvironmentProvider({
           }
         }
       }
-      // 2. Check for Trello Power-Up
-      // @ts-ignore
-      else if (
-        window.TrelloPowerUp ||
-        document.referrer.includes("trello.com")
-      ) {
-        setEnv("trello");
-        // Trello initialization is usually async via t.get()
-      }
+
       // 3. Default to Standalone
       else {
         setEnv("standalone");

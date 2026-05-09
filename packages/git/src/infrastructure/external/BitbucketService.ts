@@ -137,9 +137,45 @@ export class BitbucketService extends BaseGitProvider {
         return data.account_id || data.uuid || data.username;
     }
 
-    // Stubs for other methods to satisfy abstract class
-    async getRepositories(page = 1, perPage = 30): Promise<UnifiedRepository[]> {
-        return [];
+    async getWorkspaces(): Promise<{ slug: string; name: string; }[]> {
+        const data = await this.request<any>('/workspaces');
+        return (data.values || []).map((w: any) => ({
+            slug: w.slug,
+            name: w.name,
+        }));
+    }
+
+    private mapRepository(r: any): UnifiedRepository {
+        return {
+            id: r.uuid,
+            name: r.name,
+            slug: r.slug,
+            owner: r.workspace?.slug || r.owner?.username || 'unknown',
+            fullName: r.full_name,
+            description: r.description || null,
+            isPrivate: r.is_private,
+            htmlUrl: r.links?.html?.href,
+            language: r.language || null,
+            defaultBranch: r.mainbranch?.name || 'main',
+            updatedAt: r.updated_on,
+            stats: {
+                stars: 0,
+                forks: 0,
+                issues: 0,
+                watchers: 0,
+            },
+            permissions: {
+                admin: false,
+                push: false,
+                pull: false,
+            },
+        };
+    }
+
+    async getRepositories(page = 1, perPage = 30, workspace?: string): Promise<UnifiedRepository[]> {
+        if (!workspace) return [];
+        const data = await this.request<any>(`/repositories/${workspace}?page=${page}&pagelen=${perPage}`);
+        return (data.values || []).map((r: any) => this.mapRepository(r));
     }
 
     async getWebhooks(repo: UnifiedRepository): Promise<UnifiedWebhook[]> {

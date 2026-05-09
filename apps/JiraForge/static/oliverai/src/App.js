@@ -43,10 +43,14 @@ function App() {
 
   const [repos, setRepos] = useState([]);
   const [reposLoading, setReposLoading] = useState(false);
+  const [workspace, setWorkspace] = useState('');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   const [auth, setAuth] = useState({ connected: false, loading: true });
   const [tokenInput, setTokenInput] = useState('');
   const [connecting, setConnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
@@ -57,16 +61,16 @@ function App() {
   const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
 
   // ─── Auth check — checks for stored token ──────────────────────────────────
-  async function refreshAuthStatus() {
+  async function refreshAuthStatus(p = provider) {
     setAuth((a) => ({ ...a, loading: true }));
     try {
-      console.log('Invoking getGithubStatus...');
-      const { data } = await invoke('getGithubStatus');
-      console.log('GitHub Status:', data);
+      console.log(`Invoking getGithubStatus for provider: ${p}...`);
+      const status = await invoke('getGithubStatus', { provider: p });
+      console.log('Provider Status:', status);
       setAuth({
-        connected: !!data.connected,
+        connected: !!status?.connected,
         loading: false,
-        username: 'GitHub User' // Placeholder since status only returns true/false now
+        username: status?.username || (p === 'bitbucket' ? 'Bitbucket User' : 'GitHub User'),
       });
     } catch (e) {
       console.error('refreshAuthStatus failed:', e);
@@ -109,11 +113,36 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Check auth on mount ──────────────────────────────────
+  // ─── Check auth on mount or provider change ──────────────────────────────────
   useEffect(() => {
-    refreshAuthStatus();
+    refreshAuthStatus(provider);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [provider]);
+
+  // ─── Load workspaces for Bitbucket ──────────────────────────────────────────
+  useEffect(() => {
+    if (!auth.connected || provider !== 'bitbucket') {
+      setWorkspaces([]);
+      return;
+    }
+
+    let mounted = true;
+    setWorkspacesLoading(true);
+    (async () => {
+      try {
+        const res = await invoke('getWorkspaces', { provider });
+        if (!mounted) return;
+        const fetchedWorkspaces = Array.isArray(res?.workspaces) ? res.workspaces : [];
+        setWorkspaces(fetchedWorkspaces);
+      } catch (e) {
+        if (!mounted) return;
+        setWorkspaces([]);
+      } finally {
+        if (mounted) setWorkspacesLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [auth.connected, provider]);
 
   // ─── Load repositories once connected ─────────────────────────────────────
   useEffect(() => {
@@ -122,7 +151,13 @@ function App() {
       return;
     }
 
-    const cacheKey = `repos-${provider}`;
+    // For Bitbucket, wait until a workspace is selected
+    if (provider === 'bitbucket' && !workspace) {
+      setRepos([]);
+      return;
+    }
+
+    const cacheKey = `repos-${provider}-${workspace || 'default'}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -142,6 +177,7 @@ function App() {
       try {
         const res = await invoke('getRepositories', {
           provider,
+          workspace,
           page: 1,
           perPage: 50,
         });
@@ -161,20 +197,30 @@ function App() {
       }
     })();
     return () => { mounted = false; };
-  }, [auth.connected, provider]);
+  }, [auth.connected, provider, workspace]);
 
   // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.data?.type === 'GITHUB_CONNECTED') {
-        refreshAuthStatus();
-        setConnecting(false);
+      // Handle generic completion or provider-specific legacy messages
+      if (
+        event.data?.type === 'OAUTH_COMPLETE' || 
+        event.data?.type === 'GITHUB_CONNECTED' || 
+        event.data?.type === 'BITBUCKET_CONNECTED' ||
+        event.data?.type === 'SCA_AUTH_SUCCESS'
+      ) {
+        // If the payload contains a provider, ensure it matches the current one or refresh regardless
+        const msgProvider = event.data?.payload?.provider || event.data?.provider;
+        if (!msgProvider || msgProvider === provider) {
+          refreshAuthStatus(provider);
+          setConnecting(false);
+        }
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [provider]);
 
   // ─── Polling fallback if connection is pending ────────────────────────────
   useEffect(() => {
@@ -188,12 +234,12 @@ function App() {
 
     const interval = setInterval(async () => {
       try {
-        const status = await invoke('getGithubStatus');
+        const status = await invoke('getGithubStatus', { provider });
         if (status.connected) {
           setAuth({
             connected: true,
             loading: false,
-            username: status.username || 'GitHub User'
+            username: status.username || (provider === 'bitbucket' ? 'Bitbucket User' : 'GitHub User')
           });
           setConnecting(false);
           clearInterval(interval);
@@ -201,8 +247,6 @@ function App() {
         }
       } catch (err) {
         console.error('Error during polling:', err);
-        // We don't stop the interval on a single error, 
-        // but the timeout will eventually catch it.
       }
     }, 2000);
 
@@ -210,27 +254,24 @@ function App() {
       clearInterval(interval);
       clearTimeout(timeoutId);
     };
-  }, [connecting]);
+  }, [connecting, provider]);
 
   // ─── Connect logic (OAuth flow) ───────────────────────────────────────────
   async function handleConnectGit(targetProvider) {
-    if (targetProvider !== 'github') {
-      setError("Only GitHub is currently supported in this architecture.");
-      return;
-    }
-
+    setProvider(targetProvider);
     setConnecting(true);
     setError(null);
     try {
-      const { authUrl } = await invoke('getGithubAuthUrl');
+      const data = await invoke('getGithubAuthUrl', { provider: targetProvider });
+      console.log('getGithubAuthUrl response:', data);
+      const { authUrl } = data;
       if (authUrl) {
-        // Use window.open (popup) instead of router.open so that window.opener
-        // is set in the callback page, allowing postMessage back to this panel.
-        const popup = window.open(authUrl, 'github_oauth', 'popup,width=620,height=720,left=200,top=100');
-        if (!popup) {
-          // Popup was blocked – fall back to same-tab navigation.
-          window.location.href = authUrl;
-        }
+        // Forge Custom UI sandboxes window.open — use router.open to open in a
+        // new browser tab. The callback page auto-closes itself after OAuth;
+        // the polling interval below detects the new connected state.
+        await router.open(authUrl);
+      } else {
+        throw new Error('No authUrl returned from backend');
       }
     } catch (e) {
       console.error('handleConnectGit failed:', e);
@@ -240,10 +281,14 @@ function App() {
   }
 
   async function handleDisconnect() {
-    if (!window.confirm('Are you sure you want to disconnect?')) return;
+    if (!confirmDisconnect) {
+      setConfirmDisconnect(true);
+      return;
+    }
+    setConfirmDisconnect(false);
     try {
-      await invoke('disconnect');
-      await refreshAuthStatus();
+      await invoke('disconnect', { provider });
+      await refreshAuthStatus(provider);
     } catch (e) {
       setError(e?.message || String(e));
     }
@@ -306,7 +351,16 @@ function App() {
       <Box xcss={headerStyles}>
         <Inline alignBlock="center" spread="space-between">
           <Heading size="medium">OliverAI</Heading>
-          {auth.connected && <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>}
+          {auth.connected && (
+            confirmDisconnect ? (
+              <Inline space="space.100">
+                <Button appearance="warning" onClick={handleDisconnect}>Confirm</Button>
+                <Button appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+              </Inline>
+            ) : (
+              <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+            )
+          )}
         </Inline>
       </Box>
 
@@ -378,6 +432,37 @@ function App() {
               {/* Task Section */}
               <Box xcss={cardStyles} className="oliver-card">
                 <Stack space="space.200">
+                  {provider === 'bitbucket' && (
+                    <Stack space="space.075">
+                      <Box as="label" htmlFor="workspaceSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
+                        Workspace
+                      </Box>
+                      <Box className="oliver-field">
+                        <Select
+                          inputId="workspaceSelect"
+                          value={(() => {
+                            const matched = workspaces.find((w) => w.slug === workspace);
+                            if (matched) return { label: matched.name || matched.slug, value: workspace };
+                            if (workspace) return { label: workspace, value: workspace };
+                            return null;
+                          })()}
+                          options={workspaces.map((w) => ({
+                            label: w.name || w.slug,
+                            value: w.slug,
+                          }))}
+                          onChange={(opt) => {
+                            if (opt?.value && opt.value !== workspace) {
+                              setWorkspace(opt.value);
+                              setRepoUrl('');
+                            }
+                          }}
+                          placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
+                          isLoading={workspacesLoading}
+                        />
+                      </Box>
+                    </Stack>
+                  )}
+
                   <Stack space="space.075">
                     <Box as="label" htmlFor="repoSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
                       Repository

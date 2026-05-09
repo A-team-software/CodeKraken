@@ -120,7 +120,7 @@ export class GitHubService extends BaseGitProvider {
         return parsed.id.toString();
     }
 
-    async getRepositories(page = 1, perPage = 30): Promise<UnifiedRepository[]> {
+    async getRepositories(page = 1, perPage = 30, workspace?: string): Promise<UnifiedRepository[]> {
         const data = await this.request<any[]>(`/user/repos?sort=updated&per_page=${perPage}&page=${page}&type=all`);
         return data
             .map((item) => {

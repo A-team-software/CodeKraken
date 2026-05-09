@@ -14,7 +14,8 @@ export interface IGitProvider {
     getProviderAccountId(): Promise<string>;
 
     // Repositories
-    getRepositories(page?: number, perPage?: number): Promise<UnifiedRepository[]>;
+    getWorkspaces(): Promise<{ slug: string; name: string; }[]>;
+    getRepositories(page?: number, perPage?: number, workspace?: string): Promise<UnifiedRepository[]>;
 
     // Webhooks
     getWebhooks(repo: UnifiedRepository): Promise<UnifiedWebhook[]>;
