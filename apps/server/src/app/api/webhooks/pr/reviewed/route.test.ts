@@ -7,9 +7,6 @@ const {
     createdServiceMock,
     verifyWebhookSignatureMock,
     resolvePlatformMock,
-    githubReviewAdapterMock,
-    gitlabReviewAdapterMock,
-    bitbucketReviewAdapterMock
 } = vi.hoisted(() => {
     const githubReviewAdapterMock = {
         adapt: vi.fn((payload: any) => ({
