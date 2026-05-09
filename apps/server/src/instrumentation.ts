@@ -7,7 +7,7 @@ export async function register(): Promise<void> {
         return;
     }
 
-    if (!hasValidatedEnvironment) {
+    if (!hasValidatedEnvironment && process.env.FEATURE_FLAG_VALIDATE_ENV_ON_START === "true") {
         const { T3ConfigValidator } = await import("./app/config/t3-config-validator");
         const envConfigValidator = new T3ConfigValidator();
         await envConfigValidator.validate();
