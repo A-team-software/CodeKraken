@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
         }
 
         const { searchParams } = request.nextUrl;
-        const provider = (searchParams.get('provider') || 'github').toLowerCase();
+        const provider = searchParams.get('provider');
+        if (!provider) {
+            return NextResponse.json({ error: 'Missing provider query parameter' }, { status: 400 });
+        }
 
         const tokenRepo = new MongoOAuthTokenRepository();
         const [oauthToken, queryError] = await SafeExecute.withSync(async () =>

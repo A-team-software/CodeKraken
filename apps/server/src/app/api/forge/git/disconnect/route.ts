@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const accountId = body.accountId;
     const cloudId = body.cloudId || body.clientKey;
 
-    const provider = body.provider || 'github';
+    const provider = body.provider;
 
     if (!accountId || !cloudId) {
         return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });

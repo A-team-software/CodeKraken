@@ -33,7 +33,7 @@ function safeIssueTaskFromContext(ctx) {
 
 function App() {
   const [ctx, setCtx] = useState(null);
-  const [provider, setProvider] = useState('github');
+  const [provider, setProvider] = useState('');
   const [providers, setProviders] = useState([
     { id: 'github', name: 'GitHub' },
     { id: 'bitbucket', name: 'Bitbucket' },
@@ -64,14 +64,22 @@ function App() {
   async function refreshAuthStatus(p = provider) {
     setAuth((a) => ({ ...a, loading: true }));
     try {
-      console.log(`Invoking getGithubStatus for provider: ${p}...`);
-      const status = await invoke('getGithubStatus', { provider: p });
+      console.log(`Invoking getGitStatus for provider: ${p || 'any'}...`);
+      const status = await invoke('getGitStatus', { provider: p });
       console.log('Provider Status:', status);
-      setAuth({
-        connected: !!status?.connected,
-        loading: false,
-        username: status?.username || (p === 'bitbucket' ? 'Bitbucket User' : 'GitHub User'),
-      });
+      
+      if (status?.connected) {
+        if (!p && status.provider) {
+          setProvider(status.provider);
+        }
+        setAuth({
+          connected: true,
+          loading: false,
+          username: status.username || (status.provider === 'bitbucket' ? 'Bitbucket User' : 'GitHub User'),
+        });
+      } else {
+        setAuth({ connected: false, loading: false });
+      }
     } catch (e) {
       console.error('refreshAuthStatus failed:', e);
       setError(`Auth check failed: ${e.message || String(e)}`);
@@ -234,7 +242,7 @@ function App() {
 
     const interval = setInterval(async () => {
       try {
-        const status = await invoke('getGithubStatus', { provider });
+        const status = await invoke('getGitStatus', { provider });
         if (status.connected) {
           setAuth({
             connected: true,
@@ -262,7 +270,7 @@ function App() {
     setConnecting(true);
     setError(null);
     try {
-      const data = await invoke('getGithubAuthUrl', { provider: targetProvider });
+      const data = await invoke('getGitAuthUrl', { provider: targetProvider });
       console.log('getGithubAuthUrl response:', data);
       const { authUrl } = data;
       if (authUrl) {
@@ -335,7 +343,7 @@ function App() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   const providerOptions = providers.map((p) => ({ label: p.name, value: p.id }));
-  const providerOption = providerOptions.find((o) => o.value === provider) || providerOptions[0];
+  const providerOption = providerOptions.find((o) => o.value === provider) || null;
   const canRun = !running && !!repoUrl && !!task && !!auth.connected;
 
   if (auth.loading) {

@@ -28,14 +28,18 @@ function getApiSecret() {
   return undefined;
 }
 
-resolver.define('getGithubAuthUrl', async (req) => {
+resolver.define('getGitAuthUrl', async (req) => {
   const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider || 'github';
+  const provider = req.payload?.provider;
   const secret = getApiSecret();
 
-  console.log(`getGithubAuthUrl: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
+  console.log(`getGitAuthUrl: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/auth-url', {
+  if (!provider) {
+    throw new Error('Provider is required for getGitAuthUrl');
+  }
+
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/auth-url', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -44,24 +48,24 @@ resolver.define('getGithubAuthUrl', async (req) => {
     body: JSON.stringify({ accountId, cloudId, provider })
   });
 
-  console.log(`Forge: getGithubAuthUrl response status: ${res.status}`);
+  console.log(`Forge: getGitAuthUrl response status: ${res.status}`);
   if (!res.ok) {
     const text = await res.text();
-    console.error(`Forge: getGithubAuthUrl failed: ${text}`);
+    console.error(`Forge: getGitAuthUrl failed: ${text}`);
     return { error: text, status: res.status };
   }
 
   return res.json();
 });
 
-resolver.define('getGithubStatus', async (req) => {
+resolver.define('getGitStatus', async (req) => {
   const { accountId, cloudId } = req.context;
   const provider = req.payload?.provider;
   const secret = getApiSecret();
 
-  console.log(`getGithubStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
+  console.log(`getGitStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/status', {
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/status', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -70,26 +74,26 @@ resolver.define('getGithubStatus', async (req) => {
     body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
   });
 
-  console.log(`Forge: getGithubStatus response status: ${res.status}`);
+  console.log(`Forge: getGitStatus response status: ${res.status}`);
   if (!res.ok) {
     const text = await res.text();
-    console.error(`Forge: getGithubStatus failed: ${text}`);
+    console.error(`Forge: getGitStatus failed: ${text}`);
     return { connected: false, error: text };
   }
 
   const data = await res.json();
-  console.log(`Forge: getGithubStatus result: connected=${data.connected}`);
+  console.log(`Forge: getGitStatus result: connected=${data.connected}`);
   return data;
 });
 
 resolver.define('disconnect', async (req) => {
   const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider || 'github';
+  const provider = req.payload?.provider;
   const secret = getApiSecret();
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/github/disconnect', {
+  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/disconnect', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -152,18 +156,17 @@ resolver.define('getGitProviders', async ({ context }) => {
   return await backendFetch('/api/forge/git/providers', { context });
 });
 
-resolver.define('getGithubToken', async ({ context }) => {
-  return await backendFetch('/api/forge/github/token', { context });
-});
 
 resolver.define('getWorkspaces', async ({ payload, context }) => {
-  const provider = payload?.provider || 'github';
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
   const qs = new URLSearchParams({ provider });
   return await backendFetch(`/api/forge/workspaces?${qs.toString()}`, { context });
 });
 
 resolver.define('getRepositories', async ({ payload, context }) => {
-  const provider = payload?.provider || 'github';
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
   const workspace = payload?.workspace;
   const page = payload?.page ?? 1;
   const perPage = payload?.perPage ?? 50;
@@ -177,7 +180,8 @@ resolver.define('getRepositories', async ({ payload, context }) => {
 });
 
 resolver.define('solveTask', async ({ payload, context }) => {
-  const provider = payload?.provider || 'github';
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
   const task = payload?.task;
   const repoUrl = payload?.repoUrl;
 
