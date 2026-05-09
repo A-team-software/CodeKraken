@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const ORIGINAL_ENV = { ...process.env };
+
 const {
     adapterMocks,
     authorizeWebhookRequestMock,
@@ -83,10 +85,15 @@ function createRequest(platform: string | null, body: unknown): NextRequest {
 describe("POST /api/webhooks/pr/updated", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        process.env = { ...ORIGINAL_ENV };
+        process.env.GITHUB_WEBHOOK_AUTH_SECRET = "test-github-secret";
+        process.env.GITLAB_WEBHOOK_AUTH_SECRET = "test-gitlab-secret";
+        process.env.BITBUCKET_WEBHOOK_AUTH_SECRET = "test-bitbucket-secret";
     });
 
     afterEach(() => {
         vi.clearAllMocks();
+        process.env = { ...ORIGINAL_ENV };
     });
 
     it("normalizes github update payload", async () => {
@@ -133,6 +140,20 @@ describe("POST /api/webhooks/pr/updated", () => {
 
         expect(response.status).toBe(401);
         expect(payload.error).toContain("Webhook authentication failed");
+    });
+
+    it("returns 401 when webhook secret is not configured", async () => {
+        delete process.env.GITLAB_WEBHOOK_AUTH_SECRET;
+
+        const response = await POST(createRequest("gitlab", {
+            object_kind: "merge_request",
+            object_attributes: { iid: 7, title: "Fix" }
+        }));
+
+        const payload = await response.json();
+
+        expect(response.status).toBe(401);
+        expect(payload.error).toContain("Webhook secret is not configured");
     });
 
     it("returns 400 for unsupported payload shape", async () => {

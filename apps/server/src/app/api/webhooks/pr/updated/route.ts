@@ -23,6 +23,21 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapte
 	}
 }
 
+function resolveWebhookSecret(platform: PullRequestPlatform): string {
+	switch (platform) {
+		case "github":
+			return (process.env.GITHUB_WEBHOOK_AUTH_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "").trim();
+		case "gitlab":
+			return (process.env.GITLAB_WEBHOOK_AUTH_SECRET || process.env.GITLAB_WEBHOOK_SECRET || "").trim();
+		case "bitbucket":
+			return (process.env.BITBUCKET_WEBHOOK_AUTH_SECRET || process.env.BITBUCKET_WEBHOOK_SECRET || "").trim();
+		default: {
+			const exhaustiveCheck: never = platform;
+			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
+		}
+	}
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
 		const rawBody = await req.text();
@@ -35,6 +50,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 			return authResult.response;
 		}
 		const platform = authResult.platform;
+		const webhookSecret = resolveWebhookSecret(platform);
+		if (!webhookSecret) {
+			return NextResponse.json({ success: false, error: "Webhook secret is not configured." }, { status: 401 });
+		}
 
 		let payload: unknown;
 		try {
