@@ -23,10 +23,30 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapte
 	}
 }
 
+function resolveWebhookSecret(platform: PullRequestPlatform): string | undefined {
+	switch (platform) {
+		case "github":
+			return process.env.GITHUB_WEBHOOK_SECRET;
+		case "gitlab":
+			return process.env.GITLAB_WEBHOOK_SECRET;
+		case "bitbucket":
+			return process.env.BITBUCKET_WEBHOOK_SECRET;
+		default: {
+			const exhaustiveCheck: never = platform;
+			throw new Error(`Unsupported platform: ${exhaustiveCheck}`);
+		}
+	}
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
 	try {
 		const platform = resolvePlatform(req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider"));
 		const rawBody = await req.text();
+		const webhookSecret = resolveWebhookSecret(platform);
+
+		if (!webhookSecret || webhookSecret.trim().length === 0) {
+			return NextResponse.json({ success: false, error: "Webhook secret is not configured." }, { status: 401 });
+		}
 
 		if (!verifyWebhookSignature(req, platform, rawBody)) {
 			return NextResponse.json({ success: false, error: "Webhook signature verification failed." }, { status: 401 });
