@@ -20,5 +20,10 @@
     "@types/lodash": "^4.17.24",
     "lodash": "^4.18.1",
     "zod": "^4.1.13"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss-calc": "^10.1.1"
+    }
   }
 }
