@@ -1,33 +1,175 @@
-/* OliverAI styles using Atlassian design tokens.
- * Tokens resolve from view.theme.enable() in Forge Custom UI.
+/* OliverAI Premium Styles using Atlassian design tokens.
  * See: https://atlassian.design/components/tokens/all-tokens
  */
 
-body {
-  background-color: var(--ds-background-default);
-  color: var(--ds-text);
-  font-family: var(--ds-font-family-default);
-  margin: 0;
+:root {
+  /* Fallbacks for design tokens to ensure visibility in all environments */
+  --fallback-bg: #ffffff;
+  --fallback-text: #172b4d;
+  --fallback-border: #dfe1e6;
+  --fallback-subtle-text: #6b778c;
+  --fallback-brand: #0052cc;
 }
 
+body {
+  background-color: var(--ds-background-default, var(--fallback-bg));
+  color: var(--ds-text, var(--fallback-text));
+  font-family: var(--ds-font-family-default, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif);
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.oliver-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Layout Primitives (replacing @atlaskit/primitives) */
 .oliver-root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.oliver-content {
-  max-width: 920px;
+.oliver-container {
+  max-width: 800px;
   margin: 0 auto;
-}
-
-.oliver-field {
+  padding: var(--ds-space-300, 24px);
   width: 100%;
+  box-sizing: border-box;
 }
 
-/* Let Atlaskit components use their built-in styling; avoid overrides that conflict with tokens */
-.oliver-action-button {
-  /* Minimal overrides; rely on Atlaskit Button styling */
+.oliver-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-200, 16px);
 }
 
-.oliver-run-button {
-  min-height: 40px;
+.oliver-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ds-space-100, 8px);
+  flex-wrap: wrap;
 }
+
+.oliver-spread {
+  justify-content: space-between;
+}
+
+/* Components */
+.oliver-header {
+  padding: var(--ds-space-200, 16px) var(--ds-space-300, 24px);
+  background-color: var(--ds-elevation-surface-raised, #fff);
+  border-bottom: 1px solid var(--ds-border, var(--fallback-border));
+  box-shadow: var(--ds-shadow-raised, 0 1px 1px rgba(9, 30, 66, 0.25));
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.oliver-card {
+  background-color: var(--ds-elevation-surface, #fff);
+  border-radius: var(--ds-border-radius-200, 8px);
+  padding: var(--ds-space-300, 24px);
+  border: 1px solid var(--ds-border, var(--fallback-border));
+  box-shadow: var(--ds-shadow-subtle, 0 1px 1px rgba(9, 30, 66, 0.13));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.oliver-card:hover {
+  box-shadow: var(--ds-shadow-raised, 0 4px 8px rgba(9, 30, 66, 0.25));
+}
+
+.oliver-branding {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-100, 8px);
+}
+
+.oliver-logo-badge {
+  background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.oliver-label {
+  font-size: var(--ds-font-size-075, 12px);
+  color: var(--ds-text-subtle, var(--fallback-subtle-text));
+  font-weight: var(--ds-font-weight-semibold, 600);
+  margin-bottom: var(--ds-space-050, 4px);
+  display: block;
+}
+
+.oliver-field-group {
+  margin-bottom: var(--ds-space-200, 16px);
+}
+
+.oliver-result-pre {
+  background-color: var(--ds-elevation-surface-sunken, #f4f5f7);
+  padding: var(--ds-space-200, 16px);
+  border-radius: var(--ds-border-radius-100, 4px);
+  overflow: auto;
+  font-family: var(--ds-font-family-code, monospace);
+  font-size: var(--ds-font-size-075, 12px);
+  white-space: pre-wrap;
+  border: 1px solid var(--ds-border, var(--fallback-border));
+}
+
+.oliver-hero {
+  text-align: center;
+  padding: var(--ds-space-500, 40px) 0;
+}
+
+.oliver-hero h2 {
+  margin-bottom: var(--ds-space-100, 8px);
+}
+
+.oliver-hero p {
+  color: var(--ds-text-subtle, var(--fallback-subtle-text));
+  max-width: 400px;
+  margin: 0 auto var(--ds-space-300, 24px);
+}
+
+/* Custom Rectangular Buttons */
+.oliver-btn-primary button,
+.oliver-btn-primary [role="button"],
+.oliver-btn-primary {
+  background-color: #0052cc !important;
+  color: white !important;
+  border-radius: 0 !important;
+  font-weight: bold !important;
+  border: none !important;
+}
+
+.oliver-btn-primary button:hover,
+.oliver-btn-primary:hover {
+  background-color: #0747a6 !important;
+}
+
+.oliver-btn-warning button,
+.oliver-btn-warning [role="button"],
+.oliver-btn-warning {
+  background-color: #ffab00 !important;
+  color: #172b4d !important;
+  border-radius: 0 !important;
+  font-weight: bold !important;
+  border: none !important;
+}
+
+.oliver-btn-warning button:hover,
+.oliver-btn-warning:hover {
+  background-color: #ff9900 !important;
+}
+
+/* Ensure LoadingButton spinner is visible if needed, 
+   but Atlaskit usually handles that. */

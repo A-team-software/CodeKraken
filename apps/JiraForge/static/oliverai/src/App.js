@@ -9,7 +9,6 @@ import Spinner from '@atlaskit/spinner';
 import Select from '@atlaskit/select';
 import Textfield from '@atlaskit/textfield';
 import TextArea from '@atlaskit/textarea';
-import { Box, Inline, Stack, xcss } from '@atlaskit/primitives';
 
 /**
  * OliverAI Forge Panel
@@ -48,6 +47,7 @@ function App() {
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   const [auth, setAuth] = useState({ connected: false, loading: true });
+  // eslint-disable-next-line no-unused-vars
   const [tokenInput, setTokenInput] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -57,8 +57,6 @@ function App() {
   const [error, setError] = useState(null);
   const [warning, setWarning] = useState(null);
 
-  const cloudId = useMemo(() => ctx?.cloudId || ctx?.extension?.cloudId, [ctx]);
-  const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
 
   const [discoveryDone, setDiscoveryDone] = useState(false);
 
@@ -249,8 +247,8 @@ function App() {
     const handleMessage = (event) => {
       // Handle generic completion or provider-specific legacy messages
       if (
-        event.data?.type === 'OAUTH_COMPLETE' || 
-        event.data?.type === 'GITHUB_CONNECTED' || 
+        event.data?.type === 'OAUTH_COMPLETE' ||
+        event.data?.type === 'GITHUB_CONNECTED' ||
         event.data?.type === 'BITBUCKET_CONNECTED' ||
         event.data?.type === 'SCA_AUTH_SUCCESS'
       ) {
@@ -359,25 +357,6 @@ function App() {
     }
   }
 
-  // ─── Styles ────────────────────────────────────────────────────────────────
-  const headerStyles = xcss({
-    padding: 'space.300',
-    paddingBottom: 'space.200',
-    backgroundColor: 'elevation.surface.raised',
-    borderBottomWidth: 'border.width',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'color.border',
-  });
-
-  const cardStyles = xcss({
-    backgroundColor: 'elevation.surface',
-    borderRadius: 'border.radius.200',
-    padding: 'space.300',
-    borderWidth: 'border.width',
-    borderStyle: 'solid',
-    borderColor: 'color.border',
-  });
-
   // ─── Render ────────────────────────────────────────────────────────────────
   const providerOptions = providers.map((p) => ({ label: p.name, value: p.id }));
   const providerOption = providerOptions.find((o) => o.value === provider) || null;
@@ -385,44 +364,54 @@ function App() {
 
   if (auth.loading) {
     return (
-      <Box xcss={xcss({ padding: 'space.500', textAlign: 'center' })}>
+      <div className="oliver-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Spinner size="large" />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box className="oliver-root">
-      <Box xcss={headerStyles}>
-        <Inline alignBlock="center" spread="space-between">
-          <Heading size="medium">OliverAI</Heading>
+    <div className="oliver-root">
+      <header className="oliver-header">
+        <div className="oliver-inline oliver-spread">
+          <div className="oliver-branding">
+            <div className="oliver-logo-badge">OA</div>
+            <Heading size="medium">OliverAI</Heading>
+          </div>
           {auth.connected && (
             confirmDisconnect ? (
-              <Inline space="space.100">
-                <Button appearance="warning" onClick={handleDisconnect}>Confirm</Button>
-                <Button appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
-              </Inline>
+              <div className="oliver-inline">
+                <Button className="oliver-btn-warning" appearance="warning" onClick={handleDisconnect}>Confirm</Button>
+                <Button className="oliver-btn-primary" appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+              </div>
             ) : (
-              <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+              <div className="oliver-inline">
+                <div style={{ marginRight: '8px' }}>
+                  <Lozenge appearance="success" isBold>Connected as {auth.username}</Lozenge>
+                </div>
+                <Button className="oliver-btn-warning" appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+              </div>
             )
           )}
-        </Inline>
-      </Box>
+        </div>
+      </header>
 
-      <Box xcss={xcss({ padding: 'space.300' })} className="oliver-content">
-        <Stack space="space.300">
+      <main className="oliver-container oliver-fade-in">
+        <div className="oliver-stack">
 
           {!auth.connected ? (
             /* Connect Panel */
-            <Box xcss={cardStyles}>
-              <Stack space="space.200">
-                <Heading size="small">Connect to OliverAI</Heading>
-                <SectionMessage appearance="info">
-                  To use this add-on, you need to connect your Git account.
-                </SectionMessage>
+            <div className="oliver-card oliver-hero">
+              <div className="oliver-stack">
+                <Heading size="large">Welcome to OliverAI</Heading>
+                <p>
+                  Connect your Git account to start automating your Jira tasks with AI.
+                  We'll help you fix bugs and implement features directly in your codebase.
+                </p>
 
-                <Stack space="space.200">
+                <div className="oliver-stack" style={{ maxWidth: '320px', margin: '0 auto', width: '100%' }}>
                   <LoadingButton
+                    className="oliver-btn-primary"
                     appearance="primary"
                     onClick={() => handleConnectGit('github')}
                     isLoading={connecting && provider === 'github'}
@@ -433,6 +422,7 @@ function App() {
                   </LoadingButton>
 
                   <LoadingButton
+                    className="oliver-btn-warning"
                     appearance="default"
                     onClick={() => handleConnectGit('bitbucket')}
                     isLoading={connecting && provider === 'bitbucket'}
@@ -441,134 +431,121 @@ function App() {
                   >
                     Connect Bitbucket
                   </LoadingButton>
-                </Stack>
+                </div>
 
-                <Box as="p" xcss={xcss({ fontSize: 'font.size.075', color: 'color.text.subtle', textAlign: 'center' })}>
-                  OAuth is handled securely by the SCA API.
-                </Box>
-              </Stack>
-            </Box>
+                <p style={{ fontSize: '11px', marginTop: '16px' }}>
+                  OAuth is handled securely. We only access the repositories you authorize.
+                </p>
+              </div>
+            </div>
           ) : (
             /* Main Dashboard */
             <>
-              {/* Provider Selection Row */}
-              <Box xcss={cardStyles} className="oliver-card">
-                <Stack space="space.200">
-                  <Inline alignBlock="center" spread="space-between" shouldWrap>
-                    <Stack space="space.050">
-                      <Box as="span" xcss={xcss({ color: 'color.text.subtle', fontSize: 'font.size.075' })}>
-                        Git provider
-                      </Box>
-                      <Box xcss={xcss({ minWidth: '240px' })} className="oliver-field">
-                        <Select
-                          inputId="provider"
-                          value={providerOption}
-                          options={providerOptions}
-                          onChange={(opt) => { if (opt?.value) setProvider(opt.value); }}
-                          placeholder="Select provider"
-                        />
-                      </Box>
-                    </Stack>
-                    <Lozenge appearance="success" isBold>Connected</Lozenge>
-                  </Inline>
-                </Stack>
-              </Box>
+              {/* Configuration Section */}
+              <div className="oliver-card">
+                <div className="oliver-stack">
+                  <Heading size="small">Configuration</Heading>
 
-              {/* Task Section */}
-              <Box xcss={cardStyles} className="oliver-card">
-                <Stack space="space.200">
-                  {provider === 'bitbucket' && (
-                    <Stack space="space.075">
-                      <Box as="label" htmlFor="workspaceSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                        Workspace
-                      </Box>
-                      <Box className="oliver-field">
-                        <Select
-                          inputId="workspaceSelect"
-                          value={(() => {
-                            const matched = workspaces.find((w) => w.slug === workspace);
-                            if (matched) return { label: matched.name || matched.slug, value: workspace };
-                            if (workspace) return { label: workspace, value: workspace };
-                            return null;
-                          })()}
-                          options={workspaces.map((w) => ({
-                            label: w.name || w.slug,
-                            value: w.slug,
-                          }))}
-                          onChange={(opt) => {
-                            if (opt?.value && opt.value !== workspace) {
-                              setWorkspace(opt.value);
-                              setRepoUrl('');
-                            }
-                          }}
-                          placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
-                          isLoading={workspacesLoading}
-                        />
-                      </Box>
-                    </Stack>
-                  )}
-
-                  <Stack space="space.075">
-                    <Box as="label" htmlFor="repoSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                      Repository
-                    </Box>
-                    <Box className="oliver-field">
+                  <div className="oliver-inline oliver-spread" style={{ alignItems: 'flex-end' }}>
+                    <div className="oliver-field-group" style={{ flex: 1, minWidth: '240px' }}>
+                      <label className="oliver-label" htmlFor="provider">Git Provider</label>
                       <Select
-                        inputId="repoSelect"
+                        inputId="provider"
+                        value={providerOption}
+                        options={providerOptions}
+                        onChange={(opt) => { if (opt?.value) setProvider(opt.value); }}
+                        placeholder="Select provider"
+                      />
+                    </div>
+                  </div>
+
+                  {provider === 'bitbucket' && (
+                    <div className="oliver-field-group">
+                      <label className="oliver-label" htmlFor="workspaceSelect">Workspace</label>
+                      <Select
+                        inputId="workspaceSelect"
                         value={(() => {
-                          const toCloneUrl = (r) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
-                          const matched = repos.find((r) => toCloneUrl(r) === repoUrl);
-                          if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
-                          if (repoUrl) return { label: repoUrl, value: repoUrl };
+                          const matched = workspaces.find((w) => w.slug === workspace);
+                          if (matched) return { label: matched.name || matched.slug, value: workspace };
+                          if (workspace) return { label: workspace, value: workspace };
                           return null;
                         })()}
-                        options={repos.map((r) => ({
-                          label: r.fullName || `${r.owner}/${r.name}`,
-                          value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
+                        options={workspaces.map((w) => ({
+                          label: w.name || w.slug,
+                          value: w.slug,
                         }))}
-                        onChange={(opt) => opt?.value && setRepoUrl(opt.value)}
-                        placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
-                        isLoading={reposLoading}
+                        onChange={(opt) => {
+                          if (opt?.value && opt.value !== workspace) {
+                            setWorkspace(opt.value);
+                            setRepoUrl('');
+                          }
+                        }}
+                        placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
+                        isLoading={workspacesLoading}
                       />
-                    </Box>
-                    <Box as="span" xcss={xcss({ color: 'color.text.subtle', fontSize: 'font.size.050' })}>
-                      Or enter URL manually:
-                    </Box>
-                    <Textfield
-                      id="repoUrl"
-                      name="repoUrl"
-                      value={repoUrl}
-                      onChange={(e) => setRepoUrl(e.target.value)}
-                      placeholder="e.g. https://github.com/acme/project"
+                    </div>
+                  )}
+
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="repoSelect">Repository</label>
+                    <Select
+                      inputId="repoSelect"
+                      value={(() => {
+                        const toCloneUrl = (r) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
+                        const matched = repos.find((r) => toCloneUrl(r) === repoUrl);
+                        if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
+                        if (repoUrl) return { label: repoUrl, value: repoUrl };
+                        return null;
+                      })()}
+                      options={repos.map((r) => ({
+                        label: r.fullName || `${r.owner}/${r.name}`,
+                        value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
+                      }))}
+                      onChange={(opt) => opt?.value && setRepoUrl(opt.value)}
+                      placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
+                      isLoading={reposLoading}
                     />
-                  </Stack>
-
-                  <Stack space="space.075">
-                    <Box as="label" htmlFor="task" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                      Task Description
-                    </Box>
-                    <Box className="oliver-field">
-                      <TextArea
-                        id="task"
-                        value={task}
-                        onChange={(e) => setTask(e.target.value)}
-                        minimumRows={6}
-                        placeholder="Describe what needs to be fixed or implemented..."
+                    <div style={{ marginTop: '8px' }}>
+                      <Textfield
+                        id="repoUrl"
+                        name="repoUrl"
+                        value={repoUrl}
+                        onChange={(e) => setRepoUrl(e.target.value)}
+                        placeholder="Or enter URL manually: https://github.com/acme/project"
                       />
-                    </Box>
-                  </Stack>
-                </Stack>
-              </Box>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              <LoadingButton
-                appearance="primary"
-                onClick={runSolve}
-                isDisabled={!canRun}
-                shouldFitContainer
-                isLoading={running}
-              >
-                Run OliverAI
-              </LoadingButton>
+              {/* Task Section */}
+              <div className="oliver-card">
+                <div className="oliver-stack">
+                  <Heading size="small">Instruction</Heading>
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="task">What should OliverAI do?</label>
+                    <TextArea
+                      id="task"
+                      value={task}
+                      onChange={(e) => setTask(e.target.value)}
+                      minimumRows={6}
+                      placeholder="Describe the task in detail..."
+                    />
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <LoadingButton
+                      className="oliver-btn-primary"
+                      appearance="primary"
+                      onClick={runSolve}
+                      isDisabled={!canRun}
+                      isLoading={running}
+                    >
+                      Run OliverAI
+                    </LoadingButton>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
@@ -586,29 +563,18 @@ function App() {
           )}
 
           {result && (
-            <Box xcss={cardStyles} className="oliver-card">
-              <Stack space="space.150">
-                <Heading size="small">Agent report</Heading>
-                <Box
-                  as="pre"
-                  xcss={xcss({
-                    padding: 'space.150',
-                    backgroundColor: 'elevation.surface.sunken',
-                    borderRadius: 'border.radius.100',
-                    overflow: 'auto',
-                    fontFamily: 'font.family.code',
-                    fontSize: 'font.size.075',
-                    whiteSpace: 'pre-wrap',
-                  })}
-                >
+            <div className="oliver-card oliver-fade-in">
+              <div className="oliver-stack">
+                <Heading size="small">Agent Report</Heading>
+                <div className="oliver-result-pre">
                   {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
-                </Box>
-              </Stack>
-            </Box>
+                </div>
+              </div>
+            </div>
           )}
-        </Stack>
-      </Box>
-    </Box>
+        </div>
+      </main>
+    </div>
   );
 }
 
