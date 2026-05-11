@@ -6,6 +6,7 @@
     "dev": "pnpm turbo run dev --parallel",
     "build": "pnpm turbo run build",
     "lint": "pnpm turbo run lint",
+    "start:docker": "sh -c 'if [ \"$npm_config_rebuild\" = \"true\" ]; then cd apps/server && docker compose up --build; else cd apps/server && docker compose up; fi'",
     "test": "pnpm --filter server exec vitest run src/app/services/pr src/app/adapters src/app/api src/app/middlewares --exclude \"**/*.integration.test.ts\"",
     "clean": "pnpm turbo run clean && rm -rf node_modules"
   },

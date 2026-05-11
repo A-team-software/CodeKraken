@@ -6,7 +6,9 @@
   "private": true,
   "scripts": {
     "lint": "eslint src/**/*",
-    "build": "npm --prefix static/oliverai ci && npm --prefix static/oliverai run build"
+    "manifest:generate": "node scripts/generate-manifest.js",
+    "prebuild": "npm run manifest:generate",
+    "build": "npm --prefix static/oliverai run build"
   },
   "devDependencies": {
     "eslint": "^8.56.0",
