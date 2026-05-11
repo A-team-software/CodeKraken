@@ -60,14 +60,50 @@ function App() {
   const cloudId = useMemo(() => ctx?.cloudId || ctx?.extension?.cloudId, [ctx]);
   const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
 
+  const [discoveryDone, setDiscoveryDone] = useState(false);
+
   // ─── Auth check — checks for stored token ──────────────────────────────────
   async function refreshAuthStatus(p = provider) {
     setAuth((a) => ({ ...a, loading: true }));
     try {
+      if (!p && !discoveryDone) {
+        console.log('Performing initial provider discovery...');
+        const [gh, bb] = await Promise.all([
+          invoke('getGitStatus', { provider: 'github' }).catch(() => ({ connected: false })),
+          invoke('getGitStatus', { provider: 'bitbucket' }).catch(() => ({ connected: false }))
+        ]);
+
+        setDiscoveryDone(true);
+
+        if (gh?.connected) {
+          console.log('Discovery: GitHub connected');
+          setProvider('github');
+          setAuth({
+            connected: true,
+            loading: false,
+            username: gh.username || 'GitHub User',
+          });
+        } else if (bb?.connected) {
+          console.log('Discovery: Bitbucket connected');
+          setProvider('bitbucket');
+          setAuth({
+            connected: true,
+            loading: false,
+            username: bb.username || 'Bitbucket User',
+          });
+        } else {
+          console.log('Discovery: No providers connected');
+          setAuth({ connected: false, loading: false });
+          // Default to github if nothing connected
+          if (!provider) setProvider('github');
+        }
+        return;
+      }
+
       console.log(`Invoking getGitStatus for provider: ${p || 'any'}...`);
       const status = await invoke('getGitStatus', { provider: p });
       console.log('Provider Status:', status);
-      
+
       if (status?.connected) {
         if (!p && status.provider) {
           setProvider(status.provider);
@@ -109,7 +145,8 @@ function App() {
         if (!mounted) return;
         if (Array.isArray(res?.providers) && res.providers.length) {
           setProviders(res.providers);
-          if (!res.providers.find((p) => p.id === provider)) {
+          // Only set default provider if not already set by discovery or previous state
+          if (!provider && !discoveryDone) {
             setProvider(res.providers[0].id);
           }
         }

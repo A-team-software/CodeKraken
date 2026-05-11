@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         // ── Parse body ────────────────────────────────────────────────────────
         const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
         if (bodyError) {
-            // Silently handle if needed, but the original had a catch
+            return NextResponse.json({ error: bodyError?.message }, { status: 400 });
         }
         const safeBody = body || {};
         const accountId: string | undefined = safeBody.accountId;
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
         if (queryError) return NextResponse.json({ connected: false, error: queryError.message || 'Internal error' }, { status: 500 });
 
-        if (!oauthToken || !oauthToken.accessToken) {
+        if (!oauthToken) {
             return NextResponse.json({ connected: false });
         }
 
