@@ -30,7 +30,7 @@ resources:
     path: static/oliverai/build
 app:
   runtime:
-    name: nodejs24.x
+    name: nodejs20.x
   id: ari:cloud:ecosystem::app/a2d49ed1-bb5e-4c26-b5fd-585625d4cab8
 permissions:
   scopes:
@@ -38,6 +38,6 @@ permissions:
   external:
     fetch:
       backend:
-        - "https://oliver-server-qw6b.vercel.app"
+        - "{{SERVER_REMOTE_URL}}"
         - "https://github.com"
         - "https://bitbucket.org"

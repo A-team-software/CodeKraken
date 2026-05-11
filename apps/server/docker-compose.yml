@@ -1,0 +1,45 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: oliver-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: oliverai
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - oliver-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/oliverai --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ../..
+      dockerfile: apps/server/Dockerfile
+    container_name: oliver-server
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - path: ./.dockerenvfile
+        required: false
+    volumes:
+      - .:/app/apps/server
+      - /app/apps/server/node_modules
+    working_dir: /app/apps/server
+    command: pnpm dev
+    networks:
+      - oliver-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  oliver-network:
+    driver: bridge

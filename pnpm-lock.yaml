@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  postcss-calc: ^10.1.1
+
 importers:
 
   .:
@@ -39,6 +42,9 @@ importers:
       '@forge/resolver':
         specifier: 1.7.1
         version: 1.7.1
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -6159,10 +6165,11 @@ packages:
       browserslist: '>=4'
       postcss: '>=8'
 
-  postcss-calc@8.2.4:
-    resolution: {integrity: sha512-SmWMSJmB8MRnnULldx0lQIyhSNvuDl9HfrZkaqqE/WHAhToYsAvDq+yAsA/kIyINDszOp3Rh0GFoNuH5Ypsm3Q==}
+  postcss-calc@10.1.1:
+    resolution: {integrity: sha512-NYEsLHh8DgG/PRH2+G9BTuUdtf9ViS+vdoQ0YA5OQdGsfN4ztiwtDWNtBl9EKeqNMFnIu8IKZ0cLxEQ5r5KVMw==}
+    engines: {node: ^18.12 || ^20.9 || >=22.0}
     peerDependencies:
-      postcss: ^8.2.2
+      postcss: ^8.4.38
 
   postcss-clamp@4.1.0:
     resolution: {integrity: sha512-ry4b1Llo/9zz+PKC+030KUnPITTJAHeOwjfAyyB60eT0AorGLdzp52s31OsPRHRf8NchkgFoG2y6fCfn1IV1Ow==}
@@ -12114,7 +12121,7 @@ snapshots:
       css-declaration-sorter: 6.4.1(postcss@8.5.10)
       cssnano-utils: 3.1.0(postcss@8.5.10)
       postcss: 8.5.10
-      postcss-calc: 8.2.4(postcss@8.5.10)
+      postcss-calc: 10.1.1(postcss@8.5.10)
       postcss-colormin: 5.3.1(postcss@8.5.10)
       postcss-convert-values: 5.1.3(postcss@8.5.10)
       postcss-discard-comments: 5.1.2(postcss@8.5.10)
@@ -14886,10 +14893,10 @@ snapshots:
       browserslist: 4.28.2
       postcss: 8.5.10
 
-  postcss-calc@8.2.4(postcss@8.5.10):
+  postcss-calc@10.1.1(postcss@8.5.10):
     dependencies:
       postcss: 8.5.10
-      postcss-selector-parser: 6.1.2
+      postcss-selector-parser: 7.1.1
       postcss-value-parser: 4.2.0
 
   postcss-clamp@4.1.0(postcss@8.5.10):
