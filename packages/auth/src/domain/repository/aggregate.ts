@@ -40,6 +40,9 @@ export class OAuthTokenAggregate extends AggregateRoot {
     get expiresAt(): Date | undefined { return this.props.expiresAt; }
     get tokenType(): string { return this.props.tokenType; }
     get scope(): string | undefined { return this.props.scope; }
+    get isConnected(): boolean {
+        return !!this.props.accessToken && (!this.props.expiresAt || this.props.expiresAt.getTime() > Date.now());
+    }
 
     refresh(newAccessToken: string, newRefreshToken?: string, expiresAt?: Date): void {
         this.props.accessToken = newAccessToken;

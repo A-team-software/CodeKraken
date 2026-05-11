@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ connected: false });
         }
 
+        if (!oauthToken.accessToken) {
+            return NextResponse.json({ connected: false, reason: 'no_token' });
+        }
+
         // Treat as disconnected if the token has a known expiry that has passed
         if (oauthToken.expiresAt && oauthToken.expiresAt.getTime() < Date.now()) {
             return NextResponse.json({ connected: false, reason: 'token_expired' });
