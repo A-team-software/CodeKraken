@@ -1,50 +1,16 @@
 const fs = require("fs");
 const path = require("path");
+const dotenv = require("dotenv");
 
 const appRoot = path.resolve(__dirname, "..");
 const envPath = path.join(appRoot, ".env");
 const templatePath = path.join(appRoot, "manifest.yml.hbs");
 const outputPath = path.join(appRoot, "manifest.yml");
 
-function parseDotEnv(content) {
-    const env = {};
-
-    for (const rawLine of content.split(/\r?\n/)) {
-        const line = rawLine.trim();
-        if (!line || line.startsWith("#")) {
-            continue;
-        }
-
-        const eqIndex = line.indexOf("=");
-        if (eqIndex === -1) {
-            continue;
-        }
-
-        const key = line.slice(0, eqIndex).trim();
-        let value = line.slice(eqIndex + 1).trim();
-
-        if (
-            (value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))
-        ) {
-            value = value.slice(1, -1);
-        }
-
-        env[key] = value;
-    }
-
-    return env;
-}
-
 function loadEnv() {
-    const env = { ...process.env };
-
     if (fs.existsSync(envPath)) {
-        const parsed = parseDotEnv(fs.readFileSync(envPath, "utf8"));
-        Object.assign(env, parsed);
+        dotenv.config({ path: envPath });
     }
-
-    return env;
 }
 
 function main() {
@@ -52,8 +18,8 @@ function main() {
         throw new Error("manifest.yml.hbs not found");
     }
 
-    const env = loadEnv();
-    const serverRemoteUrl = env.SERVER_REMOTE_URL;
+    loadEnv();
+    const serverRemoteUrl = process.env.SERVER_REMOTE_URL;
 
     if (!serverRemoteUrl) {
         throw new Error(

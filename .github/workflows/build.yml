@@ -44,4 +44,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
+        env:
+          SERVER_REMOTE_URL: https://oliver-server-qw6b.vercel.app
         run: pnpm build

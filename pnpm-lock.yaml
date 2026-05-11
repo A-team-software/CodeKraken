@@ -39,6 +39,9 @@ importers:
       '@forge/resolver':
         specifier: 1.7.1
         version: 1.7.1
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       react:
         specifier: ^18.2.0
         version: 18.3.1
