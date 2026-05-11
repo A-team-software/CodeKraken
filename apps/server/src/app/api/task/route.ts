@@ -1,9 +1,9 @@
 import { RunnerTaskConfig } from "../../services/base-project-manager-task-processor";
 import { ProjectManagerTaskProcessorFactory } from "../../services/project-manager-task-processor-factory";
 import { WebhookInvocation } from "../../services/task-processor";
-import { MongoJobPersistenceLayer } from "@/brain/runner/mongo-job-persistence-layer";
-import { OpenCodeRunner } from "@/brain/runner/opencode";
-import { JobResult } from "@/brain/shared";
+import { MongoJobPersistenceLayer } from "@/app/brain/runner/mongo-job-persistence-layer";
+import { OpenCodeRunner } from "@/app/brain/runner/opencode";
+import { JobResult } from "@/app/brain/shared";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
 

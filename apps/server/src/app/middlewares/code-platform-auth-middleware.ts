@@ -5,7 +5,7 @@ import { CodePlatformAuthGate } from "@/app/middlewares/code-platform-auth-gate"
 import { GitHubCodePlatformAuthGate } from "@/app/middlewares/github-code-platform-auth-gate";
 import { GitLabCodePlatformAuthGate } from "@/app/middlewares/gitlab-code-platform-auth-gate";
 import { resolvePlatform } from "@/app/api/webhooks/pr/webhook-helpers";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 
 const gateByPlatform: Record<PullRequestPlatform, CodePlatformAuthGate> = {
     github: new GitHubCodePlatformAuthGate(),

@@ -1,9 +1,21 @@
 let hasStartedPullRequestCommentsProcessor = false;
 let pullRequestCommentsProcessorStartPromise: Promise<void> | null = null;
+let envValidationPromise: Promise<void> | null = null;
 
 export async function register(): Promise<void> {
     if (process.env.NEXT_RUNTIME !== "nodejs") {
         return;
+    }
+
+    if (process.env.FEATURE_FLAG_VALIDATE_ENV_ON_START === "true") {
+        if (!envValidationPromise) {
+            envValidationPromise = (async () => {
+                const { T3ConfigValidator } = await import("./app/config/t3-config-validator");
+                const envConfigValidator = new T3ConfigValidator();
+                await envConfigValidator.validate();
+            })();
+        }
+        await envValidationPromise;
     }
 
     if (hasStartedPullRequestCommentsProcessor) {

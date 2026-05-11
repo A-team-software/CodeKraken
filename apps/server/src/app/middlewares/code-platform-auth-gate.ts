@@ -1,4 +1,4 @@
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { timingSafeEqual } from "node:crypto";
 
 export interface CodePlatformAuthGate {

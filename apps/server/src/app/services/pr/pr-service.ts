@@ -1,14 +1,14 @@
-import { OpenCodeRunner } from "@/brain/runner/opencode";
-import { Runner } from "@/brain/runner/runner";
-import { ConfigPersistenceLayer } from "@/brain/runner/config-persistence-layer";
-import { MongoConfigPersistenceLayer } from "@/brain/runner/mongo-config-persistence-layer";
-import { JobPersistenceLayer } from "@/brain/runner/job-persistence-layer";
-import { MongoJobPersistenceLayer } from "@/brain/runner/mongo-job-persistence-layer";
+import { OpenCodeRunner } from "@/app/brain/runner/opencode";
+import { Runner } from "@/app/brain/runner/runner";
+import { ConfigPersistenceLayer } from "@/app/brain/runner/config-persistence-layer";
+import { MongoConfigPersistenceLayer } from "@/app/brain/runner/mongo-config-persistence-layer";
+import { JobPersistenceLayer } from "@/app/brain/runner/job-persistence-layer";
+import { MongoJobPersistenceLayer } from "@/app/brain/runner/mongo-job-persistence-layer";
 import { PullRequestCommentPayload } from "./comment-payload-adapter";
 import { CommentJobBufferPersistenceLayer, MongoCommentJobBufferPersistenceLayer } from "./comment-job-buffer-persistence-layer";
 import { ReviewPayload } from "./review-payload-adapter";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
-import { PullRequestComment } from "@/types/pull-request-comment";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
+import { PullRequestComment } from "@/app/types/pull-request-comment";
 import { createCodePlatformAdapter } from "@/app/adapters/code-platform-adapter";
 
 export interface OnPullRequestMergedInput {

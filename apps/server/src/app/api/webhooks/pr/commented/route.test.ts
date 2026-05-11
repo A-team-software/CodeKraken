@@ -78,8 +78,8 @@ vi.mock("@/app/services/pr", () => ({
 	})
 }));
 
-vi.mock("@/brain/runner/runner", () => ({}));
-vi.mock("@/brain/runner/opencode", () => ({}));
+vi.mock("@/app/brain/runner/runner", () => ({}));
+vi.mock("@/app/brain/runner/opencode", () => ({}));
 
 import { POST } from "@/app/api/webhooks/pr/commented/route";
 

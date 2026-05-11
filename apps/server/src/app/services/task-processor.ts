@@ -1,4 +1,4 @@
-import { JobResult } from "@/brain/shared";
+import { JobResult } from "@/app/brain/shared";
 
 export interface WebhookInvocation {
     body: unknown;
