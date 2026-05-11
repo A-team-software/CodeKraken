@@ -55,3 +55,7 @@ Thumbs.db
 # Local environment files
 .env
 .env.*
+
+
+# Generated files
+manifest.yml
