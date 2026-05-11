@@ -1,6 +1,4 @@
-/* OliverAI Premium Styles using Atlassian design tokens.
- * See: https://atlassian.design/components/tokens/all-tokens
- */
+@import './assets/fonts/fira_code/fira_code.css';
 
 :root {
   /* Fallbacks for design tokens to ensure visibility in all environments */
@@ -9,6 +7,9 @@
   --fallback-border: #dfe1e6;
   --fallback-subtle-text: #6b778c;
   --fallback-brand: #0052cc;
+  
+  /* Custom fonts */
+  --oliver-font-code: 'Fira Code', var(--ds-font-family-code, monospace);
 }
 
 body {
@@ -119,10 +120,11 @@ body {
   padding: var(--ds-space-200, 16px);
   border-radius: var(--ds-border-radius-100, 4px);
   overflow: auto;
-  font-family: var(--ds-font-family-code, monospace);
+  font-family: var(--oliver-font-code);
   font-size: var(--ds-font-size-075, 12px);
   white-space: pre-wrap;
   border: 1px solid var(--ds-border, var(--fallback-border));
+  font-variant-ligatures: contextual;
 }
 
 .oliver-hero {
@@ -146,14 +148,24 @@ body {
 .oliver-btn-primary {
   background-color: #0052cc !important;
   color: white !important;
-  border-radius: 0 !important;
+  border-radius: var(--ds-border-radius, 4px) !important;
   font-weight: bold !important;
   border: none !important;
+  box-shadow: var(--ds-shadow-raised, 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px 0 rgba(9, 30, 66, 0.31)) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 .oliver-btn-primary button:hover,
 .oliver-btn-primary:hover {
   background-color: #0747a6 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(--ds-shadow-overlay, 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)) !important;
+}
+
+.oliver-btn-primary button:active,
+.oliver-btn-primary:active {
+  transform: translateY(0) !important;
+  box-shadow: var(--ds-shadow-raised) !important;
 }
 
 .oliver-btn-warning button,
@@ -161,14 +173,24 @@ body {
 .oliver-btn-warning {
   background-color: #ffab00 !important;
   color: #172b4d !important;
-  border-radius: 0 !important;
+  border-radius: var(--ds-border-radius, 4px) !important;
   font-weight: bold !important;
   border: none !important;
+  box-shadow: var(--ds-shadow-raised, 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px 0 rgba(9, 30, 66, 0.31)) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
 }
 
 .oliver-btn-warning button:hover,
 .oliver-btn-warning:hover {
   background-color: #ff9900 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(--ds-shadow-overlay, 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)) !important;
+}
+
+.oliver-btn-warning button:active,
+.oliver-btn-warning:active {
+  transform: translateY(0) !important;
+  box-shadow: var(--ds-shadow-raised) !important;
 }
 
 /* Ensure LoadingButton spinner is visible if needed, 
