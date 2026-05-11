@@ -27,7 +27,8 @@ services:
       mongodb:
         condition: service_healthy
     env_file:
-      - ./.dockerenvfile
+      - path: ./.dockerenvfile
+        required: false
     volumes:
       - .:/app/apps/server
       - /app/apps/server/node_modules
