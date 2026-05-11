@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:docker": "sh -c 'if [ \"$npm_config_rebuild\" = \"true\" ]; then docker compose up --build; else docker compose up; fi'",
     "test": "pnpm run test:integration",
-    "test:integration": "vitest run src/brain/runner/opencode/index.local.integration.test.ts src/brain/runner/opencode/index.gcp.integration.test.ts src/app/api/task/route.integration.test.ts src/app/services/pr/pr-service.integration.test.ts"
+    "test:integration": "vitest run src/app/brain/runner/opencode/index.local.integration.test.ts src/app/brain/runner/opencode/index.gcp.integration.test.ts src/app/api/task/route.integration.test.ts src/app/services/pr/pr-service.integration.test.ts"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",
@@ -24,6 +25,7 @@
     "@oliver/shared": "workspace:*",
     "@oliver/user": "workspace:*",
     "@radix-ui/react-slot": "^1.2.3",
+    "@t3-oss/env-nextjs": "^0.13.11",
     "@types/lodash": "^4.17.24",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

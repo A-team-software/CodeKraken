@@ -1,5 +1,5 @@
 import { PullRequestCommentPayload } from "@/app/services/pr/comment-payload-adapter";
-import { PullRequestComment } from "@/types/pull-request-comment";
+import { PullRequestComment } from "@/app/types/pull-request-comment";
 import { CodePlatformAdapter } from "./code-platform-adapter";
 
 const MENTION_REGEX = /@([a-zA-Z0-9][a-zA-Z0-9._-]*)/g;

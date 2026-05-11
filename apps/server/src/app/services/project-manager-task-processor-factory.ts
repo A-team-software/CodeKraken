@@ -1,5 +1,5 @@
-import { OpenCodeRunner } from "@/brain/runner/opencode";
-import { Runner } from "@/brain/runner/runner";
+import { OpenCodeRunner } from "@/app/brain/runner/opencode";
+import { Runner } from "@/app/brain/runner/runner";
 
 import { RunnerTaskConfig } from "./base-project-manager-task-processor";
 import { AsanaProjectManagerAdapterImpl } from "./asana-project-manager-adapter";

@@ -1,4 +1,4 @@
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 
 export function resolvePlatform(value: string | null): PullRequestPlatform {
     const normalized = (value || "").trim().toLowerCase();

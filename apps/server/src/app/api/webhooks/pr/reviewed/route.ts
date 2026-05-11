@@ -6,7 +6,7 @@ import {
 } from "@/app/services/pr";
 import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-middleware";
 import { ReviewPayloadAdapter } from "@/app/services/pr/review-payload-adapter";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { NextRequest, NextResponse } from "next/server";
 
 function resolveAdapter(platform: PullRequestPlatform): ReviewPayloadAdapter {

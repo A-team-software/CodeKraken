@@ -8,7 +8,7 @@ import { ConfigPersistenceLayer } from "../config-persistence-layer";
 import { MongoConfigPersistenceLayer } from "../mongo-config-persistence-layer";
 import { randomUUID } from "node:crypto";
 import { PlanProcessor } from "../plan-processor";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 
 export class OpenCodeRunner implements Runner {
 	private readonly planProcessor = new PlanProcessor();

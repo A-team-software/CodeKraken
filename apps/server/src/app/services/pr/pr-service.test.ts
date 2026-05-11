@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PullRequestServiceImpl } from "./pr-service";
-import { PullRequestPlatform } from "@/types/pull-request-platform";
+import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -34,7 +34,7 @@ vi.mock("@/app/adapters/code-platform-adapter", () => ({
     createCodePlatformAdapter: createCodePlatformAdapterMock
 }));
 
-vi.mock("@/brain/runner/opencode", () => ({
+vi.mock("@/app/brain/runner/opencode", () => ({
     OpenCodeRunner: vi.fn().mockImplementation(function () {
         return {
             start: startMock,
@@ -47,7 +47,7 @@ vi.mock("@/brain/runner/opencode", () => ({
     })
 }));
 
-vi.mock("@/brain/runner/config-persistence-layer", () => ({
+vi.mock("@/app/brain/runner/config-persistence-layer", () => ({
     MongoConfigPersistenceLayer: vi.fn().mockImplementation(function () {
         return {
             getTenantConfig: getTenantConfigMock
@@ -55,7 +55,7 @@ vi.mock("@/brain/runner/config-persistence-layer", () => ({
     })
 }));
 
-vi.mock("@/brain/runner/mongo-config-persistence-layer", () => ({
+vi.mock("@/app/brain/runner/mongo-config-persistence-layer", () => ({
     MongoConfigPersistenceLayer: vi.fn().mockImplementation(function () {
         return {
             getTenantConfig: getTenantConfigMock
@@ -63,7 +63,7 @@ vi.mock("@/brain/runner/mongo-config-persistence-layer", () => ({
     })
 }));
 
-vi.mock("@/brain/runner/mongo-job-persistence-layer", () => ({
+vi.mock("@/app/brain/runner/mongo-job-persistence-layer", () => ({
     MongoJobPersistenceLayer: vi.fn().mockImplementation(function () {
         return {
             findLatestJobByPrId: findLatestJobByPrIdMock,
@@ -84,7 +84,7 @@ vi.mock("./comment-job-buffer-persistence-layer", () => ({
     })
 }));
 
-import { OpenCodeRunner } from "@/brain/runner/opencode";
+import { OpenCodeRunner } from "@/app/brain/runner/opencode";
 
 describe("PullRequestServiceImpl", () => {
     let service: PullRequestServiceImpl;

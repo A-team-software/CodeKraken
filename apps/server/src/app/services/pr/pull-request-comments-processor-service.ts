@@ -1,6 +1,6 @@
 import { SafeExecute } from "@oliver/core";
-import { OpenCodeRunner } from "@/brain/runner/opencode";
-import { Runner } from "@/brain/runner/runner";
+import { OpenCodeRunner } from "@/app/brain/runner/opencode";
+import { Runner } from "@/app/brain/runner/runner";
 
 import { CommentJobBufferPersistenceLayer, CommentsJobBuffer, MongoCommentJobBufferPersistenceLayer } from "./comment-job-buffer-persistence-layer";
 

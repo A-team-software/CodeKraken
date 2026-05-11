@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env.local", ".env"],
+  "globalPassThroughEnv": ["SERVER_REMOTE_URL"],
   "tasks": {
     "server#build": {
       "dependsOn": ["^build", "oliver-client#build"],
