@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         // ── Parse body ────────────────────────────────────────────────────────
         const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
         if (bodyError) {
-            return NextResponse.json({ error: bodyError?.message }, { status: 400 });
+            return NextResponse.json({ connected: false, error: bodyError?.message }, { status: 400 });
         }
         const safeBody = body || {};
         const accountId: string | undefined = safeBody.accountId;
