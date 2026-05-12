@@ -1,23 +1,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { invoke, view } from '@forge/bridge';
 import { z } from 'zod';
+import { Effect, Either } from 'effect';
+import { safeInvokeEffect, safeViewContextEffect, runEffectThunk } from '../utils/effectAsync';
 
 const ContextSchema = z.any();
 
-export const loadContext = createAsyncThunk('task/loadContext', async () => {
-  const ctx = await view.getContext();
+export const loadContext = createAsyncThunk('task/loadContext', async (_, { rejectWithValue }) => {
+  const effect = safeViewContextEffect();
+  const ctx = await runEffectThunk(effect, rejectWithValue);
   return ContextSchema.parse(ctx);
 });
 
 export const solveTaskThunk = createAsyncThunk('task/solveTask', async ({ provider, repoUrl, task }, { dispatch, rejectWithValue }) => {
-  try {
-    const res = await invoke('solveTask', { provider, repoUrl, task });
-    return res;
-  } catch (e) {
-    if (e?.status === 401) {
+  const effect = safeInvokeEffect('solveTask', { provider, repoUrl, task });
+  const result = await Effect.runPromise(Effect.either(effect));
+  
+  if (Either.isRight(result)) {
+    return result.right;
+  } else {
+    const errStr = result.left;
+    if (errStr.includes('Unauthorized (401)')) {
       dispatch({ type: 'git/refreshAuthStatus/fulfilled', payload: { connected: false } });
     }
-    return rejectWithValue(e?.payload?.error || e?.message || String(e));
+    return rejectWithValue(errStr);
   }
 });
 
@@ -30,6 +35,7 @@ export const taskSlice = createSlice({
     result: null,
     error: null,
     warning: null,
+    successMessage: null,
   },
   reducers: {
     setTaskInput(state, action) {
@@ -39,6 +45,7 @@ export const taskSlice = createSlice({
       state.result = null;
       state.error = null;
       state.warning = null;
+      state.successMessage = null;
     }
   },
   extraReducers: (builder) => {
@@ -62,14 +69,17 @@ export const taskSlice = createSlice({
         state.error = null;
         state.warning = null;
         state.result = null;
+        state.successMessage = null;
       })
       .addCase(solveTaskThunk.fulfilled, (state, action) => {
         state.running = false;
         state.result = action.payload;
+        state.successMessage = 'Task completed successfully.';
       })
       .addCase(solveTaskThunk.rejected, (state, action) => {
         state.running = false;
         state.error = action.payload;
+        state.successMessage = null;
       });
   },
 });

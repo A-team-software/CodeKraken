@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { invoke } from '@forge/bridge';
 import { z } from 'zod';
 import get from 'lodash/get';
+import { Effect, Either } from 'effect';
+import { safeInvokeEffect, runEffectThunk } from '../utils/effectAsync';
 
 // --- Zod Schemas ---
 const ProviderSchema = z.object({
@@ -29,8 +30,9 @@ const RepoSchema = z.object({
 });
 
 // --- Thunks ---
-export const fetchProviders = createAsyncThunk('git/fetchProviders', async () => {
-  const res = await invoke('getGitProviders');
+export const fetchProviders = createAsyncThunk('git/fetchProviders', async (_, { rejectWithValue }) => {
+  const effect = safeInvokeEffect('getGitProviders');
+  const res = await runEffectThunk(effect, rejectWithValue);
   const providers = get(res, 'providers', []);
   return z.array(ProviderSchema).parse(providers);
 });
@@ -40,38 +42,42 @@ export const refreshAuthStatus = createAsyncThunk('git/refreshAuthStatus', async
   const targetProvider = provider || state.provider;
   const isDiscovery = !targetProvider && !state.discoveryDone;
 
-  try {
-    if (isDiscovery) {
-      const [gh, bb] = await Promise.all([
-        invoke('getGitStatus', { provider: 'github' }).catch(() => ({ connected: false })),
-        invoke('getGitStatus', { provider: 'bitbucket' }).catch(() => ({ connected: false }))
-      ]);
+  if (isDiscovery) {
+    const ghEffect = safeInvokeEffect('getGitStatus', { provider: 'github' });
+    const bbEffect = safeInvokeEffect('getGitStatus', { provider: 'bitbucket' });
 
-      if (gh?.connected) {
-        return { ...StatusSchema.parse(gh), provider: 'github', discoveryDone: true };
-      } else if (bb?.connected) {
-        return { ...StatusSchema.parse(bb), provider: 'bitbucket', discoveryDone: true };
-      } else {
-        return { connected: false, provider: 'github', discoveryDone: true };
-      }
+    const [ghEither, bbEither] = await Promise.all([
+      Effect.runPromise(Effect.either(ghEffect)),
+      Effect.runPromise(Effect.either(bbEffect))
+    ]);
+
+    const gh = Either.isRight(ghEither) ? ghEither.right : { connected: false };
+    const bb = Either.isRight(bbEither) ? bbEither.right : { connected: false };
+
+    if (gh?.connected) {
+      return { ...StatusSchema.parse(gh), provider: 'github', discoveryDone: true };
+    } else if (bb?.connected) {
+      return { ...StatusSchema.parse(bb), provider: 'bitbucket', discoveryDone: true };
+    } else {
+      return { connected: false, provider: 'github', discoveryDone: true };
     }
-
-    const status = await invoke('getGitStatus', { provider: targetProvider });
-    return { ...StatusSchema.parse(status), provider: targetProvider };
-  } catch (err) {
-    return rejectWithValue(err.message || 'Failed to check status');
   }
+
+  const effect = safeInvokeEffect('getGitStatus', { provider: targetProvider });
+  const status = await runEffectThunk(effect, rejectWithValue);
+  return { ...StatusSchema.parse(status), provider: targetProvider };
 });
 
-export const fetchWorkspaces = createAsyncThunk('git/fetchWorkspaces', async (_, { getState }) => {
+export const fetchWorkspaces = createAsyncThunk('git/fetchWorkspaces', async (_, { getState, rejectWithValue }) => {
   const provider = getState().git.provider;
   if (provider !== 'bitbucket') return [];
-  const res = await invoke('getWorkspaces', { provider });
+  const effect = safeInvokeEffect('getWorkspaces', { provider });
+  const res = await runEffectThunk(effect, rejectWithValue);
   const workspaces = get(res, 'workspaces', []);
   return z.array(WorkspaceSchema).parse(workspaces);
 });
 
-export const fetchRepositories = createAsyncThunk('git/fetchRepositories', async (_, { getState }) => {
+export const fetchRepositories = createAsyncThunk('git/fetchRepositories', async (_, { getState, rejectWithValue }) => {
   const { provider, workspace, auth } = getState().git;
   
   if (!auth.connected) return [];
@@ -90,16 +96,18 @@ export const fetchRepositories = createAsyncThunk('git/fetchRepositories', async
     }
   }
 
-  const res = await invoke('getRepositories', { provider, workspace, page: 1, perPage: 50 });
+  const effect = safeInvokeEffect('getRepositories', { provider, workspace, page: 1, perPage: 50 });
+  const res = await runEffectThunk(effect, rejectWithValue);
   const reposData = Array.isArray(get(res, 'repositories')) ? res.repositories : Array.isArray(res) ? res : [];
   const validRepos = z.array(RepoSchema).parse(reposData);
   sessionStorage.setItem(cacheKey, JSON.stringify(validRepos));
   return validRepos;
 });
 
-export const disconnectGit = createAsyncThunk('git/disconnectGit', async (_, { getState, dispatch }) => {
+export const disconnectGit = createAsyncThunk('git/disconnectGit', async (_, { getState, dispatch, rejectWithValue }) => {
   const provider = getState().git.provider;
-  await invoke('disconnect', { provider });
+  const effect = safeInvokeEffect('disconnect', { provider });
+  await runEffectThunk(effect, rejectWithValue);
   await dispatch(refreshAuthStatus(provider));
 });
 
@@ -122,6 +130,7 @@ export const gitSlice = createSlice({
     reposLoading: false,
     connecting: false,
     error: null,
+    successMessage: null,
   },
   reducers: {
     setProvider(state, action) {
@@ -139,6 +148,9 @@ export const gitSlice = createSlice({
     },
     setError(state, action) {
       state.error = action.payload;
+    },
+    setSuccessMessage(state, action) {
+      state.successMessage = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -153,10 +165,19 @@ export const gitSlice = createSlice({
       })
       .addCase(refreshAuthStatus.pending, (state) => {
         state.auth.loading = true;
+        state.error = null;
+        state.successMessage = null;
       })
       .addCase(refreshAuthStatus.fulfilled, (state, action) => {
         state.auth.loading = false;
+        
+        const newlyConnected = action.payload.connected && !state.auth.connected;
         state.auth.connected = action.payload.connected;
+        
+        if (newlyConnected) {
+          state.successMessage = `Successfully connected to ${action.payload.provider === 'bitbucket' ? 'Bitbucket' : 'GitHub'}.`;
+        }
+
         if (action.payload.username) {
           state.auth.username = action.payload.username;
         } else if (action.payload.connected) {
@@ -195,9 +216,12 @@ export const gitSlice = createSlice({
       .addCase(fetchRepositories.rejected, (state) => {
         state.reposLoading = false;
         state.repos = [];
+      })
+      .addCase(disconnectGit.fulfilled, (state) => {
+        state.successMessage = 'Successfully disconnected from Git provider.';
       });
   },
 });
 
-export const { setProvider, setWorkspace, setRepoUrl, setConnecting, setError } = gitSlice.actions;
+export const { setProvider, setWorkspace, setRepoUrl, setConnecting, setError, setSuccessMessage } = gitSlice.actions;
 export default gitSlice.reducer;

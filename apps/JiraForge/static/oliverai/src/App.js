@@ -38,11 +38,11 @@ function App() {
   
   const {
     auth, provider, providers, workspace, workspaces, workspacesLoading,
-    repoUrl, repos, reposLoading, connecting, error: gitError
+    repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
   } = useSelector((state) => state.git);
 
   const {
-    taskInput, running, result, error: taskError, warning
+    taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
   } = useSelector((state) => state.task);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -337,6 +337,13 @@ function App() {
           {warning && (
             <SectionMessage title="Note" appearance="warning">
               {warning}
+            </SectionMessage>
+          )}
+
+          {(gitSuccess || taskSuccess) && (
+            <SectionMessage title="Success" appearance="success">
+              {gitSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {taskSuccess && <div>{taskSuccess}</div>}
             </SectionMessage>
           )}
 
