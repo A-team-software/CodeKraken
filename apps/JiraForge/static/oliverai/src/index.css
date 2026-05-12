@@ -7,9 +7,30 @@
   --fallback-border: #dfe1e6;
   --fallback-subtle-text: #6b778c;
   --fallback-brand: #0052cc;
+  --fallback-surface: #ffffff;
+  --fallback-surface-raised: #ffffff;
+  --fallback-surface-sunken: #f4f5f7;
+  --fallback-shadow-subtle: 0 1px 1px rgba(9, 30, 66, 0.13);
+  --fallback-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.25);
+  --fallback-shadow-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
 
   /* Custom fonts */
   --oliver-font-code: "Fira Code", var(--ds-font-family-code, monospace);
+}
+
+html[data-color-mode="dark"],
+html[data-theme="dark"] {
+  --fallback-bg: #1d2125;
+  --fallback-text: #b6c2cf;
+  --fallback-border: #282e33;
+  --fallback-subtle-text: #8c9bab;
+  --fallback-brand: #579dff;
+  --fallback-surface: #22272b;
+  --fallback-surface-raised: #282e33;
+  --fallback-surface-sunken: #161a1d;
+  --fallback-shadow-subtle: 0 1px 1px rgba(9, 30, 66, 0.5);
+  --fallback-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.6);
+  --fallback-shadow-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.6), 0 0 1px rgba(9, 30, 66, 0.5);
 }
 
 body,
@@ -94,27 +115,27 @@ body {
 /* Components */
 .oliver-header {
   padding: var(--ds-space-200, 16px) var(--ds-space-300, 24px);
-  background-color: var(--ds-elevation-surface-raised, #fff);
+  background-color: var(--ds-elevation-surface-raised, var(--fallback-surface-raised));
   border-bottom: 1px solid var(--ds-border, var(--fallback-border));
-  box-shadow: var(--ds-shadow-raised, 0 1px 1px rgba(9, 30, 66, 0.25));
+  box-shadow: var(--ds-shadow-raised, var(--fallback-shadow-raised));
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 .oliver-card {
-  background-color: var(--ds-elevation-surface, #fff);
+  background-color: var(--ds-elevation-surface, var(--fallback-surface));
   border-radius: var(--ds-border-radius-200, 8px);
   padding: var(--ds-space-300, 24px);
   border: 1px solid var(--ds-border, var(--fallback-border));
-  box-shadow: var(--ds-shadow-subtle, 0 1px 1px rgba(9, 30, 66, 0.13));
+  box-shadow: var(--ds-shadow-subtle, var(--fallback-shadow-subtle));
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .oliver-card:hover {
-  box-shadow: var(--ds-shadow-raised, 0 4px 8px rgba(9, 30, 66, 0.25));
+  box-shadow: var(--ds-shadow-raised, var(--fallback-shadow-raised));
 }
 
 .oliver-branding {
@@ -146,7 +167,7 @@ body {
 }
 
 .oliver-result-pre {
-  background-color: var(--ds-elevation-surface-sunken, #f4f5f7);
+  background-color: var(--ds-elevation-surface-sunken, var(--fallback-surface-sunken));
   padding: var(--ds-space-200, 16px);
   border-radius: var(--ds-border-radius-100, 4px);
   overflow: auto;

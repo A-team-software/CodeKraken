@@ -23,11 +23,5 @@ const renderApp = () => {
   );
 };
 
-// We attempt to enable themes, but ensure we render even if it fails or hangs
-// to avoid a blank page in the Forge sandbox.
-view.theme.enable()
-  .then(renderApp)
-  .catch((err) => {
-    console.warn('Failed to enable Jira theme:', err);
-    renderApp();
-  });
+// We are handling the theme locally via Redux and @atlaskit/tokens
+renderApp();
