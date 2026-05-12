@@ -56,6 +56,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Token not found after refresh' }, { status: 500 });
         }
 
+        const accessToken = tokenData.accessToken;
+        if (!accessToken) {
+            return NextResponse.json({ error: 'Access token not found after refresh' }, { status: 500 });
+        }
+
         const response = NextResponse.json({
             success: true,
             expiresAt: tokenData.expiresAt
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
 
         response.cookies.set({
             name: cookieName,
-            value: tokenData.accessToken,
+            value: accessToken,
             maxAge: TOKEN_COOKIE_MAX_AGE,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

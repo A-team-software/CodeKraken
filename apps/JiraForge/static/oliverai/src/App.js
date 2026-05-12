@@ -1,5 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
-import { invoke, view, router } from '@forge/bridge';
+import { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setGlobalTheme } from '@atlaskit/tokens';
+import { toggleTheme } from './features/themeSlice';
+import { 
+  fetchProviders, 
+  refreshAuthStatus, 
+  fetchWorkspaces, 
+  fetchRepositories, 
+  disconnectGit, 
+  setProvider, 
+  setWorkspace, 
+  setRepoUrl, 
+  setConnecting,
+  setError as setGitError
+} from './features/gitSlice';
+import { 
+  loadContext, 
+  solveTaskThunk, 
+  setTaskInput 
+} from './features/taskSlice';
+import { invoke, router } from '@forge/bridge';
+
 import Button from '@atlaskit/button';
 import LoadingButton from '@atlaskit/button/loading-button';
 import Heading from '@atlaskit/heading';
@@ -9,274 +30,92 @@ import Spinner from '@atlaskit/spinner';
 import Select from '@atlaskit/select';
 import Textfield from '@atlaskit/textfield';
 import TextArea from '@atlaskit/textarea';
-import { Box, Inline, Stack, xcss } from '@atlaskit/primitives';
-
-/**
- * OliverAI Forge Panel
- *
- * Auth approach:
- *  - Uses Personal Access Token (PAT) flow.
- *  - On mount: checks for stored token via invoke('checkIdentity').
- *  - If not connected, prompts user to paste a PAT from the SCA dashboard.
- */
-
-function safeIssueTaskFromContext(ctx) {
-  const issue = ctx?.extension?.issue;
-  const key = issue?.key ? `${issue.key}` : '';
-  const summary = issue?.summary ? `${issue.summary}` : '';
-  const description = issue?.description ? `${issue.description}` : '';
-  const parts = [];
-  if (key || summary) parts.push(`[${key}] ${summary}`.trim());
-  if (description) parts.push(description);
-  return parts.join('\n\n').trim();
-}
 
 function App() {
-  const [ctx, setCtx] = useState(null);
-  const [provider, setProvider] = useState('github');
-  const [providers, setProviders] = useState([
-    { id: 'github', name: 'GitHub' },
-    { id: 'bitbucket', name: 'Bitbucket' },
-  ]);
-  const [repoUrl, setRepoUrl] = useState('');
-  const [task, setTask] = useState('');
+  const dispatch = useDispatch();
 
-  const [repos, setRepos] = useState([]);
-  const [reposLoading, setReposLoading] = useState(false);
-  const [workspace, setWorkspace] = useState('');
-  const [workspaces, setWorkspaces] = useState([]);
-  const [workspacesLoading, setWorkspacesLoading] = useState(false);
+  const themeMode = useSelector((state) => state.theme.mode);
+  
+  const {
+    auth, provider, providers, workspace, workspaces, workspacesLoading,
+    repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
+  } = useSelector((state) => state.git);
 
-  const [auth, setAuth] = useState({ connected: false, loading: true });
-  const [tokenInput, setTokenInput] = useState('');
-  const [connecting, setConnecting] = useState(false);
+  const {
+    taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
+  } = useSelector((state) => state.task);
+
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
-  const [running, setRunning] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [warning, setWarning] = useState(null);
-
-  const cloudId = useMemo(() => ctx?.cloudId || ctx?.extension?.cloudId, [ctx]);
-  const accountId = useMemo(() => ctx?.accountId || ctx?.extension?.accountId, [ctx]);
-
-  // ─── Auth check — checks for stored token ──────────────────────────────────
-  async function refreshAuthStatus(p = provider) {
-    setAuth((a) => ({ ...a, loading: true }));
-    try {
-      console.log(`Invoking getGithubStatus for provider: ${p}...`);
-      const status = await invoke('getGithubStatus', { provider: p });
-      console.log('Provider Status:', status);
-      setAuth({
-        connected: !!status?.connected,
-        loading: false,
-        username: status?.username || (p === 'bitbucket' ? 'Bitbucket User' : 'GitHub User'),
-      });
-    } catch (e) {
-      console.error('refreshAuthStatus failed:', e);
-      setError(`Auth check failed: ${e.message || String(e)}`);
-      setAuth({ connected: false, loading: false });
-    }
-  }
-
-  // ─── Load context ──────────────────────────────────────────────────────────
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const c = await view.getContext();
-      if (!mounted) return;
-      setCtx(c);
-      const inferred = safeIssueTaskFromContext(c);
-      if (inferred) setTask(inferred);
-    })();
-    return () => { mounted = false; };
-  }, []);
+    setGlobalTheme({ colorMode: themeMode, dark: 'dark', light: 'light', spacing: 'spacing' });
+  }, [themeMode]);
 
-  // ─── Load git providers ────────────────────────────────────────────────────
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await invoke('getGitProviders');
-        if (!mounted) return;
-        if (Array.isArray(res?.providers) && res.providers.length) {
-          setProviders(res.providers);
-          if (!res.providers.find((p) => p.id === provider)) {
-            setProvider(res.providers[0].id);
-          }
-        }
-      } catch (e) {
-        setWarning('Using default provider list; failed to load from backend.');
-      }
-    })();
-    return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    dispatch(loadContext());
+    dispatch(fetchProviders());
+  }, [dispatch]);
 
-  // ─── Check auth on mount or provider change ──────────────────────────────────
   useEffect(() => {
-    refreshAuthStatus(provider);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider]);
+    dispatch(refreshAuthStatus(provider));
+  }, [provider, dispatch]);
 
-  // ─── Load workspaces for Bitbucket ──────────────────────────────────────────
   useEffect(() => {
-    if (!auth.connected || provider !== 'bitbucket') {
-      setWorkspaces([]);
-      return;
-    }
+    dispatch(fetchWorkspaces());
+  }, [auth.connected, provider, dispatch]);
 
-    let mounted = true;
-    setWorkspacesLoading(true);
-    (async () => {
-      try {
-        const res = await invoke('getWorkspaces', { provider });
-        if (!mounted) return;
-        const fetchedWorkspaces = Array.isArray(res?.workspaces) ? res.workspaces : [];
-        setWorkspaces(fetchedWorkspaces);
-      } catch (e) {
-        if (!mounted) return;
-        setWorkspaces([]);
-      } finally {
-        if (mounted) setWorkspacesLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [auth.connected, provider]);
-
-  // ─── Load repositories once connected ─────────────────────────────────────
   useEffect(() => {
-    if (!auth.connected) {
-      setRepos([]);
-      return;
-    }
+    dispatch(fetchRepositories());
+  }, [auth.connected, provider, workspace, dispatch]);
 
-    // For Bitbucket, wait until a workspace is selected
-    if (provider === 'bitbucket' && !workspace) {
-      setRepos([]);
-      return;
-    }
-
-    const cacheKey = `repos-${provider}-${workspace || 'default'}`;
-    const cached = sessionStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setRepos(parsed);
-          return;
-        }
-      } catch (e) {
-        console.error('Failed to parse cached repositories:', e);
-      }
-    }
-
-    let mounted = true;
-    setReposLoading(true);
-    (async () => {
-      try {
-        const res = await invoke('getRepositories', {
-          provider,
-          workspace,
-          page: 1,
-          perPage: 50,
-        });
-        if (!mounted) return;
-        const fetchedRepos = Array.isArray(res?.repositories)
-          ? res.repositories
-          : Array.isArray(res)
-            ? res
-            : [];
-        setRepos(fetchedRepos);
-        sessionStorage.setItem(cacheKey, JSON.stringify(fetchedRepos));
-      } catch (e) {
-        if (!mounted) return;
-        setRepos([]);
-      } finally {
-        if (mounted) setReposLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [auth.connected, provider, workspace]);
-
-  // ─── Post-message listener for OAuth success ──────────────────────────────
   useEffect(() => {
     const handleMessage = (event) => {
-      // Handle generic completion or provider-specific legacy messages
-      if (
-        event.data?.type === 'OAUTH_COMPLETE' || 
-        event.data?.type === 'GITHUB_CONNECTED' || 
-        event.data?.type === 'BITBUCKET_CONNECTED' ||
-        event.data?.type === 'SCA_AUTH_SUCCESS'
-      ) {
-        // If the payload contains a provider, ensure it matches the current one or refresh regardless
+      if (['OAUTH_COMPLETE', 'GITHUB_CONNECTED', 'BITBUCKET_CONNECTED', 'SCA_AUTH_SUCCESS'].includes(event.data?.type)) {
         const msgProvider = event.data?.payload?.provider || event.data?.provider;
         if (!msgProvider || msgProvider === provider) {
-          refreshAuthStatus(provider);
-          setConnecting(false);
+          dispatch(refreshAuthStatus(provider));
+          dispatch(setConnecting(false));
         }
       }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider]);
+  }, [provider, dispatch]);
 
-  // ─── Polling fallback if connection is pending ────────────────────────────
   useEffect(() => {
     if (!connecting) return;
+    const timeoutId = setTimeout(() => {
+      dispatch(setConnecting(false));
+      dispatch(setGitError('Authentication timed out. Please try again.'));
+    }, 60000);
 
-    let timeoutId = setTimeout(() => {
-      console.log('OAuth polling timed out');
-      setConnecting(false);
-      setError('Authentication timed out. Please try again.');
-    }, 60000); // 1 minute timeout
-
-    const interval = setInterval(async () => {
-      try {
-        const status = await invoke('getGithubStatus', { provider });
-        if (status.connected) {
-          setAuth({
-            connected: true,
-            loading: false,
-            username: status.username || (provider === 'bitbucket' ? 'Bitbucket User' : 'GitHub User')
-          });
-          setConnecting(false);
+    const interval = setInterval(() => {
+      dispatch(refreshAuthStatus(provider)).then((action) => {
+        if (action.payload?.connected) {
+          dispatch(setConnecting(false));
           clearInterval(interval);
           clearTimeout(timeoutId);
         }
-      } catch (err) {
-        console.error('Error during polling:', err);
-      }
+      });
     }, 2000);
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeoutId);
-    };
-  }, [connecting, provider]);
+    return () => { clearInterval(interval); clearTimeout(timeoutId); };
+  }, [connecting, provider, dispatch]);
 
-  // ─── Connect logic (OAuth flow) ───────────────────────────────────────────
   async function handleConnectGit(targetProvider) {
-    setProvider(targetProvider);
-    setConnecting(true);
-    setError(null);
+    dispatch(setProvider(targetProvider));
+    dispatch(setConnecting(true));
+    dispatch(setGitError(null));
     try {
-      const data = await invoke('getGithubAuthUrl', { provider: targetProvider });
-      console.log('getGithubAuthUrl response:', data);
-      const { authUrl } = data;
+      const { authUrl } = await invoke('getGitAuthUrl', { provider: targetProvider });
       if (authUrl) {
-        // Forge Custom UI sandboxes window.open — use router.open to open in a
-        // new browser tab. The callback page auto-closes itself after OAuth;
-        // the polling interval below detects the new connected state.
         await router.open(authUrl);
       } else {
         throw new Error('No authUrl returned from backend');
       }
     } catch (e) {
-      console.error('handleConnectGit failed:', e);
-      setError(`Failed to start OAuth: ${e.message || String(e)}`);
-      setConnecting(false);
+      dispatch(setConnecting(false));
+      dispatch(setGitError(`Failed to start OAuth: ${e.message || String(e)}`));
     }
   }
 
@@ -286,98 +125,70 @@ function App() {
       return;
     }
     setConfirmDisconnect(false);
-    try {
-      await invoke('disconnect', { provider });
-      await refreshAuthStatus(provider);
-    } catch (e) {
-      setError(e?.message || String(e));
-    }
+    dispatch(disconnectGit());
   }
 
-  // ─── Run solve ─────────────────────────────────────────────────────────────
-  async function runSolve() {
-    setError(null);
-    setWarning(null);
-    setResult(null);
-    setRunning(true);
-    try {
-      const res = await invoke('solveTask', { provider, repoUrl, task });
-      setResult(res);
-    } catch (e) {
-      const msg = e?.payload?.error || e?.message || String(e);
-      setError(msg);
-      if (e?.status === 401) {
-        setAuth({ connected: false, loading: false });
-      }
-    } finally {
-      setRunning(false);
-    }
+  function runSolve() {
+    dispatch(solveTaskThunk({ provider, repoUrl, task: taskInput }));
   }
 
-  // ─── Styles ────────────────────────────────────────────────────────────────
-  const headerStyles = xcss({
-    padding: 'space.300',
-    paddingBottom: 'space.200',
-    backgroundColor: 'elevation.surface.raised',
-    borderBottomWidth: 'border.width',
-    borderBottomStyle: 'solid',
-    borderBottomColor: 'color.border',
-  });
-
-  const cardStyles = xcss({
-    backgroundColor: 'elevation.surface',
-    borderRadius: 'border.radius.200',
-    padding: 'space.300',
-    borderWidth: 'border.width',
-    borderStyle: 'solid',
-    borderColor: 'color.border',
-  });
-
-  // ─── Render ────────────────────────────────────────────────────────────────
   const providerOptions = providers.map((p) => ({ label: p.name, value: p.id }));
-  const providerOption = providerOptions.find((o) => o.value === provider) || providerOptions[0];
-  const canRun = !running && !!repoUrl && !!task && !!auth.connected;
+  const providerOption = providerOptions.find((o) => o.value === provider) || null;
+  const canRun = !running && !!repoUrl && !!taskInput && !!auth.connected;
 
   if (auth.loading) {
     return (
-      <Box xcss={xcss({ padding: 'space.500', textAlign: 'center' })}>
+      <div className="oliver-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
         <Spinner size="large" />
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box className="oliver-root">
-      <Box xcss={headerStyles}>
-        <Inline alignBlock="center" spread="space-between">
-          <Heading size="medium">OliverAI</Heading>
+    <div className="oliver-root">
+      <header className="oliver-header">
+        <div className="oliver-inline oliver-spread">
+          <div className="oliver-branding">
+            <div className="oliver-logo-badge">OA</div>
+            <Heading size="medium">OliverAI</Heading>
+          </div>
+          <div className="oliver-inline">
+            <Button appearance="subtle" onClick={() => dispatch(toggleTheme())}>
+              {themeMode === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </Button>
+          </div>
           {auth.connected && (
             confirmDisconnect ? (
-              <Inline space="space.100">
-                <Button appearance="warning" onClick={handleDisconnect}>Confirm</Button>
-                <Button appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
-              </Inline>
+              <div className="oliver-inline">
+                <Button className="oliver-btn-warning" appearance="warning" onClick={handleDisconnect}>Confirm</Button>
+                <Button className="oliver-btn-primary" appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+              </div>
             ) : (
-              <Button appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+              <div className="oliver-inline">
+                <div style={{ marginRight: '8px' }}>
+                  <Lozenge appearance="success" isBold>Connected as {auth.username}</Lozenge>
+                </div>
+                <Button className="oliver-btn-warning" appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+              </div>
             )
           )}
-        </Inline>
-      </Box>
+        </div>
+      </header>
 
-      <Box xcss={xcss({ padding: 'space.300' })} className="oliver-content">
-        <Stack space="space.300">
-
+      <main className="oliver-container oliver-fade-in">
+        <div className="oliver-stack">
           {!auth.connected ? (
-            /* Connect Panel */
-            <Box xcss={cardStyles}>
-              <Stack space="space.200">
-                <Heading size="small">Connect to OliverAI</Heading>
-                <SectionMessage appearance="info">
-                  To use this add-on, you need to connect your Git account.
-                </SectionMessage>
+            <div className="oliver-card oliver-hero">
+              <div className="oliver-stack">
+                <Heading size="large">Welcome to OliverAI</Heading>
+                <p>
+                  Connect your Git account to start automating your Jira tasks with AI.
+                  We'll help you fix bugs and implement features directly in your codebase.
+                </p>
 
-                <Stack space="space.200">
+                <div className="oliver-stack" style={{ maxWidth: '320px', margin: '0 auto', width: '100%' }}>
                   <LoadingButton
+                    className="oliver-btn-primary"
                     appearance="primary"
                     onClick={() => handleConnectGit('github')}
                     isLoading={connecting && provider === 'github'}
@@ -388,6 +199,7 @@ function App() {
                   </LoadingButton>
 
                   <LoadingButton
+                    className="oliver-btn-warning"
                     appearance="default"
                     onClick={() => handleConnectGit('bitbucket')}
                     isLoading={connecting && provider === 'bitbucket'}
@@ -396,141 +208,129 @@ function App() {
                   >
                     Connect Bitbucket
                   </LoadingButton>
-                </Stack>
+                </div>
 
-                <Box as="p" xcss={xcss({ fontSize: 'font.size.075', color: 'color.text.subtle', textAlign: 'center' })}>
-                  OAuth is handled securely by the SCA API.
-                </Box>
-              </Stack>
-            </Box>
+                <p style={{ fontSize: '11px', marginTop: '16px' }}>
+                  OAuth is handled securely. We only access the repositories you authorize.
+                </p>
+              </div>
+            </div>
           ) : (
-            /* Main Dashboard */
             <>
-              {/* Provider Selection Row */}
-              <Box xcss={cardStyles} className="oliver-card">
-                <Stack space="space.200">
-                  <Inline alignBlock="center" spread="space-between" shouldWrap>
-                    <Stack space="space.050">
-                      <Box as="span" xcss={xcss({ color: 'color.text.subtle', fontSize: 'font.size.075' })}>
-                        Git provider
-                      </Box>
-                      <Box xcss={xcss({ minWidth: '240px' })} className="oliver-field">
-                        <Select
-                          inputId="provider"
-                          value={providerOption}
-                          options={providerOptions}
-                          onChange={(opt) => { if (opt?.value) setProvider(opt.value); }}
-                          placeholder="Select provider"
-                        />
-                      </Box>
-                    </Stack>
-                    <Lozenge appearance="success" isBold>Connected</Lozenge>
-                  </Inline>
-                </Stack>
-              </Box>
+              <div className="oliver-card">
+                <div className="oliver-stack">
+                  <Heading size="small">Configuration</Heading>
 
-              {/* Task Section */}
-              <Box xcss={cardStyles} className="oliver-card">
-                <Stack space="space.200">
-                  {provider === 'bitbucket' && (
-                    <Stack space="space.075">
-                      <Box as="label" htmlFor="workspaceSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                        Workspace
-                      </Box>
-                      <Box className="oliver-field">
-                        <Select
-                          inputId="workspaceSelect"
-                          value={(() => {
-                            const matched = workspaces.find((w) => w.slug === workspace);
-                            if (matched) return { label: matched.name || matched.slug, value: workspace };
-                            if (workspace) return { label: workspace, value: workspace };
-                            return null;
-                          })()}
-                          options={workspaces.map((w) => ({
-                            label: w.name || w.slug,
-                            value: w.slug,
-                          }))}
-                          onChange={(opt) => {
-                            if (opt?.value && opt.value !== workspace) {
-                              setWorkspace(opt.value);
-                              setRepoUrl('');
-                            }
-                          }}
-                          placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
-                          isLoading={workspacesLoading}
-                        />
-                      </Box>
-                    </Stack>
-                  )}
-
-                  <Stack space="space.075">
-                    <Box as="label" htmlFor="repoSelect" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                      Repository
-                    </Box>
-                    <Box className="oliver-field">
+                  <div className="oliver-inline oliver-spread" style={{ alignItems: 'flex-end' }}>
+                    <div className="oliver-field-group" style={{ flex: 1, minWidth: '240px' }}>
+                      <label className="oliver-label" htmlFor="provider">Git Provider</label>
                       <Select
-                        inputId="repoSelect"
+                        inputId="provider"
+                        value={providerOption}
+                        options={providerOptions}
+                        onChange={(opt) => { if (opt?.value) dispatch(setProvider(opt.value)); }}
+                        placeholder="Select provider"
+                      />
+                    </div>
+                  </div>
+
+                  {provider === 'bitbucket' && (
+                    <div className="oliver-field-group">
+                      <label className="oliver-label" htmlFor="workspaceSelect">Workspace</label>
+                      <Select
+                        inputId="workspaceSelect"
                         value={(() => {
-                          const toCloneUrl = (r) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
-                          const matched = repos.find((r) => toCloneUrl(r) === repoUrl);
-                          if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
-                          if (repoUrl) return { label: repoUrl, value: repoUrl };
+                          const matched = workspaces.find((w) => w.slug === workspace);
+                          if (matched) return { label: matched.name || matched.slug, value: workspace };
+                          if (workspace) return { label: workspace, value: workspace };
                           return null;
                         })()}
-                        options={repos.map((r) => ({
-                          label: r.fullName || `${r.owner}/${r.name}`,
-                          value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
+                        options={workspaces.map((w) => ({
+                          label: w.name || w.slug,
+                          value: w.slug,
                         }))}
-                        onChange={(opt) => opt?.value && setRepoUrl(opt.value)}
-                        placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
-                        isLoading={reposLoading}
+                        onChange={(opt) => {
+                          if (opt?.value && opt.value !== workspace) {
+                            dispatch(setWorkspace(opt.value));
+                          }
+                        }}
+                        placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
+                        isLoading={workspacesLoading}
                       />
-                    </Box>
-                    <Box as="span" xcss={xcss({ color: 'color.text.subtle', fontSize: 'font.size.050' })}>
-                      Or enter URL manually:
-                    </Box>
-                    <Textfield
-                      id="repoUrl"
-                      name="repoUrl"
-                      value={repoUrl}
-                      onChange={(e) => setRepoUrl(e.target.value)}
-                      placeholder="e.g. https://github.com/acme/project"
+                    </div>
+                  )}
+
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="repoSelect">Repository</label>
+                    <Select
+                      inputId="repoSelect"
+                      value={(() => {
+                        const toCloneUrl = (r) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
+                        const matched = repos.find((r) => toCloneUrl(r) === repoUrl);
+                        if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
+                        if (repoUrl) return { label: repoUrl, value: repoUrl };
+                        return null;
+                      })()}
+                      options={repos.map((r) => ({
+                        label: r.fullName || `${r.owner}/${r.name}`,
+                        value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
+                      }))}
+                      onChange={(opt) => opt?.value && dispatch(setRepoUrl(opt.value))}
+                      placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
+                      isLoading={reposLoading}
                     />
-                  </Stack>
-
-                  <Stack space="space.075">
-                    <Box as="label" htmlFor="task" xcss={xcss({ fontSize: 'font.size.075', fontWeight: 'font.weight.semibold' })}>
-                      Task Description
-                    </Box>
-                    <Box className="oliver-field">
-                      <TextArea
-                        id="task"
-                        value={task}
-                        onChange={(e) => setTask(e.target.value)}
-                        minimumRows={6}
-                        placeholder="Describe what needs to be fixed or implemented..."
+                    <div style={{ marginTop: '8px' }}>
+                      <Textfield
+                        id="repoUrl"
+                        name="repoUrl"
+                        value={repoUrl}
+                        onChange={(e) => dispatch(setRepoUrl(e.target.value))}
+                        placeholder="Or enter URL manually: https://github.com/acme/project"
                       />
-                    </Box>
-                  </Stack>
-                </Stack>
-              </Box>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-              <LoadingButton
-                appearance="primary"
-                onClick={runSolve}
-                isDisabled={!canRun}
-                shouldFitContainer
-                isLoading={running}
-              >
-                Run OliverAI
-              </LoadingButton>
+              <div className="oliver-card">
+                <div className="oliver-stack">
+                  <Heading size="small">Instruction</Heading>
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="task">What should OliverAI do?</label>
+                    <TextArea
+                      id="task"
+                      value={taskInput}
+                      onChange={(e) => dispatch(setTaskInput(e.target.value))}
+                      minimumRows={6}
+                      placeholder="Describe the task in detail..."
+                    />
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <LoadingButton
+                      className="oliver-btn-primary"
+                      appearance="primary"
+                      onClick={runSolve}
+                      isDisabled={!canRun}
+                      isLoading={running}
+                    >
+                      Run OliverAI
+                    </LoadingButton>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
-          {/* Feedback & Results */}
-          {error && (
-            <SectionMessage title="Operation Failed" appearance="error">
-              {error}
+          {gitError && (
+            <SectionMessage title="Git Error" appearance="error">
+              {gitError}
+            </SectionMessage>
+          )}
+          
+          {taskError && (
+            <SectionMessage title="Task Operation Failed" appearance="error">
+              {taskError}
             </SectionMessage>
           )}
 
@@ -540,30 +340,26 @@ function App() {
             </SectionMessage>
           )}
 
-          {result && (
-            <Box xcss={cardStyles} className="oliver-card">
-              <Stack space="space.150">
-                <Heading size="small">Agent report</Heading>
-                <Box
-                  as="pre"
-                  xcss={xcss({
-                    padding: 'space.150',
-                    backgroundColor: 'elevation.surface.sunken',
-                    borderRadius: 'border.radius.100',
-                    overflow: 'auto',
-                    fontFamily: 'font.family.code',
-                    fontSize: 'font.size.075',
-                    whiteSpace: 'pre-wrap',
-                  })}
-                >
-                  {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
-                </Box>
-              </Stack>
-            </Box>
+          {(gitSuccess || taskSuccess) && (
+            <SectionMessage title="Success" appearance="success">
+              {gitSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {taskSuccess && <div>{taskSuccess}</div>}
+            </SectionMessage>
           )}
-        </Stack>
-      </Box>
-    </Box>
+
+          {result && (
+            <div className="oliver-card oliver-fade-in">
+              <div className="oliver-stack">
+                <Heading size="small">Agent Report</Heading>
+                <div className="oliver-result-pre">
+                  {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
 

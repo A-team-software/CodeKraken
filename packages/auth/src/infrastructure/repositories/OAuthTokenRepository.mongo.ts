@@ -220,6 +220,34 @@ export class MongoOAuthTokenRepository implements OAuthTokenRepository {
         return result.deletedCount > 0;
     }
 
+    async invalidateByAtlassianAccountIdAndCloudId(
+        atlassianAccountId: string,
+        cloudId: string,
+        providerType?: ProviderType,
+        provider?: string
+    ): Promise<boolean> {
+        const collection = await OAuthTokenCollection.get();
+        const query: Record<string, any> = { atlassianAccountId, cloudId };
+        if (providerType) query.providerType = providerType;
+        if (provider) query.provider = provider.toLowerCase();
+
+        const [result, error] = await SafeExecute
+            .withSync(() => collection.updateOne(query, {
+                $set: {
+                    accessToken: null as any,
+                    refreshToken: null as any,
+                    updatedAt: new Date(),
+                }
+            }))
+            .withRetry({ attempts: 3, delayMs: 100 })
+            .withTimeout(5000)
+            .execute();
+
+        if (error || !result) return false;
+
+        return result.modifiedCount > 0;
+    }
+
     // ----------------------------------------------------------
     // FIND BY USER
     // ----------------------------------------------------------

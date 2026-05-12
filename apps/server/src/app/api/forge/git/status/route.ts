@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         // ── Parse body ────────────────────────────────────────────────────────
         const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
         if (bodyError) {
-            // Silently handle if needed, but the original had a catch
+            return NextResponse.json({ connected: false, error: bodyError?.message }, { status: 400 });
         }
         const safeBody = body || {};
         const accountId: string | undefined = safeBody.accountId;
@@ -63,6 +63,10 @@ export async function POST(request: NextRequest) {
 
         if (!oauthToken) {
             return NextResponse.json({ connected: false });
+        }
+
+        if (!oauthToken.accessToken) {
+            return NextResponse.json({ connected: false, reason: 'no_token' });
         }
 
         // Treat as disconnected if the token has a known expiry that has passed

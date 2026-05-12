@@ -16,7 +16,7 @@ export const OAuthTokenZodSchema = z.object({
     atlassianAccountId: z.string().nullish().transform(v => v ?? undefined),
     provider: z.string(),
     providerType: ProviderTypeEnum,
-    accessToken: z.string(),
+    accessToken: z.string().nullish().transform(v => v ?? undefined),
     refreshToken: z.string().nullish().transform(v => v ?? undefined),
     expiresAt: z.date().nullish().transform(v => v ?? undefined),
     tokenType: z.string().default('Bearer'),

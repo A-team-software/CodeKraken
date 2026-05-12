@@ -1,33 +1,296 @@
-/* OliverAI styles using Atlassian design tokens.
- * Tokens resolve from view.theme.enable() in Forge Custom UI.
- * See: https://atlassian.design/components/tokens/all-tokens
- */
+@import "./assets/fonts/fira_code/fira_code.css";
+
+:root {
+  /* Fallbacks for design tokens to ensure visibility in all environments */
+  --fallback-bg: #ffffff;
+  --fallback-text: #172b4d;
+  --fallback-border: #dfe1e6;
+  --fallback-subtle-text: #6b778c;
+  --fallback-brand: #0052cc;
+  --fallback-surface: #ffffff;
+  --fallback-surface-raised: #ffffff;
+  --fallback-surface-sunken: #f4f5f7;
+  --fallback-shadow-subtle: 0 1px 1px rgba(9, 30, 66, 0.13);
+  --fallback-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.25);
+  --fallback-shadow-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+
+  /* Custom fonts */
+  --oliver-font-code: "Fira Code", var(--ds-font-family-code, monospace);
+
+  /* Atlassian Light Mode Tokens overrides */
+  --ds-text: #172b4d;
+  --ds-text-subtle: #6b778c;
+  --ds-text-subtlest: #5e6c84;
+  --ds-background-input: #fafbfc;
+  --ds-background-input-hovered: #ebecf0;
+  --ds-background-input-pressed: #ffffff;
+  --ds-border-input: #dfe1e6;
+  --ds-border-focused: #4c9aff;
+}
+
+html[data-color-mode="light"],
+html[data-theme="light"] {
+  --ds-text: #172b4d;
+  --ds-text-subtle: #6b778c;
+  --ds-text-subtlest: #5e6c84;
+  --ds-background-input: #fafbfc;
+  --ds-background-input-hovered: #ebecf0;
+  --ds-background-input-pressed: #ffffff;
+  --ds-border-input: #dfe1e6;
+  --ds-border-focused: #4c9aff;
+}
+
+html[data-color-mode="dark"],
+html[data-theme="dark"] {
+  --fallback-bg: #1d2125;
+  --fallback-text: #b6c2cf;
+  --fallback-border: #282e33;
+  --fallback-subtle-text: #8c9bab;
+  --fallback-brand: #579dff;
+  --fallback-surface: #22272b;
+  --fallback-surface-raised: #282e33;
+  --fallback-surface-sunken: #161a1d;
+  --fallback-shadow-subtle: 0 1px 1px rgba(9, 30, 66, 0.5);
+  --fallback-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.6);
+  --fallback-shadow-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.6), 0 0 1px rgba(9, 30, 66, 0.5);
+
+  /* Atlassian Dark Mode Tokens overrides */
+  --ds-text: #b6c2cf;
+  --ds-text-subtle: #8c9bab;
+  --ds-text-subtlest: #738496;
+  --ds-background-input: #22272b;
+  --ds-background-input-hovered: #282e33;
+  --ds-background-input-pressed: #161a1d;
+  --ds-border-input: #738496;
+  --ds-border-focused: #579dff;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family:
+    "Fira Code",
+    var(
+      --ds-font-family-default,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Oxygen,
+      Ubuntu,
+      "Fira Sans",
+      "Droid Sans",
+      "Helvetica Neue",
+      sans-serif
+    ) !important;
+  font-variant-ligatures: contextual !important;
+}
 
 body {
-  background-color: var(--ds-background-default);
-  color: var(--ds-text);
-  font-family: var(--ds-font-family-default);
+  background-color: var(--ds-background-default, var(--fallback-bg));
+  color: var(--ds-text, var(--fallback-text));
   margin: 0;
+  overflow-x: hidden;
 }
 
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.oliver-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Layout Primitives (replacing @atlaskit/primitives) */
 .oliver-root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.oliver-content {
-  max-width: 920px;
+.oliver-container {
+  max-width: 800px;
   margin: 0 auto;
-}
-
-.oliver-field {
+  padding: var(--ds-space-300, 24px);
   width: 100%;
+  box-sizing: border-box;
 }
 
-/* Let Atlaskit components use their built-in styling; avoid overrides that conflict with tokens */
-.oliver-action-button {
-  /* Minimal overrides; rely on Atlaskit Button styling */
+.oliver-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-space-200, 16px);
 }
 
-.oliver-run-button {
-  min-height: 40px;
+.oliver-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ds-space-100, 8px);
+  flex-wrap: wrap;
 }
+
+.oliver-spread {
+  justify-content: space-between;
+}
+
+/* Components */
+.oliver-header {
+  padding: var(--ds-space-200, 16px) var(--ds-space-300, 24px);
+  background-color: var(--ds-elevation-surface-raised, var(--fallback-surface-raised));
+  border-bottom: 1px solid var(--ds-border, var(--fallback-border));
+  box-shadow: var(--ds-shadow-raised, var(--fallback-shadow-raised));
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.oliver-card {
+  background-color: var(--ds-elevation-surface, var(--fallback-surface));
+  border-radius: var(--ds-border-radius-200, 8px);
+  padding: var(--ds-space-300, 24px);
+  border: 1px solid var(--ds-border, var(--fallback-border));
+  box-shadow: var(--ds-shadow-subtle, var(--fallback-shadow-subtle));
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.oliver-card:hover {
+  box-shadow: var(--ds-shadow-raised, var(--fallback-shadow-raised));
+}
+
+.oliver-branding {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-100, 8px);
+}
+
+.oliver-logo-badge {
+  background: linear-gradient(135deg, #0052cc 0%, #0747a6 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.oliver-label {
+  font-size: var(--ds-font-size-075, 12px);
+  color: var(--ds-text-subtle, var(--fallback-subtle-text));
+  font-weight: var(--ds-font-weight-semibold, 600);
+  margin-bottom: var(--ds-space-050, 4px);
+  display: block;
+}
+
+.oliver-field-group {
+  margin-bottom: var(--ds-space-200, 16px);
+}
+
+.oliver-result-pre {
+  background-color: var(--ds-elevation-surface-sunken, var(--fallback-surface-sunken));
+  padding: var(--ds-space-200, 16px);
+  border-radius: var(--ds-border-radius-100, 4px);
+  overflow: auto;
+  font-family: var(--oliver-font-code);
+  font-size: var(--ds-font-size-075, 12px);
+  white-space: pre-wrap;
+  border: 1px solid var(--ds-border, var(--fallback-border));
+  font-variant-ligatures: contextual;
+}
+
+.oliver-hero {
+  text-align: center;
+  padding: var(--ds-space-500, 40px) 0;
+}
+
+.oliver-hero h2 {
+  margin-bottom: var(--ds-space-100, 8px);
+}
+
+.oliver-hero p {
+  color: var(--ds-text-subtle, var(--fallback-subtle-text));
+  max-width: 400px;
+  margin: 0 auto var(--ds-space-300, 24px);
+}
+
+/* Custom Rectangular Buttons */
+.oliver-btn-primary button,
+.oliver-btn-primary [role="button"],
+.oliver-btn-primary {
+  background-color: #0052cc !important;
+  color: white !important;
+  border-radius: var(--ds-border-radius, 4px) !important;
+  font-weight: bold !important;
+  border: none !important;
+  box-shadow: var(
+    --ds-shadow-raised,
+    0 1px 1px rgba(9, 30, 66, 0.25),
+    0 0 1px 0 rgba(9, 30, 66, 0.31)
+  ) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.oliver-btn-primary button:hover,
+.oliver-btn-primary:hover {
+  background-color: #0747a6 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(
+    --ds-shadow-overlay,
+    0 8px 16px -4px rgba(9, 30, 66, 0.25),
+    0 0 1px rgba(9, 30, 66, 0.31)
+  ) !important;
+}
+
+.oliver-btn-primary button:active,
+.oliver-btn-primary:active {
+  transform: translateY(0) !important;
+  box-shadow: var(--ds-shadow-raised) !important;
+}
+
+.oliver-btn-warning button,
+.oliver-btn-warning [role="button"],
+.oliver-btn-warning {
+  background-color: #ffab00 !important;
+  color: #172b4d !important;
+  border-radius: var(--ds-border-radius, 4px) !important;
+  font-weight: bold !important;
+  border: none !important;
+  box-shadow: var(
+    --ds-shadow-raised,
+    0 1px 1px rgba(9, 30, 66, 0.25),
+    0 0 1px 0 rgba(9, 30, 66, 0.31)
+  ) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+.oliver-btn-warning button:hover,
+.oliver-btn-warning:hover {
+  background-color: #ff9900 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: var(
+    --ds-shadow-overlay,
+    0 8px 16px -4px rgba(9, 30, 66, 0.25),
+    0 0 1px rgba(9, 30, 66, 0.31)
+  ) !important;
+}
+
+.oliver-btn-warning button:active,
+.oliver-btn-warning:active {
+  transform: translateY(0) !important;
+  box-shadow: var(--ds-shadow-raised) !important;
+}
+
+/* Ensure LoadingButton spinner is visible if needed, 
+   but Atlaskit usually handles that. */

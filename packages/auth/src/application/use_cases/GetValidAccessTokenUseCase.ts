@@ -24,7 +24,7 @@ export class GetValidAccessTokenUseCase {
 
             // If no expiry, token is still valid
             if (!aggregate.expiresAt) {
-                return aggregate.accessToken;
+                return aggregate.accessToken ?? null;
             }
 
             // Check if token is expired or expiring soon
@@ -33,7 +33,7 @@ export class GetValidAccessTokenUseCase {
             const now = Date.now();
 
             if (expiryTime - now > bufferTime) {
-                return aggregate.accessToken;
+                return aggregate.accessToken ?? null;
             }
 
             // Token is expired or expiring soon, refresh it

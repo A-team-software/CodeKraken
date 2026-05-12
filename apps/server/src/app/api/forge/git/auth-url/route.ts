@@ -10,9 +10,9 @@ export async function POST(req: NextRequest) {
   const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
   if (bodyError || !body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
 
-  const { accountId, cloudId, provider = 'github' } = body;
-  if (!accountId || !cloudId) {
-    return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
+  const { accountId, cloudId, provider } = body;
+  if (!accountId || !cloudId || !provider) {
+    return NextResponse.json({ error: 'Missing accountId, cloudId, or provider' }, { status: 400 });
   }
 
   // Generate state with Forge metadata using the standard AuthService
