@@ -16,6 +16,28 @@
 
   /* Custom fonts */
   --oliver-font-code: "Fira Code", var(--ds-font-family-code, monospace);
+
+  /* Atlassian Light Mode Tokens overrides */
+  --ds-text: #172b4d;
+  --ds-text-subtle: #6b778c;
+  --ds-text-subtlest: #5e6c84;
+  --ds-background-input: #fafbfc;
+  --ds-background-input-hovered: #ebecf0;
+  --ds-background-input-pressed: #ffffff;
+  --ds-border-input: #dfe1e6;
+  --ds-border-focused: #4c9aff;
+}
+
+html[data-color-mode="light"],
+html[data-theme="light"] {
+  --ds-text: #172b4d;
+  --ds-text-subtle: #6b778c;
+  --ds-text-subtlest: #5e6c84;
+  --ds-background-input: #fafbfc;
+  --ds-background-input-hovered: #ebecf0;
+  --ds-background-input-pressed: #ffffff;
+  --ds-border-input: #dfe1e6;
+  --ds-border-focused: #4c9aff;
 }
 
 html[data-color-mode="dark"],
@@ -31,6 +53,16 @@ html[data-theme="dark"] {
   --fallback-shadow-subtle: 0 1px 1px rgba(9, 30, 66, 0.5);
   --fallback-shadow-raised: 0 1px 1px rgba(9, 30, 66, 0.6);
   --fallback-shadow-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.6), 0 0 1px rgba(9, 30, 66, 0.5);
+
+  /* Atlassian Dark Mode Tokens overrides */
+  --ds-text: #b6c2cf;
+  --ds-text-subtle: #8c9bab;
+  --ds-text-subtlest: #738496;
+  --ds-background-input: #22272b;
+  --ds-background-input-hovered: #282e33;
+  --ds-background-input-pressed: #161a1d;
+  --ds-border-input: #738496;
+  --ds-border-focused: #579dff;
 }
 
 body,
