@@ -4,7 +4,7 @@ import { fetch } from '@forge/api';
 const resolver = new Resolver();
 
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
-
+const baseUrl = process.env.BASE_URL;
 /**
  * Helper to get the shared secret with the backend.
  * Fallback to extracting the UUID from FORGE_APP_ID if API_SECRET is not set.
@@ -39,7 +39,7 @@ resolver.define('getGitAuthUrl', async (req) => {
     throw new Error('Provider is required for getGitAuthUrl');
   }
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/auth-url', {
+  const res = await fetch(`${baseUrl}/api/forge/git/auth-url`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -65,7 +65,7 @@ resolver.define('getGitStatus', async (req) => {
 
   console.log(`getGitStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/status', {
+  const res = await fetch(`${baseUrl}/api/forge/git/status`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -93,7 +93,7 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch('https://oliver-server-qw6b.vercel.app/api/forge/git/disconnect', {
+  const res = await fetch(`${baseUrl}/api/forge/git/disconnect`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -118,7 +118,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const url = `https://oliver-server-qw6b.vercel.app${path}`;
+  const url = `${baseUrl}/${path}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',
