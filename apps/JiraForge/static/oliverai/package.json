@@ -18,9 +18,11 @@
     "@atlaskit/tokens": "^13.0.4",
     "@compiled/react": "^0.21.1",
     "@forge/bridge": "5.13.0",
+    "@reduxjs/toolkit": "^2.11.2",
     "fork-ts-checker-webpack-plugin": "^9.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-redux": "^9.2.0",
     "upath": "^2.0.1"
   },
   "devDependencies": {

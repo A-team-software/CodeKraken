@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setGlobalTheme } from '@atlaskit/tokens';
+import { toggleTheme } from './features/themeSlice';
 import { invoke, view, router } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import LoadingButton from '@atlaskit/button/loading-button';
@@ -31,6 +34,18 @@ function safeIssueTaskFromContext(ctx) {
 }
 
 function App() {
+  const themeMode = useSelector((state) => state.theme.mode);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    setGlobalTheme({
+      colorMode: themeMode,
+      dark: 'dark',
+      light: 'light',
+      spacing: 'spacing',
+    });
+  }, [themeMode]);
+
   const [ctx, setCtx] = useState(null);
   const [provider, setProvider] = useState('');
   const [providers, setProviders] = useState([
@@ -47,8 +62,6 @@ function App() {
   const [workspacesLoading, setWorkspacesLoading] = useState(false);
 
   const [auth, setAuth] = useState({ connected: false, loading: true });
-  // eslint-disable-next-line no-unused-vars
-  const [tokenInput, setTokenInput] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
@@ -377,6 +390,11 @@ function App() {
           <div className="oliver-branding">
             <div className="oliver-logo-badge">OA</div>
             <Heading size="medium">OliverAI</Heading>
+          </div>
+          <div className="oliver-inline">
+            <Button appearance="subtle" onClick={() => dispatch(toggleTheme())}>
+              {themeMode === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            </Button>
           </div>
           {auth.connected && (
             confirmDisconnect ? (

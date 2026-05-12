@@ -1,6 +1,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { view } from '@forge/bridge';
+import { Provider } from 'react-redux';
+import { store } from './store';
 import App from './App';
 
 import '@atlaskit/css-reset';
@@ -14,7 +16,9 @@ const root = createRoot(container);
 const renderApp = () => {
   root.render(
     <React.StrictMode>
-      <App />
+      <Provider store={store}>
+        <App />
+      </Provider>
     </React.StrictMode>
   );
 };
