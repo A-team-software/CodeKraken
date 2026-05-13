@@ -203,7 +203,7 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
 
       const rootEntries = fs.readdirSync(distRoot, { withFileTypes: true });
       const sharedRootFiles = rootEntries.filter(
-        (entry) => entry.isFile() && /\.(js|css|js\.map)$/.test(entry.name)
+        (entry) => entry.isFile() && /\.(js|css|map)$/.test(entry.name)
       );
 
       for (const entryName of Object.keys(entryPoints)) {
