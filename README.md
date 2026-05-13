@@ -1,85 +1,119 @@
-# Docker commands
+<div align="center">
+  <img src="https://res.cloudinary.com/dbku02uef/image/upload/v1778705126/icon_2_ahiohi.png" alt="CodeKraken Icon" width="120" />
+</div>
 
-**3. Rebuild the Image**
+# CodeKraken (Oliver)
 
-You **must** rebuild the Docker image to include these changes:
+Welcome to the **CodeKraken** (also known as Oliver) monorepo. This project is an AI-powered application designed to streamline development workflows, including PR generation, task management, and Jira integration.
+
+## 🏗️ Project Structure
+
+This project is built as a monorepo using [Turborepo](https://turbo.build/repo) and [pnpm](https://pnpm.io/).
+
+- `apps/server`: The core backend and API services, connected to MongoDB.
+- `apps/JiraForge`: The Atlassian Forge application frontend integrated directly within Jira.
+- `apps/oliver-client`: The standalone client application.
+
+## 🚀 Prerequisites
+
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/)
+- [pnpm](https://pnpm.io/) (v9+)
+- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
+
+## 🐳 Docker Setup
+
+The project provides a containerized development environment for the backend server and its dependencies (like MongoDB) using Docker Compose.
+
+### Docker Architecture
+
+- **MongoDB (`oliver-mongodb`)**: Runs MongoDB 7 on port `27018` (mapped to `27017` internally) with a persistent volume (`mongodb_data`).
+- **Server (`oliver-server`)**: The backend server, running on port `9977`. It automatically mounts the local source code for live-reloading.
+
+### Environment Variables
+
+Before starting the Docker containers, ensure you have your `.env` and `.dockerenvfile` set up in the `apps/server` directory.
 
 ```bash
-# Clean build cache is recommended when adding fundamental tools
-docker-compose build --no-cache app
-
-# Or without cache cleaning (might be faster if only minor changes)
-# docker-compose build app
-
+# Example: Create a copy of the sample environment file
+cp apps/server/.env.sample apps/server/.dockerenvfile
 ```
+*(Make sure to populate `apps/server/.dockerenvfile` with the necessary configurations).*
 
-*(Use `docker compose` instead of `docker-compose` if using Compose V2)*
+### Starting the Project with Docker
 
-**4. Restart the Container**
+You can use the provided npm scripts from the root of the project to easily manage the Docker lifecycle.
+
+#### 1. Start the Containers
+To start the backend server and MongoDB:
 
 ```bash
-# Stop the potentially running old container
-docker-compose down
+pnpm start:docker
+```
+This script automatically runs `docker compose up` inside the `apps/server` directory. It brings up the database, waits for it to become healthy, and then starts the server.
 
-# Start the container using the newly built image
-docker-compose up -d
+#### 2. Start and Rebuild the Image
+If you've added new dependencies, modified the `Dockerfile`, or need to ensure a clean slate, you should rebuild the Docker image before starting:
 
+```bash
+pnpm start:docker --rebuild
 ```
 
-**5. How to Use It**
+#### 3. Using Standard Docker Compose Commands
+You can always navigate directly to the `apps/server` directory and use standard Docker Compose commands:
 
-Now, inside the *same* running `app` container, you can execute **both** pnpm and bun commands:
+```bash
+cd apps/server
 
-- **Run the Turborepo dev command (using pnpm):**
-    
-    ```bash
-    docker-compose exec app pnpm turbo run dev --parallel
-    
-    ```
-    
-    - This will work as before. Turborepo will run the `dev` script defined in each package's `package.json`.
-    - Your `apps/client/package.json` `dev` script (`next dev ...`) will run using Node.
-    - Your `apps/api/package.json` `dev` script (`bun run --watch src/index.ts`) will now **successfully execute** because the `bun` command is available in the container.
-- **Run Bun commands directly:**
-    
-    ```bash
-    docker-compose exec app bun --version
-    docker-compose exec app bun run apps/api/src/some-script.ts
-    docker-compose exec app bun test
-    
-    ```
-    
-- **Run pnpm commands directly:**
-    
-    ```bash
-    docker-compose exec app pnpm --version
-    docker-compose exec app pnpm install --filter api
-    docker-compose exec app pnpm list
-    
-    ```
-    
-- **Install deps using pnpm through docker:**
-    
-    ```bash
-    docker-compose exec app pnpm install --frozen-lockfile
-    
-    ```
-    
-- **Install deps in `/apps`  via docker:**
-    
-    ```bash
-    docker-compose exec app pnpm add --filter client '@oliver/utils@workspace:*'
-    ```
-    
+# Start containers in detached mode
+docker compose up -d
 
-**Advantages of Option 1:**
+# Rebuild and start
+docker compose up -d --build
 
-- **Single Container:** Simpler Docker Compose setup, only one service to manage for your application code.
-- **Flexibility:** Allows mixing and matching tools within the same environment if needed (though sticking to one per package is cleaner).
+# View server logs
+docker compose logs -f server
 
-**Disadvantages of Option 1:**
+# Stop containers
+docker compose down
 
-- **Larger Image:** The Docker image includes both Node/npm/pnpm *and* the Bun runtime, making it larger than an image with just one.
-- **Less Isolation:** Both runtimes are present; slightly less strict isolation compared to separate containers per runtime.
+# Stop and remove volumes (Warning: wipes the local database!)
+docker compose down -v
+```
 
-This approach directly addresses your need to run the Bun-based `dev` script for the API within the container environment you already set up for pnpm.
+## 🛠️ Local Development (Without Docker)
+
+If you prefer to run the applications locally without Docker (you will still need a running MongoDB instance):
+
+1. **Install Dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+2. **Start the Development Server:**
+   This will run all applications in parallel using Turborepo.
+   ```bash
+   pnpm dev
+   ```
+
+3. **Start the Forge App:**
+   To specifically run the Jira Forge application:
+   ```bash
+   pnpm start:forge
+   ```
+
+## 🧪 Testing
+
+To run the Vitest test suite for the server:
+
+```bash
+pnpm test
+```
+
+## 🧹 Cleaning Up
+
+To clean up all build artifacts and `node_modules` across the monorepo:
+
+```bash
+pnpm clean
+```
