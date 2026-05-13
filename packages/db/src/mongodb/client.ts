@@ -50,8 +50,6 @@ export class MongoConnectionManager {
 
             retryReads: true,
             retryWrites: true,
-
-            compressors: ["zstd", "snappy"],
         });
     }
 

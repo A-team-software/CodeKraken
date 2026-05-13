@@ -7,6 +7,23 @@ export async function register(): Promise<void> {
         return;
     }
 
+    if (process.env.IS_LOCAL_DOCKER === "true") {
+        // Initialize docker tunnel if running in local docker environment
+        const { startDockerTunnel } = await import("./app/services/docker-tunnel");
+        const port = parseInt(process.env.PORT || "3000", 10);
+        const ngrokUrl = process.env.NGROK_URL || "oliver-ai.ngrok.io";
+        
+        try {
+            await startDockerTunnel({
+                port,
+                ngrokUrl,
+            });
+        } catch (error) {
+            console.error("Error starting Docker tunnel:", error);
+            return;
+        }
+    }
+
     if (process.env.FEATURE_FLAG_VALIDATE_ENV_ON_START === "true") {
         if (!envValidationPromise) {
             envValidationPromise = (async () => {

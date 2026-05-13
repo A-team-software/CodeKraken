@@ -3,7 +3,7 @@ services:
     image: mongo:7
     container_name: oliver-mongodb
     ports:
-      - "27017:27017"
+      - "27018:27017"
     environment:
       MONGO_INITDB_DATABASE: oliverai
     volumes:
@@ -20,15 +20,17 @@ services:
     build:
       context: ../..
       dockerfile: apps/server/Dockerfile
+      args:
+        NGROK_TOKEN: ${NGROK_TOKEN}
     container_name: oliver-server
     ports:
-      - "3000:3000"
+      - "9977:9977"
     depends_on:
       mongodb:
         condition: service_healthy
     env_file:
       - path: ./.dockerenvfile
-        required: false
+        required: true
     volumes:
       - .:/app/apps/server
       - /app/apps/server/node_modules
