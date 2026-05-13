@@ -204,4 +204,21 @@ resolver.define('solveTask', async ({ payload, context }) => {
   });
 });
 
+resolver.define('getConfig', async ({ context }) => {
+  return await backendFetch('/api/forge/config', { context });
+});
+
+resolver.define('setConfig', async ({ payload, context }) => {
+  const incrementalPrsOn = payload?.incrementalPrsOn;
+  if (typeof incrementalPrsOn !== 'boolean') {
+    throw new Error('incrementalPrsOn must be a boolean');
+  }
+
+  return await backendFetch('/api/forge/config', {
+    method: 'POST',
+    body: { incrementalPrsOn },
+    context
+  });
+});
+
 export const handler = resolver.getDefinitions();

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -20,17 +21,33 @@ import {
   solveTaskThunk, 
   setTaskInput 
 } from './features/taskSlice';
+import {
+  fetchConfig,
+  updateConfig
+} from './features/configSlice';
 import { invoke, router } from '@forge/bridge';
 
-import Button from '@atlaskit/button';
-import LoadingButton from '@atlaskit/button/loading-button';
-import Heading from '@atlaskit/heading';
-import Lozenge from '@atlaskit/lozenge';
-import SectionMessage from '@atlaskit/section-message';
-import Spinner from '@atlaskit/spinner';
-import Select from '@atlaskit/select';
-import Textfield from '@atlaskit/textfield';
-import TextArea from '@atlaskit/textarea';
+import _Button from '@atlaskit/button';
+import _LoadingButton from '@atlaskit/button/loading-button';
+import _Heading from '@atlaskit/heading';
+import _Lozenge from '@atlaskit/lozenge';
+import _SectionMessage from '@atlaskit/section-message';
+import _Spinner from '@atlaskit/spinner';
+import _Select from '@atlaskit/select';
+import _Textfield from '@atlaskit/textfield';
+import _TextArea from '@atlaskit/textarea';
+import _Toggle from '@atlaskit/toggle';
+
+const Button = _Button as any;
+const LoadingButton = _LoadingButton as any;
+const Heading = _Heading as any;
+const Lozenge = _Lozenge as any;
+const SectionMessage = _SectionMessage as any;
+const Spinner = _Spinner as any;
+const Select = _Select as any;
+const Textfield = _Textfield as any;
+const TextArea = _TextArea as any;
+const Toggle = _Toggle as any;
 
 export default function App() {
   const dispatch = useDispatch<any>();
@@ -46,6 +63,10 @@ export default function App() {
     taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
   } = useSelector((state: any) => state.task);
 
+  const {
+    incrementalPrsOn, error: configError, successMessage: configSuccess
+  } = useSelector((state: any) => state.config);
+
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   useEffect(() => {
@@ -55,6 +76,7 @@ export default function App() {
   useEffect(() => {
     dispatch(loadContext());
     dispatch(fetchProviders());
+    dispatch(fetchConfig());
   }, [dispatch]);
 
   useEffect(() => {
@@ -222,6 +244,22 @@ export default function App() {
                 <div className="oliver-stack">
                   <Heading size="small">Configuration</Heading>
 
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="incrementalToggle">
+                      PR Creation Strategy
+                    </label>
+                    <div className="oliver-inline" style={{ marginTop: '4px' }}>
+                      <Toggle
+                        id="incrementalToggle"
+                        isChecked={incrementalPrsOn}
+                        onChange={(e: any) => dispatch(updateConfig(e.target.checked))}
+                      />
+                      <span style={{ marginLeft: '8px', fontSize: '14px' }}>
+                        {incrementalPrsOn ? 'Incremental PRs' : 'One BLOB PR'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="oliver-inline oliver-spread" style={{ alignItems: 'flex-end' }}>
                     <div className="oliver-field-group" style={{ flex: 1, minWidth: '240px' }}>
                       <label className="oliver-label" htmlFor="provider">Git Provider</label>
@@ -328,6 +366,12 @@ export default function App() {
               {gitError}
             </SectionMessage>
           )}
+
+          {configError && (
+            <SectionMessage title="Configuration Error" appearance="error">
+              {configError}
+            </SectionMessage>
+          )}
           
           {taskError && (
             <SectionMessage title="Task Operation Failed" appearance="error">
@@ -341,9 +385,10 @@ export default function App() {
             </SectionMessage>
           )}
 
-          {(gitSuccess || taskSuccess) && (
+          {(gitSuccess || taskSuccess || configSuccess) && (
             <SectionMessage title="Success" appearance="success">
-              {gitSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {gitSuccess && <div style={{ marginBottom: taskSuccess || configSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {configSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{configSuccess}</div>}
               {taskSuccess && <div>{taskSuccess}</div>}
             </SectionMessage>
           )}

@@ -31,4 +31,27 @@ export class MongoConfigPersistenceLayer implements ConfigPersistenceLayer {
             incrementalPrsOn: config.incrementalPrsOn === true
         };
     }
+
+    async updateTenantConfig(tenantId: string, config: Partial<TenantConfig>): Promise<void> {
+        const db = await MongoConnectionManager.getDb();
+        const collection = db.collection<TenantConfigDocument>(MongoConfigPersistenceLayer.collectionName);
+
+        const updateDoc: any = {};
+        if (config.incrementalPrsOn !== undefined) {
+            updateDoc.incrementalPrsOn = config.incrementalPrsOn;
+        }
+
+        if (Object.keys(updateDoc).length === 0) {
+            return;
+        }
+
+        await collection.updateOne(
+            { _id: tenantId },
+            { 
+                $set: updateDoc,
+                $setOnInsert: { tenantId, clientKey: tenantId }
+            },
+            { upsert: true }
+        );
+    }
 }
