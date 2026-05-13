@@ -9,7 +9,7 @@ type JiraIssuePayload = {
 	key: string;
 	fields: {
 		summary: string;
-		description: string;
+		description: unknown;
 		issuetype: {
 			id?: string;
 			name?: string;
@@ -39,7 +39,7 @@ function normalizeIssueFromContext(context: any): JiraIssuePayload {
 	const issueId = String(issue.id ?? issue.issueId ?? '').trim();
 	const issueKey = String(issue.key ?? '').trim();
 	const summary = String(issueFields.summary ?? issue.summary ?? issue.title ?? '').trim();
-	const description = String(issueFields.description ?? issue.description ?? '').trim();
+	const description = issueFields.description ?? issue.description ?? null;
 
 	const issueType = issueFields.issuetype ?? issue.issuetype ?? null;
 
