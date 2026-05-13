@@ -9,9 +9,10 @@
     "manifest:generate": "node scripts/generate-manifest.js",
     "manifest:generate:dev": "SERVER_REMOTE_URL=${SERVER_REMOTE_URL:-https://oliver-server-qw6b.vercel.app} node scripts/generate-manifest.js",
     "start:forge": "pnpm run dev",
-    "dev": "pnpm run manifest:generate:dev && concurrently -k -n tunnel,ui \"forge tunnel\" \"pnpm --prefix static/oliverai run start:forge\"",
+    "dev": "pnpm run manifest:generate:dev && concurrently -k -n tunnel,ui \"forge tunnel\" \"DEV_MODE=1 pnpm --prefix static/jira run build:watch\"",
+    "type-check:ui": "pnpm --prefix static/jira run type-check:ui",
     "prebuild": "npm run manifest:generate",
-    "build": "npm --prefix static/oliverai run build"
+    "build": "pnpm --prefix static/jira run build"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

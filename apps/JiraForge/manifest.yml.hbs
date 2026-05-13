@@ -4,7 +4,7 @@ modules:
       title: OliverAI
       shortcut: e t
       target:
-        resource: main
+        resource: command-ui
       resolver:
         function: resolver
   jira:issueGlance:
@@ -12,24 +12,26 @@ modules:
       title: OliverAI
       label: OliverAI
       icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
-      resource: main
+      resource: issue-glance-ui
       resolver:
         function: resolver
   jira:issuePanel:
     - key: my-panel
       title: OliverAI Assistant
       icon: https://developer.atlassian.com/platform/forge/images/issue-panel-icon.svg
-      resource: main
+      resource: issue-panel-ui
       resolver:
         function: resolver
   function:
     - key: resolver
       handler: index.handler
 resources:
-  - key: main
-    path: static/oliverai/build
-    tunnel:
-      port: 9978
+  - key: command-ui
+    path: dist/command
+  - key: issue-glance-ui
+    path: dist/issue-glance
+  - key: issue-panel-ui
+    path: dist/issue-panel
 app:
   runtime:
     name: nodejs22.x

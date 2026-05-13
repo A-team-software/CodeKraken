@@ -15,16 +15,16 @@ See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/)
 npm install
 ```
 
-- Install dependencies inside of the `static/oliverai` directory:
+- Install dependencies inside of the `static/jira` directory:
 ```
-npm install
+pnpm --prefix static/jira install
 ```
 
-- Modify your app by editing the files in `static/oliverai/src/`.
+- Modify your app by editing the files in `static/jira/ui/`.
 
-- Build your app (inside of the `static/oliverai` directory):
+- Build your app:
 ```
-npm run build
+pnpm run build
 ```
 ```
 forge deploy
@@ -72,8 +72,8 @@ Port mapping:
 
 | Purpose | Port |
 |---|---:|
-| Forge tunnel target (`resources.main.tunnel.port`) | `9978` |
-| CRA dev server (`react-scripts start`) | `9978` |
+| Forge tunnel | handled by `forge tunnel` |
+| UI builder (`vite build --watch`) | local build watcher |
 
 Troubleshooting when UI does not update:
 

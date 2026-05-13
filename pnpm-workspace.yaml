@@ -1,6 +1,6 @@
 packages:
   - apps/*
-  - apps/JiraForge/static/oliverai
+  - apps/JiraForge/static/jira
   - packages/*
 # ignoredBuiltDependencies:
   # - '@heroui/shared-utils'
