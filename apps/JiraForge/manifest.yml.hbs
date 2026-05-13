@@ -42,6 +42,11 @@ resources:
     path: dist/issue-panel
   - key: admin-main-page
     path: dist/admin
+remotes:
+  - key: oliver-server
+    baseUrl: "{{SERVER_REMOTE_URL}}"
+    operations:
+      - compute
 app:
   runtime:
     name: nodejs22.x
@@ -52,6 +57,6 @@ permissions:
   external:
     fetch:
       backend:
-        - "{{SERVER_REMOTE_URL}}"
+        - remote: oliver-server
         - "https://github.com"
         - "https://bitbucket.org"

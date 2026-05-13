@@ -1,19 +1,10 @@
 import Resolver from '@forge/resolver';
-import { fetch } from '@forge/api';
+import { invokeRemote } from '@forge/api';
 
 const resolver = new Resolver();
+const REMOTE_KEY = 'oliver-server';
 
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
-const configuredBaseUrl = process.env.BASE_URL || process.env.SERVER_REMOTE_URL;
-const baseUrl = configuredBaseUrl ? configuredBaseUrl.replace(/\/+$/, '') : undefined;
-
-function requireBaseUrl() {
-  if (!baseUrl) {
-    throw new Error('Backend base URL is not configured. Set BASE_URL or SERVER_REMOTE_URL.');
-  }
-
-  return baseUrl;
-}
 /**
  * Helper to get the shared secret with the backend.
  * Fallback to extracting the UUID from FORGE_APP_ID if API_SECRET is not set.
@@ -48,7 +39,8 @@ resolver.define('getGitAuthUrl', async (req) => {
     throw new Error('Provider is required for getGitAuthUrl');
   }
 
-  const res = await fetch(`${requireBaseUrl()}/api/forge/git/auth-url`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/auth-url',
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -74,7 +66,8 @@ resolver.define('getGitStatus', async (req) => {
 
   console.log(`getGitStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${requireBaseUrl()}/api/forge/git/status`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/status',
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -102,7 +95,8 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${requireBaseUrl()}/api/forge/git/disconnect`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/disconnect',
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -127,7 +121,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const url = `${requireBaseUrl()}/${path.replace(/^\/+/, '')}`;
+  const normalizedPath = `/${path.replace(/^\/+/, '')}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',
@@ -144,7 +138,8 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(url, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: normalizedPath,
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
