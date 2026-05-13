@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://res.cloudinary.com/dbku02uef/image/upload/v1778705126/icon_2_ahiohi.png" alt="CodeKraken Icon" width="120" />
+  <img src="https://res.cloudinary.com/dbku02uef/image/upload/v1778705126/icon_2_ahiohi.png" alt="CodeKraken Icon" height="400" width="400" style="border-radius: 1rem;" />
 </div>
 
 # CodeKraken (Oliver)
