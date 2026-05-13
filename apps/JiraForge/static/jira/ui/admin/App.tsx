@@ -1,5 +1,6 @@
+import React from 'react';
 import { useEffect, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setGlobalTheme } from '@atlaskit/tokens';
 import { toggleTheme } from './features/themeSlice';
 import { 
@@ -31,19 +32,19 @@ import Select from '@atlaskit/select';
 import Textfield from '@atlaskit/textfield';
 import TextArea from '@atlaskit/textarea';
 
-function App() {
-  const dispatch = useDispatch();
+export default function App() {
+  const dispatch = useDispatch<any>();
 
-  const themeMode = useSelector((state) => state.theme.mode);
+  const themeMode = useSelector((state: any) => state.theme.mode);
   
   const {
     auth, provider, providers, workspace, workspaces, workspacesLoading,
     repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
-  } = useSelector((state) => state.git);
+  } = useSelector((state: any) => state.git);
 
   const {
     taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
-  } = useSelector((state) => state.task);
+  } = useSelector((state: any) => state.task);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
@@ -69,7 +70,7 @@ function App() {
   }, [auth.connected, provider, workspace, dispatch]);
 
   useEffect(() => {
-    const handleMessage = (event) => {
+    const handleMessage = (event: MessageEvent<any>) => {
       if (['OAUTH_COMPLETE', 'GITHUB_CONNECTED', 'BITBUCKET_CONNECTED', 'SCA_AUTH_SUCCESS'].includes(event.data?.type)) {
         const msgProvider = event.data?.payload?.provider || event.data?.provider;
         if (!msgProvider || msgProvider === provider) {
@@ -90,7 +91,7 @@ function App() {
     }, 60000);
 
     const interval = setInterval(() => {
-      dispatch(refreshAuthStatus(provider)).then((action) => {
+      dispatch(refreshAuthStatus(provider)).then((action: any) => {
         if (action.payload?.connected) {
           dispatch(setConnecting(false));
           clearInterval(interval);
@@ -102,18 +103,18 @@ function App() {
     return () => { clearInterval(interval); clearTimeout(timeoutId); };
   }, [connecting, provider, dispatch]);
 
-  async function handleConnectGit(targetProvider) {
+  async function handleConnectGit(targetProvider: string) {
     dispatch(setProvider(targetProvider));
     dispatch(setConnecting(true));
     dispatch(setGitError(null));
     try {
-      const { authUrl } = await invoke('getGitAuthUrl', { provider: targetProvider });
+      const { authUrl } = await invoke<{ authUrl?: string }>('getGitAuthUrl', { provider: targetProvider });
       if (authUrl) {
         await router.open(authUrl);
       } else {
         throw new Error('No authUrl returned from backend');
       }
-    } catch (e) {
+    } catch (e: any) {
       dispatch(setConnecting(false));
       dispatch(setGitError(`Failed to start OAuth: ${e.message || String(e)}`));
     }
@@ -129,11 +130,11 @@ function App() {
   }
 
   function runSolve() {
-    dispatch(solveTaskThunk({ provider, repoUrl, task: taskInput }));
+    dispatch(solveTaskThunk({ provider, repoUrl, task: taskInput } as any));
   }
 
-  const providerOptions = providers.map((p) => ({ label: p.name, value: p.id }));
-  const providerOption = providerOptions.find((o) => o.value === provider) || null;
+  const providerOptions = providers.map((p: any) => ({ label: p.name, value: p.id }));
+  const providerOption = providerOptions.find((o: any) => o.value === provider) || null;
   const canRun = !running && !!repoUrl && !!taskInput && !!auth.connected;
 
   if (auth.loading) {
@@ -228,7 +229,7 @@ function App() {
                         inputId="provider"
                         value={providerOption}
                         options={providerOptions}
-                        onChange={(opt) => { if (opt?.value) dispatch(setProvider(opt.value)); }}
+                        onChange={(opt: any) => { if (opt?.value) dispatch(setProvider(opt.value)); }}
                         placeholder="Select provider"
                       />
                     </div>
@@ -240,16 +241,16 @@ function App() {
                       <Select
                         inputId="workspaceSelect"
                         value={(() => {
-                          const matched = workspaces.find((w) => w.slug === workspace);
+                          const matched = workspaces.find((w: any) => w.slug === workspace);
                           if (matched) return { label: matched.name || matched.slug, value: workspace };
                           if (workspace) return { label: workspace, value: workspace };
                           return null;
                         })()}
-                        options={workspaces.map((w) => ({
+                        options={workspaces.map((w: any) => ({
                           label: w.name || w.slug,
                           value: w.slug,
                         }))}
-                        onChange={(opt) => {
+                        onChange={(opt: any) => {
                           if (opt?.value && opt.value !== workspace) {
                             dispatch(setWorkspace(opt.value));
                           }
@@ -265,17 +266,17 @@ function App() {
                     <Select
                       inputId="repoSelect"
                       value={(() => {
-                        const toCloneUrl = (r) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
-                        const matched = repos.find((r) => toCloneUrl(r) === repoUrl);
+                        const toCloneUrl = (r: any) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
+                        const matched = repos.find((r: any) => toCloneUrl(r) === repoUrl);
                         if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
                         if (repoUrl) return { label: repoUrl, value: repoUrl };
                         return null;
                       })()}
-                      options={repos.map((r) => ({
+                      options={repos.map((r: any) => ({
                         label: r.fullName || `${r.owner}/${r.name}`,
                         value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
                       }))}
-                      onChange={(opt) => opt?.value && dispatch(setRepoUrl(opt.value))}
+                      onChange={(opt: any) => opt?.value && dispatch(setRepoUrl(opt.value))}
                       placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
                       isLoading={reposLoading}
                     />
@@ -284,7 +285,7 @@ function App() {
                         id="repoUrl"
                         name="repoUrl"
                         value={repoUrl}
-                        onChange={(e) => dispatch(setRepoUrl(e.target.value))}
+                        onChange={(e: any) => dispatch(setRepoUrl(e.target.value))}
                         placeholder="Or enter URL manually: https://github.com/acme/project"
                       />
                     </div>
@@ -300,7 +301,7 @@ function App() {
                     <TextArea
                       id="task"
                       value={taskInput}
-                      onChange={(e) => dispatch(setTaskInput(e.target.value))}
+                      onChange={(e: any) => dispatch(setTaskInput(e.target.value))}
                       minimumRows={6}
                       placeholder="Describe the task in detail..."
                     />
@@ -362,5 +363,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

@@ -15,7 +15,7 @@ const appRoot = __dirname;
 const uiRoot = path.resolve(appRoot, 'ui');
 const distRoot = path.resolve(appRoot, '../../dist');
 
-const ENTRY_FILES = ['index.tsx', 'index.jsx', 'index.js'];
+const ENTRY_FILES = ['index.ts', 'index.tsx', 'index.jsx', 'index.js'];
 
 function walk(dirPath: string, visitor: (dir: string) => void) {
   const entries = fs.readdirSync(dirPath, { withFileTypes: true });

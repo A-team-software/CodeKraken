@@ -1,4 +1,12 @@
 modules:
+  jira:adminPage:
+    - key: oliverai-admin-page
+      name: OliverAI Admin
+      title: OliverAI
+      icon: https://developer.atlassian.com/platform/forge/images/admin-page-icon.svg
+      resource: admin-main-page
+      resolver:
+        function: resolver
   jira:command:
     - key: oliverai-modal-command-with-shortcut
       title: OliverAI
@@ -32,6 +40,12 @@ resources:
     path: dist/issue-glance
   - key: issue-panel-ui
     path: dist/issue-panel
+  - key: main
+    path: static/oliverai/build
+    tunnel:
+      port: 9978
+  - key: admin-main-page
+    path: dist/admin
 app:
   runtime:
     name: nodejs22.x
