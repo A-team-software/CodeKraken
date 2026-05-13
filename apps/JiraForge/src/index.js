@@ -204,4 +204,27 @@ resolver.define('solveTask', async ({ payload, context }) => {
   });
 });
 
+resolver.define('startTaskDevelopment', async ({ payload, context }) => {
+  const issue = payload?.issue;
+  const repoUrl = payload?.repoUrl;
+  if (!issue?.id || !issue?.key || !issue?.fields?.summary) {
+    throw new Error('Missing issue details. Expected issue.id, issue.key, and issue.fields.summary.');
+  }
+  if (!repoUrl) {
+    throw new Error('Missing repoUrl for startTaskDevelopment');
+  }
+
+  const webhookEvent = payload?.webhookEvent || 'jira:issue_created';
+
+  return await backendFetch('/api/task?provider=jira', {
+    method: 'POST',
+    body: {
+      repoUrl,
+      webhookEvent,
+      issue,
+    },
+    context
+  });
+});
+
 export const handler = resolver.getDefinitions();
