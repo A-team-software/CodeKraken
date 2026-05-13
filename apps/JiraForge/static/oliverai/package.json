@@ -34,6 +34,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:forge": "BROWSER=none HOST=127.0.0.1 PORT=9978 WDS_SOCKET_HOST=127.0.0.1 WDS_SOCKET_PORT=9978 react-scripts start",
     "build": "pnpm install --frozen-lockfile && CI= pnpm exec react-scripts build",
     "eject": "react-scripts eject"
   },

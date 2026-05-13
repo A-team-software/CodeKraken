@@ -40,6 +40,48 @@ forge install
 forge tunnel
 ```
 
+## Local Forge UI
+
+Use one command to run Forge tunnel and a Custom UI dev server with live refresh:
+
+```bash
+pnpm --filter jira-command-custom-ui run dev
+```
+
+`dev` auto-generates `manifest.yml` and uses this default backend URL when
+`SERVER_REMOTE_URL` is not already set:
+
+```bash
+https://oliver-server-qw6b.vercel.app
+```
+
+To override it for local/server-specific testing:
+
+```bash
+SERVER_REMOTE_URL=https://your-server.example pnpm --filter jira-command-custom-ui run dev
+```
+
+Before first tunnel in a new environment:
+
+```bash
+pnpm --filter jira-command-custom-ui run manifest:generate
+forge deploy -e development
+```
+
+Port mapping:
+
+| Purpose | Port |
+|---|---:|
+| Forge tunnel target (`resources.main.tunnel.port`) | `9978` |
+| CRA dev server (`react-scripts start`) | `9978` |
+
+Troubleshooting when UI does not update:
+
+- Confirm `forge tunnel` is running in the `dev` command output.
+- Confirm the app is installed from the same Forge environment you deployed.
+- Re-run `manifest:generate` and `forge deploy -e <env>` after manifest tunnel changes.
+- Verify your Atlassian site is opening the app from that dev environment.
+
 ### Notes
 - Use the `forge deploy` command when you want to persist code changes.
 - Use the `forge install` command when you want to install the app on a new site.

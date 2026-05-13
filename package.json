@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm turbo run dev --parallel",
+    "start:forge": "pnpm --filter jira-command-custom-ui run dev",
     "build": "pnpm turbo run build",
     "lint": "pnpm turbo run lint",
     "start:docker": "node -e \"const { spawnSync } = require('node:child_process'); const args = process.argv.slice(1); const rebuild = args.includes('--rebuild'); const dockerArgs = ['compose', 'up', ...(rebuild ? ['--build'] : [])]; const result = spawnSync('docker', dockerArgs, { cwd: 'apps/server', stdio: 'inherit' }); process.exit(result.status ?? 1);\" --",
