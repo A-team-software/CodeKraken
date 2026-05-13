@@ -3,6 +3,10 @@ import { MongoConnectionManager } from "@oliver/db";
 import { NextResponse } from "next/server";
 
 export async function GET(): Promise<NextResponse> {
+	if (process.env.IS_LOCAL_DOCKER !== "true") {
+		return NextResponse.json({ error: "Not found" }, { status: 404 });
+	}
+
 	const tunnel = getDockerTunnelStatus();
 
 	let dbConnected = false;
@@ -12,10 +16,10 @@ export async function GET(): Promise<NextResponse> {
 		const manager = MongoConnectionManager.getInstance();
 		dbConnected = await manager.ping();
 		if (!dbConnected) {
-			dbError = "MongoDB ping failed";
+			dbError = "Database unavailable";
 		}
 	} catch (error) {
-		dbError = error instanceof Error ? error.message : "Unknown MongoDB error";
+		dbError = "Database unavailable";
 	}
 
 	return NextResponse.json(

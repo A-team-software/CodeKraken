@@ -6,7 +6,7 @@
     "dev": "pnpm turbo run dev --parallel",
     "build": "pnpm turbo run build",
     "lint": "pnpm turbo run lint",
-    "start:docker": "node -e \"const { spawnSync } = require('node:child_process'); const args = process.argv.slice(1); const rebuild = args.includes('--rebuild'); const dockerArgs = ['compose', '--env-file', '.dockerenvfile', 'up', ...(rebuild ? ['--build'] : [])]; const result = spawnSync('docker', dockerArgs, { cwd: 'apps/server', stdio: 'inherit' }); process.exit(result.status ?? 1);\" --",
+    "start:docker": "node -e \"const { spawnSync } = require('node:child_process'); const args = process.argv.slice(1); const rebuild = args.includes('--rebuild'); const dockerArgs = ['compose', 'up', ...(rebuild ? ['--build'] : [])]; const result = spawnSync('docker', dockerArgs, { cwd: 'apps/server', stdio: 'inherit' }); process.exit(result.status ?? 1);\" --",
     "test": "pnpm --filter server exec vitest run src/app/services/pr src/app/adapters src/app/api src/app/middlewares --exclude \"**/*.integration.test.ts\"",
     "clean": "pnpm turbo run clean && rm -rf node_modules"
   },

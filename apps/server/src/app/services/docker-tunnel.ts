@@ -1,7 +1,4 @@
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
+import { ChildProcess, spawn } from "child_process";
 
 interface DockerTunnelConfig {
   port: number;
@@ -11,6 +8,7 @@ interface DockerTunnelConfig {
 let tunnelStarted = false;
 let lastConfig: DockerTunnelConfig | null = null;
 let lastError: string | null = null;
+let tunnelProcess: ChildProcess | null = null;
 
 export function getDockerTunnelStatus(): {
   enabled: boolean;
@@ -33,7 +31,7 @@ export function getDockerTunnelStatus(): {
 export async function startDockerTunnel(config: DockerTunnelConfig): Promise<void> {
   lastConfig = config;
 
-  if (tunnelStarted) {
+  if (tunnelStarted && tunnelProcess && !tunnelProcess.killed) {
     console.log("[Docker Tunnel] Already started, skipping...");
     return;
   }
@@ -57,26 +55,58 @@ export async function startDockerTunnel(config: DockerTunnelConfig): Promise<voi
       `[Docker Tunnel] Starting ngrok tunnel on port ${config.port} with URL ${config.ngrokUrl}`
     );
 
-    // Start ngrok tunnel in the background
-    const ngrokCommand = `ngrok http ${config.port} --authtoken ${ngrokToken} --hostname ${config.ngrokUrl}`;
-    
-    // Run ngrok in the background (non-blocking)
-    exec(ngrokCommand, (error, stdout, stderr) => {
-      if (error) {
-        lastError = error.message;
-        console.error(`[Docker Tunnel] Error starting ngrok: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.log(`[Docker Tunnel] ngrok stderr: ${stderr}`);
-      }
-      console.log(`[Docker Tunnel] ngrok output: ${stdout}`);
+    const ngrokArgs = ["http", String(config.port), "--hostname", config.ngrokUrl];
+    const child = spawn("ngrok", ngrokArgs, {
+      env: {
+        ...process.env,
+        NGROK_AUTHTOKEN: ngrokToken,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
     });
 
-    tunnelStarted = true;
-    lastError = null;
-    console.log("[Docker Tunnel] Tunnel startup initiated successfully");
+    tunnelProcess = child;
+
+    child.once("spawn", () => {
+      tunnelStarted = true;
+      lastError = null;
+      console.log("[Docker Tunnel] Tunnel process started");
+    });
+
+    child.once("error", (error) => {
+      tunnelStarted = false;
+      lastError = error.message;
+      tunnelProcess = null;
+      console.error(`[Docker Tunnel] Error starting ngrok: ${error.message}`);
+    });
+
+    child.on("exit", (code, signal) => {
+      tunnelStarted = false;
+      tunnelProcess = null;
+      if (code === 0) {
+        console.log("[Docker Tunnel] ngrok process exited normally");
+        return;
+      }
+
+      lastError = `ngrok exited with code ${code ?? "unknown"}, signal ${signal ?? "none"}`;
+      console.error(`[Docker Tunnel] ${lastError}`);
+    });
+
+    child.stdout?.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        console.log(`[Docker Tunnel] ${message}`);
+      }
+    });
+
+    child.stderr?.on("data", (data) => {
+      const message = data.toString().trim();
+      if (message) {
+        console.error(`[Docker Tunnel] ${message}`);
+      }
+    });
   } catch (error) {
+    tunnelStarted = false;
+    tunnelProcess = null;
     lastError = error instanceof Error ? error.message : "Unknown tunnel startup error";
     console.error("[Docker Tunnel] Failed to start docker tunnel:", error);
   }
