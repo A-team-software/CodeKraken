@@ -15,7 +15,7 @@ resources:
     path: dist/admin
 remotes:
   - key: oliver-server
-    baseUrl: "{{SERVER_REMOTE_URL}}"
+    baseUrl: "https://oliver-ai.ngrok.io"
     operations:
       - compute
 app:
