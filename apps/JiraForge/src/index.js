@@ -1,10 +1,10 @@
 import Resolver from '@forge/resolver';
-import { fetch } from '@forge/api';
+import { invokeRemote } from '@forge/api';
 
 const resolver = new Resolver();
+const REMOTE_KEY = 'oliver-server';
 
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
-const baseUrl = process.env.BASE_URL;
 /**
  * Helper to get the shared secret with the backend.
  * Fallback to extracting the UUID from FORGE_APP_ID if API_SECRET is not set.
@@ -39,10 +39,11 @@ resolver.define('getGitAuthUrl', async (req) => {
     throw new Error('Provider is required for getGitAuthUrl');
   }
 
-  const res = await fetch(`${baseUrl}/api/forge/git/auth-url`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/auth-url',
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${getApiSecret()}`,
+      Authorization: `Bearer ${secret}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ accountId, cloudId, provider })
@@ -65,7 +66,8 @@ resolver.define('getGitStatus', async (req) => {
 
   console.log(`getGitStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${baseUrl}/api/forge/git/status`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/status',
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getApiSecret()}`,
@@ -93,7 +95,8 @@ resolver.define('disconnect', async (req) => {
 
   console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
 
-  const res = await fetch(`${baseUrl}/api/forge/git/disconnect`, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: '/api/forge/git/disconnect',
     method: 'POST',
     headers: {
       Authorization: `Bearer ${secret}`,
@@ -118,7 +121,7 @@ resolver.define('disconnect', async (req) => {
  * Utility for the existing endpoints.
  */
 async function backendFetch(path, { method = 'GET', body, context } = {}) {
-  const url = `${baseUrl}/${path}`;
+  const normalizedPath = `/${path.replace(/^\/+/, '')}`;
   const secret = getApiSecret();
   const headers = {
     'Accept': 'application/json',
@@ -135,7 +138,8 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(url, {
+  const res = await invokeRemote(REMOTE_KEY, {
+    path: normalizedPath,
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
