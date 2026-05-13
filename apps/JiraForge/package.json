@@ -11,7 +11,7 @@
     "start:forge": "pnpm run dev",
     "dev": "pnpm run manifest:generate:dev && concurrently -k -n tunnel,ui \"forge tunnel\" \"DEV_MODE=1 pnpm --prefix static/jira run build:watch\"",
     "type-check:ui": "pnpm --prefix static/jira run type-check:ui",
-    "prebuild": "npm run manifest:generate",
+    "prebuild": "pnpm run manifest:generate",
     "build": "pnpm --prefix static/jira run build"
   },
   "devDependencies": {
