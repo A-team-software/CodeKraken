@@ -43,7 +43,7 @@ resolver.define('getGitAuthUrl', async (req) => {
     path: '/api/forge/git/auth-url',
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${getApiSecret()}`,
+      Authorization: `Bearer ${secret}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ accountId, cloudId, provider })
