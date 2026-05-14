@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createSuccessPayload, createErrorPayload, ApiResponse } from '@oliver/shared';
+import { createSuccessPayload, createErrorPayload, ApiResponse, ApiErrorCode } from '@oliver/shared';
 
 /**
  * Server-side helpers for Next.js API responses
@@ -19,35 +19,35 @@ export const ApiRes = {
   /**
    * Returns a standard error response
    */
-  error(message: string, errorCode = 'INTERNAL_ERROR', status = 500): NextResponse<ApiResponse<never>> {
+  error(message: string, errorCode: ApiErrorCode | string = ApiErrorCode.INTERNAL_ERROR, status = 500): NextResponse<ApiResponse<never>> {
     return NextResponse.json(createErrorPayload(errorCode, message, status), { status });
   },
 
   /**
    * Returns a 400 Bad Request error
    */
-  badRequest(message: string, errorCode = 'BAD_REQUEST') {
+  badRequest(message: string, errorCode: ApiErrorCode | string = ApiErrorCode.BAD_REQUEST) {
     return ApiRes.error(message, errorCode, 400);
   },
 
   /**
    * Returns a 401 Unauthorized error
    */
-  unauthorized(message: string = 'Unauthorized', errorCode = 'UNAUTHORIZED') {
+  unauthorized(message: string = 'Unauthorized', errorCode: ApiErrorCode | string = ApiErrorCode.UNAUTHORIZED) {
     return ApiRes.error(message, errorCode, 401);
   },
 
   /**
    * Returns a 403 Forbidden error
    */
-  forbidden(message: string = 'Forbidden', errorCode = 'FORBIDDEN') {
+  forbidden(message: string = 'Forbidden', errorCode: ApiErrorCode | string = ApiErrorCode.FORBIDDEN) {
     return ApiRes.error(message, errorCode, 403);
   },
 
   /**
    * Returns a 404 Not Found error
    */
-  notFound(message: string = 'Not Found', errorCode = 'NOT_FOUND') {
+  notFound(message: string = 'Not Found', errorCode: ApiErrorCode | string = ApiErrorCode.NOT_FOUND) {
     return ApiRes.error(message, errorCode, 404);
   }
 };

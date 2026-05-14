@@ -52,7 +52,7 @@ function resolveClientId(req: NextRequest, body: unknown): string {
 	return bodyClientId;
 }
 
-export const POST = wrapRoute(async (req: NextRequest) => {
+export const POST = wrapRoute({}, async (req, ctx) => {
     const rawBody = await req.text();
     const authResult = await authorizeWebhookRequest(
         req,

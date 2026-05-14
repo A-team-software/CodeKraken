@@ -12,7 +12,7 @@ import { wrapRoute } from '@/utils/api_handler';
  * Requires authentication via board_provider_user_jira cookie.
  * Used by the UI to populate the "Assign to site" dropdown on step 3 of onboarding.
  */
-export const GET = wrapRoute(async (request: NextRequest) => {
+export const GET = wrapRoute({}, async (request, ctx) => {
     // Extract userId from the board_provider_user_jira cookie
     const userId = request.cookies.get('board_provider_user_jira')?.value;
 

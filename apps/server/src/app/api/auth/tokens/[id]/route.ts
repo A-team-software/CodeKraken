@@ -3,11 +3,12 @@ import { PersonalAccessTokenService } from "@oliver/auth";
 import { SafeExecute } from "@oliver/core";
 import { ApiRes } from "@/utils/api_response";
 import { wrapRoute } from "@/utils/api_handler";
+import { z } from "zod";
 
-export const DELETE = wrapRoute(async (request: NextRequest, params: Promise<{ id: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { id } = paramsResult;
+export const DELETE = wrapRoute({
+    paramsSchema: z.object({ id: z.string() })
+}, async (request, ctx) => {
+    const { id } = ctx.params;
 
     const [userId, userIdError] = await SafeExecute.withSync(async () => getUserIdFromRequest(request)).execute();
     if (userIdError) return ApiRes.error(userIdError.message || 'Internal Server Error');

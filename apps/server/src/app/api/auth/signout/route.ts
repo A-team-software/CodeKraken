@@ -14,7 +14,7 @@ export const POST = wrapRoute(async (request: NextRequest) => {
 
     for (const cookie of boardUserCookies) {
         const provider = cookie.name.replace("board_provider_user_", "");
-        const [_, deleteError] = await SafeExecute.withSync(async () => 
+        const [_, deleteError] = await SafeExecute.withSync(async () =>
             authService.deleteTokens(cookie.value, provider, 'board')
         ).execute();
         if (deleteError) {
@@ -24,7 +24,7 @@ export const POST = wrapRoute(async (request: NextRequest) => {
 
     for (const cookie of gitUserCookies) {
         const provider = cookie.name.replace("git_provider_user_", "");
-        const [_, deleteError] = await SafeExecute.withSync(async () => 
+        const [_, deleteError] = await SafeExecute.withSync(async () =>
             authService.deleteTokens(cookie.value, provider, 'git')
         ).execute();
         if (deleteError) {

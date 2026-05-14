@@ -4,18 +4,19 @@ import { BitbucketService } from '@oliver/git';
 import { NextRequest } from 'next/server';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const POST = wrapRoute(async (req: NextRequest) => {
+export const POST = wrapRoute({
+  bodySchema: z.object({
+    accountId: z.string(),
+    cloudId: z.string(),
+    provider: z.string()
+  })
+}, async (req, ctx) => {
   const { isValid, error } = validateForgeRequest(req);
   if (!isValid) return ApiRes.unauthorized(error || 'Unauthorized');
 
-  const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
-  if (bodyError || !body) return ApiRes.badRequest('Invalid request body');
-
-  const { accountId, cloudId, provider } = body;
-  if (!accountId || !cloudId || !provider) {
-    return ApiRes.badRequest('Missing accountId, cloudId, or provider');
-  }
+  const { accountId, cloudId, provider } = ctx.body;
 
   // Generate state with Forge metadata using the standard AuthService
   const authService = AuthService.getInstance();

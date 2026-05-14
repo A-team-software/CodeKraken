@@ -5,8 +5,11 @@ import { Logger, SafeExecute } from '@oliver/core';
 import { ApiRes } from '@/utils/api_response';
 import { GitApiErrorCode } from '@oliver/shared';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const GET = wrapRoute(async (request: NextRequest) => {
+export const GET = wrapRoute({
+    querySchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
@@ -27,11 +30,7 @@ export const GET = wrapRoute(async (request: NextRequest) => {
         return ApiRes.badRequest('Missing X-Forge-Account-Id or X-Forge-Client-Key header');
     }
 
-    const { searchParams } = request.nextUrl;
-    const provider = searchParams.get('provider');
-    if (!provider) {
-        return ApiRes.badRequest('Missing provider query parameter');
-    }
+    const { provider } = ctx.query;
 
     const tokenRepo = new MongoOAuthTokenRepository();
     const [oauthToken, queryError] = await SafeExecute.withSync(async () =>

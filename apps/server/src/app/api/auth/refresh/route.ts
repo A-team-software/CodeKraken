@@ -5,37 +5,33 @@ import { AuthService, MongoOAuthTokenRepository } from '@oliver/auth';
 import { ProviderType } from '@oliver/core';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * POST /api/auth/refresh
  * Manually trigger a token refresh for a specific provider
  * Body: { provider: string, providerType: 'git' | 'board' }
  */
-export const POST = wrapRoute(async (request: NextRequest) => {
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError || !body) return ApiRes.badRequest('Invalid request body');
-    const { provider, providerType } = body;
-
-    if (!provider || !providerType) {
-        return ApiRes.badRequest('Missing provider or providerType');
-    }
+export const POST = wrapRoute({
+    bodySchema: z.object({
+        provider: z.string(),
+        providerType: z.string()
+    })
+}, async (request, ctx) => {
+    const { provider, providerType } = ctx.body;
 
     // Use the AuthService facade to refresh if needed
-    const [result, refreshError] = await SafeExecute.withSync(async () => 
+    const [result, refreshError] = await SafeExecute.withSync(async () =>
         AuthService.getInstance().getValidTokenAndUserFromRequest(cookies, request, provider, providerType as ProviderType)
     ).execute();
 
     if (refreshError || !result) {
-        return ApiRes.error(
-            refreshError?.message || 'No valid session found or refresh failed',
-            'REFRESH_FAILED',
-            401
-        );
+        return ApiRes.error('REFRESH_FAILED', refreshError?.message || 'No valid session found or refresh failed', 401);
     }
 
     // Fetch the user's token from DB to get the latest one
     const tokenRepo = new MongoOAuthTokenRepository();
-    const [tokenData, tokenDataError] = await SafeExecute.withSync(async () => 
+    const [tokenData, tokenDataError] = await SafeExecute.withSync(async () =>
         tokenRepo.findByUserAndProvider(result.userId, provider, providerType as ProviderType)
     ).execute();
 

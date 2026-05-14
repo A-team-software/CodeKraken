@@ -5,17 +5,16 @@ import { TOKEN_COOKIE_NAME, TOKEN_COOKIE_MAX_AGE, Logger, FORGE_GITHUB_CALLBACK_
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * GET /api/git/[provider]/callback
  * OAuth callback endpoint for Git provider authentication
  */
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) {
-        return ApiRes.badRequest('Invalid params');
-    }
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
 
     const { searchParams } = request.nextUrl;
     const code = searchParams.get('code');

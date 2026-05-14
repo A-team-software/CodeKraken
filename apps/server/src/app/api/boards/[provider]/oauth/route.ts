@@ -4,15 +4,16 @@ import { BoardProviderFactory } from '@oliver/boards';
 import { Logger, SafeExecute } from '@oliver/core';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * GET /api/boards/[provider]/oauth
  * Initiates OAuth flow for board providers (Jira, Trello, Asana, Linear)
  */
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const { searchParams } = request.nextUrl;
     const returnTo = searchParams.get('returnTo');
     const metadata = returnTo ? JSON.stringify({ returnTo }) : undefined;

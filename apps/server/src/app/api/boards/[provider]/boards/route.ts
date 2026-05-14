@@ -3,11 +3,12 @@ import { BoardProviderFactory } from '@oliver/boards';
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {

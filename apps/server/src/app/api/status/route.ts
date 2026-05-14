@@ -3,7 +3,7 @@ import { MongoConnectionManager } from "@oliver/db";
 import { ApiRes } from "@/utils/api_response";
 import { wrapRoute } from "@/utils/api_handler";
 
-export const GET = wrapRoute(async () => {
+export const GET = wrapRoute({}, async () => {
 	if (process.env.IS_LOCAL_DOCKER !== "true") {
 		return ApiRes.notFound("Not found");
 	}

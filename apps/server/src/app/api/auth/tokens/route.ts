@@ -3,8 +3,9 @@ import { PersonalAccessTokenService } from "@oliver/auth";
 import { SafeExecute } from "@oliver/core";
 import { ApiRes } from "@/utils/api_response";
 import { wrapRoute } from "@/utils/api_handler";
+import { z } from "zod";
 
-export const GET = wrapRoute(async (request: NextRequest) => {
+export const GET = wrapRoute({}, async (request, ctx) => {
     const [userId, userIdError] = await SafeExecute.withSync(async () => getUserIdFromRequest(request)).execute();
     if (userIdError) return ApiRes.error(userIdError.message || 'Internal Server Error');
     if (!userId) {
@@ -25,19 +26,16 @@ export const GET = wrapRoute(async (request: NextRequest) => {
     };
 });
 
-export const POST = wrapRoute(async (request: NextRequest) => {
+export const POST = wrapRoute({
+    bodySchema: z.object({ name: z.string() })
+}, async (request, ctx) => {
     const [userId, userIdError] = await SafeExecute.withSync(async () => getUserIdFromRequest(request)).execute();
     if (userIdError) return ApiRes.error(userIdError.message || 'Internal Server Error');
     if (!userId) {
         return ApiRes.unauthorized('Unauthorized');
     }
 
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError || !body) return ApiRes.badRequest('Invalid request body');
-    const { name } = body;
-    if (!name) {
-        return ApiRes.badRequest('Missing required field: name');
-    }
+    const { name } = ctx.body;
 
     const service = PersonalAccessTokenService.getInstance();
     const [result, generateError] = await SafeExecute.withSync(async () => service.generateToken(userId, name)).execute();

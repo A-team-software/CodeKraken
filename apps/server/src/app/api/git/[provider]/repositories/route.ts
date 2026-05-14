@@ -6,16 +6,17 @@ import { SafeExecute } from '@oliver/core/src/errors';
 import { Logger } from '@oliver/core';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * GET /api/git/[provider]/repositories
  * Get repositories for authenticated git provider.
  * Supports web (cookies), Forge (headers), and direct Bearer tokens.
  */
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
 
     // Resolve token using unified AuthService method
     const authService = AuthService.getInstance();

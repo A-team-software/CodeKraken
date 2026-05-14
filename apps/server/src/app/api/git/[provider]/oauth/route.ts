@@ -5,15 +5,16 @@ import { GITHUB_CALLBACK_URL, BITBUCKET_CALLBACK_URL } from '@oliver/core';
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * GET /api/git/[provider]/oauth
  * Initiate OAuth flow for Git providers
  */
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
 
     // Verify provider supports OAuth
     const providerMeta = GIT_PROVIDER_REGISTRY[provider];

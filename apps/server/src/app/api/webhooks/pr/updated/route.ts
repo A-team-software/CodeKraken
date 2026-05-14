@@ -40,7 +40,7 @@ function resolveWebhookSecret(platform: PullRequestPlatform): string {
 	}
 }
 
-export const POST = wrapRoute(async (req: NextRequest) => {
+export const POST = wrapRoute({}, async (req, ctx) => {
     const rawBody = await req.text();
     const authResult = await authorizeWebhookRequest(
         req,

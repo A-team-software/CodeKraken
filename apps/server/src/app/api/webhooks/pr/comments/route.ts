@@ -26,7 +26,7 @@ function resolveAdapter(platform: PullRequestPlatform): PullRequestCommentPayloa
 	}
 }
 
-export const POST = wrapRoute(async (req: NextRequest) => {
+export const POST = wrapRoute({}, async (req, ctx) => {
     const rawBody = await req.text();
     const authResult = await authorizeWebhookRequest(req, rawBody, req.nextUrl.searchParams.get("platform"));
     if (!authResult.authorized) {

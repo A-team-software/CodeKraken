@@ -3,11 +3,12 @@ import { BoardProviderFactory } from '@oliver/boards';
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const { searchParams } = new URL(request.url);
     const boardId = searchParams.get('boardId');
     const status = searchParams.get('status')?.split(',');
@@ -43,23 +44,28 @@ export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ prov
     return { issues };
 });
 
-export const POST = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const POST = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() }),
+    bodySchema: z.object({
+        boardId: z.string(),
+        summary: z.string(),
+        description: z.string().optional(),
+        type: z.string(),
+        priority: z.string().optional(),
+        assignee: z.string().optional(),
+        labels: z.array(z.string()).optional()
+    })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
         return ApiRes.unauthorized('No authorization token provided');
     }
 
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError || !body) return ApiRes.badRequest(bodyError?.message || 'Invalid request body');
-    const { boardId, summary, description, type, priority, assignee, labels } = body;
+    const { boardId, summary, description, type, priority, assignee, labels } = ctx.body;
 
-    if (!boardId || !summary || !type) {
-        return ApiRes.badRequest('boardId, summary, and type are required');
-    }
+
 
     const boardProvider = BoardProviderFactory.create(provider, token);
     const [issue, issueError] = await SafeExecute.withSync(async () => 

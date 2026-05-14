@@ -4,12 +4,20 @@ import { GitApiErrorCode } from '@oliver/shared';
 import { NextRequest } from 'next/server';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
 /**
  * POST /api/forge/github/status
  * Called by the Forge `getGithubStatus` resolver.
  */
-export const POST = wrapRoute(async (request: NextRequest) => {
+export const POST = wrapRoute({
+    bodySchema: z.object({
+        accountId: z.string().optional(),
+        cloudId: z.string().optional(),
+        clientKey: z.string().optional(),
+        provider: z.string().optional()
+    }).passthrough()
+}, async (request, ctx) => {
     // ── Bearer auth ────────────────────────────────────────────────────────
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
@@ -25,11 +33,7 @@ export const POST = wrapRoute(async (request: NextRequest) => {
     }
 
     // ── Parse body ────────────────────────────────────────────────────────
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError) {
-        return ApiRes.badRequest(bodyError.message);
-    }
-    const safeBody = body || {};
+    const safeBody = ctx.body || {};
     const accountId: string | undefined = safeBody.accountId;
     const cloudId: string | undefined = safeBody.cloudId ?? safeBody.clientKey;
     const provider: string | undefined = safeBody.provider;

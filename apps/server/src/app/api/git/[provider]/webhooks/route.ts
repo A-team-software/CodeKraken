@@ -3,11 +3,12 @@ import { GitProviderFactory } from '@oliver/git';
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const { searchParams } = new URL(request.url);
     const repoId = searchParams.get('repoId');
     const owner = searchParams.get('owner');
@@ -54,23 +55,28 @@ export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ prov
     return { webhooks };
 });
 
-export const POST = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const POST = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() }),
+    bodySchema: z.object({
+        repoId: z.string().optional(),
+        owner: z.string(),
+        slug: z.string(),
+        url: z.string(),
+        events: z.array(z.string()),
+        active: z.boolean().optional(),
+        secret: z.string().optional(),
+        contentType: z.enum(['json', 'form']).optional(),
+        insecureSsl: z.boolean().optional(),
+    })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
         return ApiRes.unauthorized('No authorization token provided');
     }
 
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError || !body) return ApiRes.badRequest(bodyError?.message || 'Invalid request body');
-    const { repoId, owner, slug, url, events, active, secret, contentType, insecureSsl } = body;
-
-    if (!owner || !slug || !url || !events) {
-        return ApiRes.badRequest('owner, slug, url, and events are required');
-    }
+    const { repoId, owner, slug, url, events, active, secret, contentType, insecureSsl } = ctx.body;
 
     const gitProvider = GitProviderFactory.create(provider, token);
 

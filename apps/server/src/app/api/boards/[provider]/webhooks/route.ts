@@ -3,11 +3,12 @@ import { BoardProviderFactory } from '@oliver/boards';
 import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const { searchParams } = new URL(request.url);
     const boardId = searchParams.get('boardId');
 
@@ -34,23 +35,25 @@ export const GET = wrapRoute(async (request: NextRequest, params: Promise<{ prov
     return { webhooks };
 });
 
-export const POST = wrapRoute(async (request: NextRequest, params: Promise<{ provider: string }>) => {
-    const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-    if (paramsError || !paramsResult) return ApiRes.badRequest(paramsError?.message || 'Invalid params');
-    const { provider } = paramsResult;
+export const POST = wrapRoute({
+    paramsSchema: z.object({ provider: z.string() }),
+    bodySchema: z.object({
+        boardId: z.string(),
+        url: z.string(),
+        events: z.array(z.string()),
+        active: z.boolean().optional()
+    })
+}, async (request, ctx) => {
+    const { provider } = ctx.params;
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
         return ApiRes.unauthorized('No authorization token provided');
     }
 
-    const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-    if (bodyError || !body) return ApiRes.badRequest(bodyError?.message || 'Invalid request body');
-    const { boardId, url, events, active } = body;
+    const { boardId, url, events, active } = ctx.body;
 
-    if (!boardId || !url || !events) {
-        return ApiRes.badRequest('boardId, url, and events are required');
-    }
+
 
     const boardProvider = BoardProviderFactory.create(provider, token);
     const [webhook, webhookError] = await SafeExecute.withSync(async () => 
