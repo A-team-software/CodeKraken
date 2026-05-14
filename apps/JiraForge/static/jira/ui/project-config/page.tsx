@@ -187,7 +187,7 @@ export function ProjectConfigPage() {
 
 			// Get tenantId (use Jira's cloudId)
 			const tenantId = cloudId || projectKey || 'default';
-			const endpoint = `/tenants/${tenantId}/config?platform=jira`;
+			const endpoint = `/api/tenants/${tenantId}/config?platform=jira`;
 
 			await invoke('saveProjectRepositories', { endpoint, payload });
 			setBaselineRepositories(realRepositories);
