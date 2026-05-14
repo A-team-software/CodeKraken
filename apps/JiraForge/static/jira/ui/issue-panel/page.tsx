@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { invoke, view } from '@forge/bridge';
+import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
+import { useResolvedContext } from '../shared/useResolvedContext';
 import '@atlaskit/css-reset';
 
 type JiraIssuePayload = {
@@ -89,6 +90,7 @@ function resolveRepoUrlFromContext(context: any): string {
 }
 
 export function IssuePanelPage() {
+	const { context, isLoading: isContextLoading, error: contextError } = useResolvedContext();
 	const [isStarting, setIsStarting] = useState(false);
 	const [status, setStatus] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -99,7 +101,10 @@ export function IssuePanelPage() {
 		setError(null);
 
 		try {
-			const context = await view.getContext();
+			if (!context) {
+				throw new Error(contextError || 'Forge context has not been resolved yet.');
+			}
+
 			const issue = normalizeIssueFromContext(context);
 			const repoUrl = resolveRepoUrlFromContext(context);
 
@@ -119,9 +124,20 @@ export function IssuePanelPage() {
 
 	return (
 		<Flex direction="column" gap="space.100" xcss={panelStyles}>
-			<Button appearance="primary" onClick={handleStart} isDisabled={isStarting}>
+			<Button
+				appearance="primary"
+				onClick={handleStart}
+				isDisabled={isStarting || isContextLoading || !!contextError}
+			>
 				{isStarting ? 'Starting...' : 'Develop with Oliver AI'}
 			</Button>
+
+			{isContextLoading && <Box as="p">Resolving issue context...</Box>}
+			{contextError && (
+				<Box as="p" xcss={errorTextStyles}>
+					{contextError}
+				</Box>
+			)}
 
 			{status && (
 				<Box as="p" xcss={statusTextStyles}>

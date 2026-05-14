@@ -24,7 +24,7 @@ resources:
     path: dist/issue-panel
 remotes:
   - key: oliver-server
-    baseUrl: "https://oliver-ai.ngrok.io"
+    baseUrl: "https://oliver-server-qw6b.vercel.app"
     operations:
       - compute
 app:
