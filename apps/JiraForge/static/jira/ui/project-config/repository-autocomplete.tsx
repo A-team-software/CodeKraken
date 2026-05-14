@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { MockRepositoryFinder, RepositoryResult } from './repository-finder';
+import { RepositoryResult } from './repository-finder';
+import { MockRepositoryFinder } from './mock-repository-finder';
 import { SourceAvatar } from './source-avatar';
 
 const finder = new MockRepositoryFinder();
