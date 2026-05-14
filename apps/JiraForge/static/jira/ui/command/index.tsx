@@ -7,4 +7,10 @@ if (!container) {
 	throw new Error('Root element #root was not found');
 }
 
-createRoot(container).render(<React.StrictMode />);
+createRoot(container).render(
+	<React.StrictMode>
+		<div style={{ padding: 16, fontFamily: 'var(--ds-font-family-body, sans-serif)' }}>
+			This surface is no longer active.
+		</div>
+	</React.StrictMode>
+);

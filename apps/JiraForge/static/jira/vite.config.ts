@@ -244,7 +244,17 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
           throw new Error(`Missing entry script for ${entryName}`);
         }
 
-        const cssFiles = localFiles.filter((fileName) => fileName.endsWith('.css')).sort();
+        // Non-admin surfaces should not inherit admin stylesheet/font bundle links.
+        const cssFiles =
+          entryName === 'admin'
+            ? localFiles.filter((fileName) => fileName.endsWith('.css')).sort()
+            : localFiles
+                .filter(
+                  (fileName) =>
+                    fileName.endsWith('.css') &&
+                    fileName.startsWith(`${entryName.split('/').join('-')}-`)
+                )
+                .sort();
         const html = buildHtml(entryScript, cssFiles, isDevMode);
         fs.writeFileSync(path.join(entryDir, 'index.html'), html, 'utf8');
       }
