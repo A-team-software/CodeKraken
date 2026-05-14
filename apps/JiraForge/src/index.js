@@ -179,30 +179,6 @@ resolver.define('startTaskDevelopment', async ({ payload, context }) => {
   });
 });
 
-resolver.define('getProjectIcon', async ({ payload }) => {
-  const projectIdOrKey = payload?.projectIdOrKey;
-
-  if (!projectIdOrKey) {
-    throw new Error('projectIdOrKey is required');
-  }
-
-  const response = await api.asApp().requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}`);
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to fetch project icon: ${response.status} ${errorText}`);
-  }
-
-  const project = await response.json();
-  const iconUrl =
-    project?.avatarUrls?.['48x48'] ||
-    project?.avatarUrls?.['32x32'] ||
-    project?.avatarUrls?.['24x24'] ||
-    project?.avatarUrls?.['16x16'] ||
-    null;
-
-  return { iconUrl };
-});
-
 resolver.define('getProjectDetails', async ({ payload }) => {
   const projectIdOrKey = payload?.projectIdOrKey;
 
