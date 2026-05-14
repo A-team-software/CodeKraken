@@ -40,7 +40,11 @@ RUN curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
   && apt install ngrok
 
 ARG NGROK_TOKEN
-RUN ngrok config add-authtoken ${NGROK_TOKEN}
+RUN if [ -z "${NGROK_TOKEN}" ]; then \
+      echo "ERROR: NGROK_TOKEN build arg is required (from apps/server/.dockerenvfile)" >&2; \
+      exit 1; \
+    fi \
+  && ngrok config add-authtoken "${NGROK_TOKEN}"
 
 # Copy monorepo files
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./

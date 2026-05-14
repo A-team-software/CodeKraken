@@ -21,7 +21,7 @@ services:
       context: ../..
       dockerfile: apps/server/Dockerfile
       args:
-        NGROK_TOKEN: ${NGROK_TOKEN}
+        NGROK_TOKEN: ${NGROK_TOKEN:?NGROK_TOKEN must be set in apps/server/.dockerenvfile}
     container_name: oliver-server
     ports:
       - "9977:9977"
