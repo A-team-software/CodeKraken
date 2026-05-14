@@ -32,7 +32,7 @@ resources:
     path: dist/project-config
 remotes:
   - key: oliver-server
-    baseUrl: "https://oliver-server-qw6b.vercel.app"
+    baseUrl: "https://oliver-ai.ngrok.io"
     operations:
       - compute
 app:

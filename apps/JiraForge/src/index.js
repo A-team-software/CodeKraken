@@ -28,90 +28,42 @@ function getApiSecret() {
   return undefined;
 }
 
-resolver.define('getGitAuthUrl', async (req) => {
-  const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider;
-  const secret = getApiSecret();
-
-  console.log(`getGitAuthUrl: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
-
-  if (!provider) {
-    throw new Error('Provider is required for getGitAuthUrl');
-  }
-
-  const res = await invokeRemote(REMOTE_KEY, {
-    path: '/api/forge/git/auth-url',
+resolver.define('getGitAuthUrl', async ({ payload, context }) => {
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
+  
+  return await backendFetch('/api/forge/git/auth-url', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId, provider })
+    body: { provider },
+    context
   });
-
-  console.log(`Forge: getGitAuthUrl response status: ${res.status}`);
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Forge: getGitAuthUrl failed: ${text}`);
-    return { error: text, status: res.status };
-  }
-
-  return res.json();
 });
 
-resolver.define('getGitStatus', async (req) => {
-  const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider;
-  const secret = getApiSecret();
-
-  console.log(`getGitStatus: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
-
-  const res = await invokeRemote(REMOTE_KEY, {
-    path: '/api/forge/git/status',
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getApiSecret()}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
-  });
-
-  console.log(`Forge: getGitStatus response status: ${res.status}`);
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Forge: getGitStatus failed: ${text}`);
-    return { connected: false, error: text };
+resolver.define('getGitStatus', async ({ payload, context }) => {
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
+  
+  try {
+    return await backendFetch('/api/forge/git/status', {
+      method: 'POST',
+      body: { provider },
+      context
+    });
+  } catch (error) {
+    console.error(`getGitStatus error: ${error?.message}`);
+    return { connected: false, error: error?.message || 'Failed to get git status' };
   }
-
-  const data = await res.json();
-  console.log(`Forge: getGitStatus result: connected=${data.connected}`);
-  return data;
 });
 
-resolver.define('disconnect', async (req) => {
-  const { accountId, cloudId } = req.context;
-  const provider = req.payload?.provider;
-  const secret = getApiSecret();
-
-  console.log(`disconnect: accountId=${accountId}, cloudId=${cloudId}, provider=${provider}, secretPresented=${!!secret}`);
-
-  const res = await invokeRemote(REMOTE_KEY, {
-    path: '/api/forge/git/disconnect',
+resolver.define('disconnect', async ({ payload, context }) => {
+  const provider = payload?.provider;
+  if (!provider) throw new Error('Provider is required');
+  
+  return await backendFetch('/api/forge/git/disconnect', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secret}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ accountId, cloudId, clientKey: cloudId, provider })
+    body: { provider },
+    context
   });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error(`disconnect failed: status=${res.status}, error=${errorText}`);
-    throw new Error(`Failed to disconnect: ${res.status} (${errorText})`);
-  }
-
-  return res.json();
 });
 
 

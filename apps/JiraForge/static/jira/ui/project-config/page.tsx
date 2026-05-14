@@ -2,12 +2,17 @@ import React, { useState, useCallback } from 'react';
 import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
-import { useProjectDetails } from '../shared/useProjectDetails';
 import Flag, { FlagGroup } from '@atlaskit/flag';
 import ErrorIcon from '@atlaskit/icon/glyph/error';
 import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
 import InfoIcon from '@atlaskit/icon/glyph/info';
+import { useProjectDetails } from '../shared/useProjectDetails';
+import { RepositoryResult } from './repository-finder';
+import { RepositoryAutocomplete } from './repository-autocomplete';
+import { RepositoryList, Repository, PAGE_SIZE } from './repository-list';
 import '@atlaskit/css-reset';
+
+// ─── Styles ───────────────────────────────────────────────────────────────────────────
 
 const containerStyles = xcss({
 	padding: 'space.200',
@@ -31,136 +36,83 @@ const repositoriesListStyles = xcss({
 	marginBottom: 'space.200',
 });
 
-const repositoryItemStyles = xcss({
-	padding: 'space.100',
-	display: 'flex',
-	alignItems: 'center',
-	gap: 'space.100',
-	borderBottom: '1px solid var(--ds-border-neutral-subtle)',
-});
-
-const statusTextStyles = xcss({
-	color: 'color.text.success',
-	marginTop: 'space.100',
-});
-
-const errorTextStyles = xcss({
-	color: 'color.text.danger',
-	marginTop: 'space.100',
-});
-
-const warningTextStyles = xcss({
-	color: 'color.text.warning',
-	marginTop: 'space.100',
-});
-
-const inputStyles = xcss({
-	marginBottom: 'space.200',
-});
-
 const buttonGroupStyles = xcss({
 	display: 'flex',
 	gap: 'space.100',
 	marginTop: 'space.200',
 });
 
-type Repository = {
-	id: string;
-	url: string;
-	selected: boolean;
-};
+// ─── Types ──────────────────────────────────────────────────────────────────────────────
 
-type Flag = {
+type AppFlag = {
 	id: string;
 	title: string;
 	description?: string;
 	type: 'error' | 'success' | 'info' | 'warning';
 };
 
+// ─── Component ──────────────────────────────────────────────────────────────────────────
+
 export function ProjectConfigPage() {
 	const { project, isLoading: isContextLoading, error: contextError } = useProjectDetails();
 	const [repositories, setRepositories] = useState<Repository[]>([]);
 	const [baselineRepositories, setBaselineRepositories] = useState<Repository[]>([]);
-	const [newRepoUrl, setNewRepoUrl] = useState('');
 	const [isSaving, setIsSaving] = useState(false);
-	const [flags, setFlags] = useState<Flag[]>([]);
+	const [flags, setFlags] = useState<AppFlag[]>([]);
+	const [currentPage, setCurrentPage] = useState(1);
 
 	const projectKey = project.key;
 	const projectName = project.name;
 	const projectIconUrl = project.iconUrl;
 
-	const addFlag = useCallback((title: string, description: string | undefined, type: 'error' | 'success' | 'info' | 'warning') => {
-		const id = `flag-${Date.now()}`;
-		setFlags((prev) => [...prev, { id, title, description, type }]);
+	const addFlag = useCallback(
+		(title: string, description: string | undefined, type: AppFlag['type']) => {
+			const id = `flag-${Date.now()}`;
+			setFlags((prev) => [...prev, { id, title, description, type }]);
+			setTimeout(() => setFlags((prev) => prev.filter((f) => f.id !== id)), 6000);
+		},
+		[],
+	);
 
-		// Auto-remove flags after 6 seconds
-		setTimeout(() => {
-			setFlags((prev) => prev.filter((f) => f.id !== id));
-		}, 6000);
+	const removeFlag = useCallback((id: string | number) => {
+		setFlags((prev) => prev.filter((f) => f.id !== String(id)));
 	}, []);
 
-	const removeFlag = useCallback((id: string) => {
-		setFlags((prev) => prev.filter((f) => f.id !== id));
-	}, []);
-
-	const handleAddRepository = () => {
-		const url = newRepoUrl.trim();
-
-		if (!url) {
-			addFlag('Repository URL Required', 'Please enter a valid repository URL.', 'error');
+	const handleAddRepository = (repo: RepositoryResult) => {
+		if (repositories.some((r) => r.url === repo.url)) {
+			addFlag('Duplicate Repository', `${repo.name} has already been added.`, 'error');
 			return;
 		}
-
-		if (repositories.some((repo) => repo.url === url)) {
-			addFlag('Duplicate Repository', 'This repository has already been added.', 'error');
-			return;
-		}
-
-		setRepositories((prev) => [
-			...prev,
-			{
-				id: `repo-${Date.now()}`,
-				url,
-				selected: true,
-			},
-		]);
-
-		setNewRepoUrl('');
+		setRepositories((prev) => {
+			const next = [...prev, { id: `repo-${Date.now()}`, name: repo.name, url: repo.url, source: repo.source, selected: true }];
+			setCurrentPage(Math.ceil(next.length / PAGE_SIZE));
+			return next;
+		});
 	};
 
 	const handleToggleRepository = (id: string) => {
-		setRepositories((prev) => prev.map((repo) => (repo.id === id ? { ...repo, selected: !repo.selected } : repo)));
+		setRepositories((prev) => prev.map((r) => (r.id === id ? { ...r, selected: !r.selected } : r)));
 	};
 
 	const handleRemoveRepository = (id: string) => {
-		setRepositories((prev) => prev.filter((repo) => repo.id !== id));
+		setRepositories((prev) => {
+			const next = prev.filter((r) => r.id !== id);
+			setCurrentPage((p) => Math.min(p, Math.max(1, Math.ceil(next.length / PAGE_SIZE))));
+			return next;
+		});
 	};
 
 	const handleSave = async () => {
 		setIsSaving(true);
-
 		try {
-			if (!projectKey) {
-				throw new Error('Project key not found in context.');
-			}
+			if (!projectKey) throw new Error('Project key not found in context.');
 
-			const selectedRepos = repositories.filter((repo) => repo.selected).map((repo) => repo.url);
+			const selectedRepos = repositories.filter((r) => r.selected).map((r) => r.url);
+			if (selectedRepos.length === 0) throw new Error('Please select at least one repository.');
 
-			if (selectedRepos.length === 0) {
-				throw new Error('Please select at least one repository.');
-			}
-
-			await invoke('saveProjectRepositories', {
-				projectKey,
-				repositories: selectedRepos,
-			});
-
+			await invoke('saveProjectRepositories', { projectKey, repositories: selectedRepos });
 			setBaselineRepositories(repositories);
-			addFlag(
-				'Configuration Saved',
-				`Successfully saved ${selectedRepos.length} repository(ies) for project ${projectKey}.`,
-				'success'
-			);
+			addFlag('Configuration Saved', `Successfully saved ${selectedRepos.length} repository(ies) for project ${projectKey}.`, 'success');
 		} catch (e: any) {
 			addFlag('Save Failed', e?.message || 'Failed to save repositories.', 'error');
 		} finally {
@@ -169,16 +121,11 @@ export function ProjectConfigPage() {
 	};
 
 	const serializeRepositories = (list: Repository[]) =>
-		JSON.stringify(
-			list.map((repo) => ({
-				url: repo.url,
-				selected: repo.selected,
-			}))
-		);
+		JSON.stringify(list.map(({ url, selected }) => ({ url, selected })));
 
-	const selectedCount = repositories.filter((repo) => repo.selected).length;
-	const hasActiveChanges =
-		newRepoUrl.trim().length > 0 || serializeRepositories(repositories) !== serializeRepositories(baselineRepositories);
+	const selectedCount = repositories.filter((r) => r.selected).length;
+	const hasActiveChanges = serializeRepositories(repositories) !== serializeRepositories(baselineRepositories);
+	const totalPages = Math.max(1, Math.ceil(repositories.length / PAGE_SIZE));
 
 	return (
 		<Box xcss={containerStyles}>
@@ -259,80 +206,23 @@ export function ProjectConfigPage() {
 			)}
 
 			<Box xcss={sectionStyles}>
-				<Box as="label">Add Repository URL</Box>
-				<Flex gap="space.100" xcss={inputStyles}>
-					<input
-						type="text"
-						placeholder="https://github.com/owner/repo"
-						value={newRepoUrl}
-						onChange={(e) => setNewRepoUrl(e.currentTarget.value)}
-						onKeyPress={(e) => {
-							if (e.key === 'Enter') {
-								handleAddRepository();
-							}
-						}}
-						style={{
-							padding: '8px',
-							border: '1px solid #cccccc',
-							borderRadius: '3px',
-							flex: 1,
-							fontFamily: 'inherit',
-						}}
-					/>
-					<Button appearance="primary" onClick={handleAddRepository}>
-						Add
-					</Button>
-				</Flex>
+				<Box as="label" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+					Add Repository
+				</Box>
+				<RepositoryAutocomplete onSelect={handleAddRepository} />
 			</Box>
 
 			<Box xcss={sectionStyles}>
 				<Box as="label">Selected Repositories ({selectedCount})</Box>
 				<Box xcss={repositoriesListStyles}>
-					{repositories.length === 0 ? (
-						<Box as="p">
-							No repositories added yet. Add one above to get started.
-						</Box>
-					) : (
-						repositories.map((repo) => (
-							<Flex key={repo.id} xcss={repositoryItemStyles}>
-								<input
-									type="checkbox"
-									checked={repo.selected}
-									onChange={() => handleToggleRepository(repo.id)}
-									id={repo.id}
-									style={{
-										marginRight: '8px',
-										cursor: 'pointer',
-										flexShrink: 0,
-									}}
-								/>
-								<label
-									htmlFor={repo.id}
-									style={{
-										flex: 1,
-										wordBreak: 'break-word',
-										cursor: 'pointer',
-										display: 'flex',
-										alignItems: 'center',
-									}}
-								>
-									{repo.url}
-								</label>
-								<Button
-									appearance="subtle"
-									onClick={() => handleRemoveRepository(repo.id)}
-									spacing="compact"
-									iconBefore={
-										<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-											<path d="M2 4a1 1 0 011-1h10a1 1 0 011 1v1H2V4zm1.5 3h9v8a2 2 0 01-2 2h-5a2 2 0 01-2-2V7zM7 9a1 1 0 00-1 1v4a1 1 0 102 0v-4a1 1 0 00-1-1zm2 0a1 1 0 00-1 1v4a1 1 0 102 0v-4a1 1 0 00-1-1z" />
-										</svg>
-									}
-								>
-									Delete
-								</Button>
-							</Flex>
-						))
-					)}
+					<RepositoryList
+						repositories={repositories}
+						currentPage={currentPage}
+						totalPages={totalPages}
+						onPageChange={setCurrentPage}
+						onToggle={handleToggleRepository}
+						onRemove={handleRemoveRepository}
+					/>
 				</Box>
 			</Box>
 
