@@ -10,7 +10,7 @@ import get from 'lodash/get';
  * @param {object} payload - The payload to send.
  * @returns {Effect.Effect<any, string, never>} An Effect that yields the result or fails with a string error.
  */
-export const safeInvokeEffect = (command, payload) => {
+export const safeInvokeEffect = (command: string, payload?: any): Effect.Effect<any, string, never> => {
   return Effect.tryPromise({
     try: () => invoke(command, payload),
     catch: (error) => {
@@ -51,14 +51,14 @@ export const safeViewContextEffect = () => {
  * @param {function} rejectWithValue - RTK's rejectWithValue function.
  * @returns {Promise<any>} The extracted value or rejected payload.
  */
-export const runEffectThunk = async (effect, rejectWithValue) => {
+export const runEffectThunk = async (effect: Effect.Effect<any, string, never>, rejectWithValue: (value: any) => any) => {
   // Convert Effect failure into an Either to avoid throwing exceptions
   const eitherEffect = Effect.either(effect);
-  const result = await Effect.runPromise(eitherEffect);
+  const result = await Effect.runPromise(eitherEffect as any);
   
-  if (Either.isRight(result)) {
-    return result.right;
+  if (Either.isRight(result as any)) {
+    return (result as any).right;
   } else {
-    return rejectWithValue(result.left);
+    return rejectWithValue((result as any).left);
   }
 };

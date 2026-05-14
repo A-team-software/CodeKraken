@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { z } from 'zod';
 import get from 'lodash/get';
 import { Effect, Either } from 'effect';
@@ -29,6 +29,46 @@ const RepoSchema = z.object({
   htmlUrl: z.string().optional(),
 });
 
+type Provider = z.infer<typeof ProviderSchema>;
+type Status = z.infer<typeof StatusSchema>;
+type Workspace = z.infer<typeof WorkspaceSchema>;
+type Repo = z.infer<typeof RepoSchema>;
+
+export interface GitState {
+  auth: { connected: boolean; loading: boolean; username: string | null };
+  provider: string;
+  providers: Provider[];
+  discoveryDone: boolean;
+  workspace: string;
+  workspaces: Workspace[];
+  workspacesLoading: boolean;
+  repoUrl: string;
+  repos: Repo[];
+  reposLoading: boolean;
+  connecting: boolean;
+  error: string | null;
+  successMessage: string | null;
+}
+
+const initialState: GitState = {
+  auth: { connected: false, loading: true, username: null },
+  provider: '',
+  providers: [
+    { id: 'github', name: 'GitHub' },
+    { id: 'bitbucket', name: 'Bitbucket' },
+  ],
+  discoveryDone: false,
+  workspace: '',
+  workspaces: [],
+  workspacesLoading: false,
+  repoUrl: '',
+  repos: [],
+  reposLoading: false,
+  connecting: false,
+  error: null,
+  successMessage: null,
+};
+
 // --- Thunks ---
 export const fetchProviders = createAsyncThunk('git/fetchProviders', async (_, { rejectWithValue }) => {
   const effect = safeInvokeEffect('getGitProviders');
@@ -37,8 +77,8 @@ export const fetchProviders = createAsyncThunk('git/fetchProviders', async (_, {
   return z.array(ProviderSchema).parse(providers);
 });
 
-export const refreshAuthStatus = createAsyncThunk('git/refreshAuthStatus', async (provider, { getState, rejectWithValue }) => {
-  const state = getState().git;
+export const refreshAuthStatus = createAsyncThunk('git/refreshAuthStatus', async (provider: string | undefined, { getState, rejectWithValue }) => {
+  const state = (getState() as any).git as GitState;
   const targetProvider = provider || state.provider;
   const isDiscovery = !targetProvider && !state.discoveryDone;
 
@@ -54,9 +94,9 @@ export const refreshAuthStatus = createAsyncThunk('git/refreshAuthStatus', async
     const gh = Either.isRight(ghEither) ? ghEither.right : { connected: false };
     const bb = Either.isRight(bbEither) ? bbEither.right : { connected: false };
 
-    if (gh?.connected) {
+    if ((gh as any)?.connected) {
       return { ...StatusSchema.parse(gh), provider: 'github', discoveryDone: true };
-    } else if (bb?.connected) {
+    } else if ((bb as any)?.connected) {
       return { ...StatusSchema.parse(bb), provider: 'bitbucket', discoveryDone: true };
     } else {
       return { connected: false, provider: 'github', discoveryDone: true };
@@ -69,16 +109,16 @@ export const refreshAuthStatus = createAsyncThunk('git/refreshAuthStatus', async
 });
 
 export const fetchWorkspaces = createAsyncThunk('git/fetchWorkspaces', async (_, { getState, rejectWithValue }) => {
-  const provider = getState().git.provider;
+  const provider = (getState() as any).git.provider;
   if (provider !== 'bitbucket') return [];
-  const effect = safeInvokeEffect('getWorkspaces', { provider });
+  const effect = safeInvokeEffect('getWorkspaces', { provider } as any);
   const res = await runEffectThunk(effect, rejectWithValue);
   const workspaces = get(res, 'workspaces', []);
   return z.array(WorkspaceSchema).parse(workspaces);
 });
 
 export const fetchRepositories = createAsyncThunk('git/fetchRepositories', async (_, { getState, rejectWithValue }) => {
-  const { provider, workspace, auth } = getState().git;
+  const { provider, workspace, auth } = (getState() as any).git as GitState;
   
   if (!auth.connected) return [];
   if (provider === 'bitbucket' && !workspace) return [];
@@ -105,7 +145,7 @@ export const fetchRepositories = createAsyncThunk('git/fetchRepositories', async
 });
 
 export const disconnectGit = createAsyncThunk('git/disconnectGit', async (_, { getState, dispatch, rejectWithValue }) => {
-  const provider = getState().git.provider;
+  const provider = (getState() as any).git.provider;
   const effect = safeInvokeEffect('disconnect', { provider });
   await runEffectThunk(effect, rejectWithValue);
   await dispatch(refreshAuthStatus(provider));
@@ -114,42 +154,25 @@ export const disconnectGit = createAsyncThunk('git/disconnectGit', async (_, { g
 // --- Slice ---
 export const gitSlice = createSlice({
   name: 'git',
-  initialState: {
-    auth: { connected: false, loading: true, username: null },
-    provider: '',
-    providers: [
-      { id: 'github', name: 'GitHub' },
-      { id: 'bitbucket', name: 'Bitbucket' },
-    ],
-    discoveryDone: false,
-    workspace: '',
-    workspaces: [],
-    workspacesLoading: false,
-    repoUrl: '',
-    repos: [],
-    reposLoading: false,
-    connecting: false,
-    error: null,
-    successMessage: null,
-  },
+  initialState,
   reducers: {
-    setProvider(state, action) {
+    setProvider(state, action: PayloadAction<string>) {
       state.provider = action.payload;
     },
-    setWorkspace(state, action) {
+    setWorkspace(state, action: PayloadAction<string>) {
       state.workspace = action.payload;
       state.repoUrl = '';
     },
-    setRepoUrl(state, action) {
+    setRepoUrl(state, action: PayloadAction<string>) {
       state.repoUrl = action.payload;
     },
-    setConnecting(state, action) {
+    setConnecting(state, action: PayloadAction<boolean>) {
       state.connecting = action.payload;
     },
-    setError(state, action) {
+    setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
     },
-    setSuccessMessage(state, action) {
+    setSuccessMessage(state, action: PayloadAction<string | null>) {
       state.successMessage = action.payload;
     }
   },
@@ -183,11 +206,11 @@ export const gitSlice = createSlice({
         } else if (action.payload.connected) {
            state.auth.username = action.payload.provider === 'bitbucket' ? 'Bitbucket User' : 'GitHub User';
         }
-        if (action.payload.provider) {
-           state.provider = action.payload.provider;
+        if ((action.payload as any).provider) {
+           state.provider = (action.payload as any).provider;
         }
-        if (action.payload.discoveryDone) {
-           state.discoveryDone = action.payload.discoveryDone;
+        if ((action.payload as any).discoveryDone) {
+           state.discoveryDone = (action.payload as any).discoveryDone;
         }
       })
       .addCase(refreshAuthStatus.rejected, (state, action) => {

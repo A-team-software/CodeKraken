@@ -2,26 +2,35 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import get from 'lodash/get';
 import { safeInvokeEffect, runEffectThunk } from '../utils/effectAsync';
 
+export interface ConfigState {
+  incrementalPrsOn: boolean;
+  loading: boolean;
+  error: string | null;
+  successMessage: string | null;
+}
+
+const initialState: ConfigState = {
+  incrementalPrsOn: false,
+  loading: false,
+  error: null,
+  successMessage: null,
+};
+
 export const fetchConfig = createAsyncThunk('config/fetchConfig', async (_, { rejectWithValue }) => {
   const effect = safeInvokeEffect('getConfig');
   const res = await runEffectThunk(effect, rejectWithValue);
-  return get(res, 'config.incrementalPrsOn', false);
+  return get(res, 'config.incrementalPrsOn', false) as boolean;
 });
 
-export const updateConfig = createAsyncThunk('config/updateConfig', async (incrementalPrsOn, { rejectWithValue }) => {
+export const updateConfig = createAsyncThunk('config/updateConfig', async (incrementalPrsOn: boolean, { rejectWithValue }) => {
   const effect = safeInvokeEffect('setConfig', { incrementalPrsOn });
   const res = await runEffectThunk(effect, rejectWithValue);
-  return get(res, 'config.incrementalPrsOn', incrementalPrsOn);
+  return get(res, 'config.incrementalPrsOn', incrementalPrsOn) as boolean;
 });
 
 export const configSlice = createSlice({
   name: 'config',
-  initialState: {
-    incrementalPrsOn: false,
-    loading: false,
-    error: null,
-    successMessage: null,
-  },
+  initialState,
   reducers: {
     clearConfigMessages(state) {
       state.error = null;

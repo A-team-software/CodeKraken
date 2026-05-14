@@ -26,50 +26,40 @@ import {
 } from './features/configSlice';
 import { invoke, router } from '@forge/bridge';
 
-import _Button from '@atlaskit/button';
-import _LoadingButton from '@atlaskit/button/loading-button';
-import _Heading from '@atlaskit/heading';
-import _Lozenge from '@atlaskit/lozenge';
-import _SectionMessage from '@atlaskit/section-message';
-import _Spinner from '@atlaskit/spinner';
-import _Select from '@atlaskit/select';
-import _Textfield from '@atlaskit/textfield';
-import _TextArea from '@atlaskit/textarea';
-import _Toggle from '@atlaskit/toggle';
-
-const Button = _Button as any;
-const LoadingButton = _LoadingButton as any;
-const Heading = _Heading as any;
-const Lozenge = _Lozenge as any;
-const SectionMessage = _SectionMessage as any;
-const Spinner = _Spinner as any;
-const Select = _Select as any;
-const Textfield = _Textfield as any;
-const TextArea = _TextArea as any;
-const Toggle = _Toggle as any;
+import Button from '@atlaskit/button';
+import LoadingButton from '@atlaskit/button/loading-button';
+import Heading from '@atlaskit/heading';
+import Lozenge from '@atlaskit/lozenge';
+import SectionMessage from '@atlaskit/section-message';
+import Spinner from '@atlaskit/spinner';
+import Select from '@atlaskit/select';
+import Textfield from '@atlaskit/textfield';
+import TextArea from '@atlaskit/textarea';
+import Toggle from '@atlaskit/toggle';
+import { RootState, AppDispatch } from './store';
 
 export default function App() {
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const themeMode = useSelector((state: any) => state.theme.mode);
+  const themeMode = useSelector((state: RootState) => (state as any).theme.mode);
   
   const {
     auth, provider, providers, workspace, workspaces, workspacesLoading,
     repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
-  } = useSelector((state: any) => state.git);
+  } = useSelector((state: RootState) => state.git);
 
   const {
     taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
-  } = useSelector((state: any) => state.task);
+  } = useSelector((state: RootState) => state.task);
 
   const {
     incrementalPrsOn, error: configError, successMessage: configSuccess
-  } = useSelector((state: any) => state.config);
+  } = useSelector((state: RootState) => state.config);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   useEffect(() => {
-    setGlobalTheme({ colorMode: themeMode, dark: 'dark', light: 'light', spacing: 'spacing' });
+    setGlobalTheme({ colorMode: themeMode as any, dark: 'dark', light: 'light', spacing: 'spacing' });
   }, [themeMode]);
 
   useEffect(() => {
