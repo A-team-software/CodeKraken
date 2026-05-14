@@ -1,5 +1,5 @@
 import Resolver from '@forge/resolver';
-import { invokeRemote } from '@forge/api';
+import api, { invokeRemote, route } from '@forge/api';
 
 const resolver = new Resolver();
 const REMOTE_KEY = 'oliver-server';
@@ -225,6 +225,69 @@ resolver.define('startTaskDevelopment', async ({ payload, context }) => {
     },
     context
   });
+});
+
+resolver.define('getProjectIcon', async ({ payload }) => {
+  const projectIdOrKey = payload?.projectIdOrKey;
+
+  if (!projectIdOrKey) {
+    throw new Error('projectIdOrKey is required');
+  }
+
+  const response = await api.asApp().requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}`);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch project icon: ${response.status} ${errorText}`);
+  }
+
+  const project = await response.json();
+  const iconUrl =
+    project?.avatarUrls?.['48x48'] ||
+    project?.avatarUrls?.['32x32'] ||
+    project?.avatarUrls?.['24x24'] ||
+    project?.avatarUrls?.['16x16'] ||
+    null;
+
+  return { iconUrl };
+});
+
+resolver.define('getProjectDetails', async ({ payload }) => {
+  const projectIdOrKey = payload?.projectIdOrKey;
+
+  if (!projectIdOrKey) {
+    throw new Error('projectIdOrKey is required');
+  }
+
+  try {
+    console.log(`[getProjectDetails] Fetching project: ${projectIdOrKey}`);
+    const response = await api.asApp().requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}`);
+    
+    console.log(`[getProjectDetails] Response status: ${response.status}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[getProjectDetails] Error response: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to fetch project details: ${response.status} ${errorText}`);
+    }
+
+    const project = await response.json();
+    const iconUrl =
+      project?.avatarUrls?.['48x48'] ||
+      project?.avatarUrls?.['32x32'] ||
+      project?.avatarUrls?.['24x24'] ||
+      project?.avatarUrls?.['16x16'] ||
+      null;
+    
+    return {
+      id: project?.id ? String(project.id) : null,
+      key: project?.key ? String(project.key) : null,
+      name: project?.name ? String(project.name) : null,
+      iconUrl,
+    };
+  } catch (error) {
+    console.error(`[getProjectDetails] Exception: ${error?.message || error}`);
+    throw error;
+  }
 });
 
 export const handler = resolver.getDefinitions();

@@ -16,10 +16,9 @@ modules:
         function: resolver
   jira:projectSettingsPage:
     - key: oliverai-project-settings
-      resource: main
+      resource: project-config-page
       resolver:
         function: resolver
-      render: native
       title: OliverAI Project Settings
   function:
     - key: resolver
@@ -29,6 +28,8 @@ resources:
     path: dist/admin
   - key: issue-panel-page
     path: dist/issue-panel
+  - key: project-config-page
+    path: dist/project-config
 remotes:
   - key: oliver-server
     baseUrl: "{{SERVER_REMOTE_URL}}"
@@ -41,6 +42,12 @@ app:
 permissions:
   scopes:
     - storage:app
+    - read:jira-work
+    - read:issue:jira
+    - read:project:jira
+    - read:avatar:jira
+    - read:user:jira
+    - write:jira-work
   content:
     styles:
       - unsafe-inline

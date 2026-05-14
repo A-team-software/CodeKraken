@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
-import { useResolvedContext } from '../shared/useResolvedContext';
+import { useProjectDetails } from '../shared/useProjectDetails';
+import Flag, { FlagGroup } from '@atlaskit/flag';
+import ErrorIcon from '@atlaskit/icon/glyph/error';
+import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
+import InfoIcon from '@atlaskit/icon/glyph/info';
 import '@atlaskit/css-reset';
 
 const containerStyles = xcss({
@@ -66,26 +70,49 @@ type Repository = {
 	selected: boolean;
 };
 
+type Flag = {
+	id: string;
+	title: string;
+	description?: string;
+	type: 'error' | 'success' | 'info' | 'warning';
+};
+
 export function ProjectConfigPage() {
-	const { context, isLoading: isContextLoading, error: contextError } = useResolvedContext();
+	const { project, isLoading: isContextLoading, error: contextError } = useProjectDetails();
 	const [repositories, setRepositories] = useState<Repository[]>([]);
+	const [baselineRepositories, setBaselineRepositories] = useState<Repository[]>([]);
 	const [newRepoUrl, setNewRepoUrl] = useState('');
 	const [isSaving, setIsSaving] = useState(false);
-	const [status, setStatus] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [flags, setFlags] = useState<Flag[]>([]);
 
-	const projectKey = context?.extension?.project?.key ?? null;
+	const projectKey = project.key;
+	const projectName = project.name;
+	const projectIconUrl = project.iconUrl;
+
+	const addFlag = useCallback((title: string, description: string | undefined, type: 'error' | 'success' | 'info' | 'warning') => {
+		const id = `flag-${Date.now()}`;
+		setFlags((prev) => [...prev, { id, title, description, type }]);
+
+		// Auto-remove flags after 6 seconds
+		setTimeout(() => {
+			setFlags((prev) => prev.filter((f) => f.id !== id));
+		}, 6000);
+	}, []);
+
+	const removeFlag = useCallback((id: string) => {
+		setFlags((prev) => prev.filter((f) => f.id !== id));
+	}, []);
 
 	const handleAddRepository = () => {
 		const url = newRepoUrl.trim();
 
 		if (!url) {
-			setError('Repository URL cannot be empty.');
+			addFlag('Repository URL Required', 'Please enter a valid repository URL.', 'error');
 			return;
 		}
 
 		if (repositories.some((repo) => repo.url === url)) {
-			setError('This repository has already been added.');
+			addFlag('Duplicate Repository', 'This repository has already been added.', 'error');
 			return;
 		}
 
@@ -99,7 +126,6 @@ export function ProjectConfigPage() {
 		]);
 
 		setNewRepoUrl('');
-		setError(null);
 	};
 
 	const handleToggleRepository = (id: string) => {
@@ -112,8 +138,6 @@ export function ProjectConfigPage() {
 
 	const handleSave = async () => {
 		setIsSaving(true);
-		setStatus(null);
-		setError(null);
 
 		try {
 			if (!projectKey) {
@@ -131,28 +155,106 @@ export function ProjectConfigPage() {
 				repositories: selectedRepos,
 			});
 
-			setStatus(`Successfully saved ${selectedRepos.length} repository(ies) for project ${projectKey}.`);
+			setBaselineRepositories(repositories);
+			addFlag(
+				'Configuration Saved',
+				`Successfully saved ${selectedRepos.length} repository(ies) for project ${projectKey}.`,
+				'success'
+			);
 		} catch (e: any) {
-			setError(e?.message || 'Failed to save repositories.');
+			addFlag('Save Failed', e?.message || 'Failed to save repositories.', 'error');
 		} finally {
 			setIsSaving(false);
 		}
 	};
 
+	const serializeRepositories = (list: Repository[]) =>
+		JSON.stringify(
+			list.map((repo) => ({
+				url: repo.url,
+				selected: repo.selected,
+			}))
+		);
+
 	const selectedCount = repositories.filter((repo) => repo.selected).length;
+	const hasActiveChanges =
+		newRepoUrl.trim().length > 0 || serializeRepositories(repositories) !== serializeRepositories(baselineRepositories);
 
 	return (
 		<Box xcss={containerStyles}>
+			<FlagGroup onDismissed={removeFlag}>
+				{flags.map((flag) => (
+					<Flag
+						key={flag.id}
+						id={flag.id}
+						icon={
+							flag.type === 'error' ? (
+								<ErrorIcon label="Error" primaryColor="red" />
+							) : flag.type === 'success' ? (
+								<SuccessIcon label="Success" primaryColor="green" />
+							) : (
+								<InfoIcon label="Info" primaryColor="blue" />
+							)
+						}
+						title={flag.title}
+						description={flag.description}
+					/>
+				))}
+			</FlagGroup>
+
 			<Box xcss={headingStyles}>Project Repository Configuration</Box>
 
-			{isContextLoading && <Box xcss={warningTextStyles}>Loading project context...</Box>}
-			{contextError && <Box xcss={errorTextStyles}>{contextError}</Box>}
+			{isContextLoading && (
+				<Flag
+					id="loading-flag"
+					icon={<InfoIcon label="Loading" primaryColor="blue" />}
+					title="Loading project context..."
+				/>
+			)}
 
-			{projectKey && (
+			{contextError && (
+				<Flag
+					id="context-error-flag"
+					icon={<ErrorIcon label="Error" primaryColor="red" />}
+					title="Failed to load project context"
+					description={contextError}
+				/>
+			)}
+
+			{projectName && (
 				<Box xcss={sectionStyles}>
-					<Box as="p">
-						Project: <strong>{projectKey}</strong>
-					</Box>
+					<Flex alignItems="center" gap="space.100">
+						{projectIconUrl ? (
+							<img
+								src={projectIconUrl}
+								alt={String(projectName)}
+								width={20}
+								height={20}
+								style={{ borderRadius: '3px', objectFit: 'cover' }}
+							/>
+						) : (
+							<Box
+								as="span"
+								style={{
+									display: 'inline-flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									width: '20px',
+									height: '20px',
+									borderRadius: '3px',
+									background: '#1d7afc',
+									color: '#ffffff',
+									fontSize: '12px',
+									fontWeight: 600,
+								}}
+							>
+								{String(projectName).charAt(0).toUpperCase()}
+							</Box>
+						)}
+						<Box as="p">
+							<strong>{projectName}</strong>
+						</Box>
+					</Flex>
 				</Box>
 			)}
 
@@ -242,13 +344,10 @@ export function ProjectConfigPage() {
 				>
 					{isSaving ? 'Saving...' : 'Save Configuration'}
 				</Button>
-				<Button appearance="default" onClick={() => window.history.back()}>
+				<Button appearance="default" onClick={() => window.history.back()} isDisabled={!hasActiveChanges}>
 					Cancel
 				</Button>
 			</Flex>
-
-			{status && <Box xcss={statusTextStyles}>{status}</Box>}
-			{error && <Box xcss={errorTextStyles}>{error}</Box>}
 		</Box>
 	);
 }
