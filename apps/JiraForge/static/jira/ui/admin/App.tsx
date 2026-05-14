@@ -20,6 +20,10 @@ import {
   solveTaskThunk, 
   setTaskInput 
 } from './features/taskSlice';
+import {
+  fetchConfig,
+  updateConfig
+} from './features/configSlice';
 import { invoke, router } from '@forge/bridge';
 
 import Button from '@atlaskit/button';
@@ -31,30 +35,37 @@ import Spinner from '@atlaskit/spinner';
 import Select from '@atlaskit/select';
 import Textfield from '@atlaskit/textfield';
 import TextArea from '@atlaskit/textarea';
+import Toggle from '@atlaskit/toggle';
+import { RootState, AppDispatch } from './store';
 
 export default function App() {
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch<AppDispatch>();
 
-  const themeMode = useSelector((state: any) => state.theme.mode);
+  const themeMode = useSelector((state: RootState) => (state as any).theme.mode);
   
   const {
     auth, provider, providers, workspace, workspaces, workspacesLoading,
     repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
-  } = useSelector((state: any) => state.git);
+  } = useSelector((state: RootState) => state.git);
 
   const {
     taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
-  } = useSelector((state: any) => state.task);
+  } = useSelector((state: RootState) => state.task);
+
+  const {
+    incrementalPrsOn, loading: configLoading, error: configError, successMessage: configSuccess
+  } = useSelector((state: RootState) => state.config);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   useEffect(() => {
-    setGlobalTheme({ colorMode: themeMode, dark: 'dark', light: 'light', spacing: 'spacing' });
+    setGlobalTheme({ colorMode: themeMode as any, dark: 'dark', light: 'light', spacing: 'spacing' });
   }, [themeMode]);
 
   useEffect(() => {
     dispatch(loadContext());
     dispatch(fetchProviders());
+    dispatch(fetchConfig());
   }, [dispatch]);
 
   useEffect(() => {
@@ -222,6 +233,23 @@ export default function App() {
                 <div className="oliver-stack">
                   <Heading size="small">Configuration</Heading>
 
+                  <div className="oliver-field-group">
+                    <label className="oliver-label" htmlFor="incrementalToggle">
+                      PR Creation Strategy
+                    </label>
+                    <div className="oliver-inline" style={{ marginTop: '4px' }}>
+                      <Toggle
+                        id="incrementalToggle"
+                        isChecked={incrementalPrsOn}
+                        isDisabled={configLoading}
+                        onChange={(e: any) => dispatch(updateConfig(e.target.checked))}
+                      />
+                      <span style={{ marginLeft: '8px', fontSize: '14px' }}>
+                        {incrementalPrsOn ? 'Incremental PRs' : 'One BLOB PR'}
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="oliver-inline oliver-spread" style={{ alignItems: 'flex-end' }}>
                     <div className="oliver-field-group" style={{ flex: 1, minWidth: '240px' }}>
                       <label className="oliver-label" htmlFor="provider">Git Provider</label>
@@ -328,6 +356,12 @@ export default function App() {
               {gitError}
             </SectionMessage>
           )}
+
+          {configError && (
+            <SectionMessage title="Configuration Error" appearance="error">
+              {configError}
+            </SectionMessage>
+          )}
           
           {taskError && (
             <SectionMessage title="Task Operation Failed" appearance="error">
@@ -341,9 +375,10 @@ export default function App() {
             </SectionMessage>
           )}
 
-          {(gitSuccess || taskSuccess) && (
+          {(gitSuccess || taskSuccess || configSuccess) && (
             <SectionMessage title="Success" appearance="success">
-              {gitSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {gitSuccess && <div style={{ marginBottom: taskSuccess || configSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
+              {configSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{configSuccess}</div>}
               {taskSuccess && <div>{taskSuccess}</div>}
             </SectionMessage>
           )}

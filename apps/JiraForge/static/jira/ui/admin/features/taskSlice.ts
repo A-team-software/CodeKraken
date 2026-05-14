@@ -14,7 +14,7 @@ export const loadContext = createAsyncThunk('task/loadContext', async (_, { reje
 export const solveTaskThunk = createAsyncThunk('task/solveTask', async ({ provider, repoUrl, task }, { dispatch, rejectWithValue }) => {
   const effect = safeInvokeEffect('solveTask', { provider, repoUrl, task });
   const result = await Effect.runPromise(Effect.either(effect));
-  
+
   if (Either.isRight(result)) {
     return result.right;
   } else {
@@ -52,7 +52,7 @@ export const taskSlice = createSlice({
     builder
       .addCase(loadContext.fulfilled, (state, action) => {
         state.ctx = action.payload;
-        
+
         const issue = action.payload?.extension?.issue;
         const key = issue?.key ? `${issue.key}` : '';
         const summary = issue?.summary ? `${issue.summary}` : '';
@@ -60,7 +60,7 @@ export const taskSlice = createSlice({
         const parts = [];
         if (key || summary) parts.push(`[${key}] ${summary}`.trim());
         if (description) parts.push(description);
-        
+
         const inferred = parts.join('\n\n').trim();
         if (inferred) state.taskInput = inferred;
       })
