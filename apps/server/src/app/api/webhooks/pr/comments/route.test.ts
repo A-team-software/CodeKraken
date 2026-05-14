@@ -114,8 +114,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.success).toBe(true);
-			expect(data.platform).toBe("github");
+			expect(data.code).toBe(200);
+			expect(data.data.platform).toBe("github");
 		});
 
 		it("should accept 'gitlab' platform", async () => {
@@ -132,8 +132,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.success).toBe(true);
-			expect(data.platform).toBe("gitlab");
+			expect(data.code).toBe(200);
+			expect(data.data.platform).toBe("gitlab");
 		});
 
 		it("should accept 'bitbucket' platform", async () => {
@@ -147,8 +147,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.success).toBe(true);
-			expect(data.platform).toBe("bitbucket");
+			expect(data.code).toBe(200);
+			expect(data.data.platform).toBe("bitbucket");
 		});
 
 		it("should handle case-insensitive platform parameter", async () => {
@@ -161,7 +161,7 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.platform).toBe("github");
+			expect(data.data.platform).toBe("github");
 		});
 
 		it("should reject missing platform parameter", async () => {
@@ -195,7 +195,7 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.platform).toBe("bitbucket");
+			expect(data.data.platform).toBe("bitbucket");
 		});
 	});
 
@@ -212,8 +212,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(400);
-			expect(data.success).toBe(false);
-			expect(data.error).toContain("Invalid JSON payload");
+			expect(data.code).toBe(400);
+			expect(data.message).toContain("Invalid JSON payload");
 		});
 
 		it("should accept valid JSON payload", async () => {
@@ -227,8 +227,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const data = await response.json();
 
 			expect(response.status).toBe(200);
-			expect(data.success).toBe(true);
-			expect(data.comment).toBeDefined();
+			expect(data.code).toBe(200);
+			expect(data.data.comment).toBeDefined();
 		});
 	});
 
@@ -341,9 +341,9 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const response = await POST(req);
 			const data = await response.json();
 
-			expect(response.status).toBe(400);
-			expect(data.success).toBe(false);
-			expect(data.error).toContain("Service error");
+			expect(response.status).toBe(500);
+			expect(data.code).toBe(500);
+			expect(data.message).toContain("Service error");
 		});
 
 		it("should catch adapter errors", async () => {
@@ -356,8 +356,8 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const response = await POST(req);
 			const data = await response.json();
 
-			expect(response.status).toBe(400);
-			expect(data.success).toBe(false);
+			expect(response.status).toBe(500);
+			expect(data.code).toBe(500);
 		});
 
 		it("should return generic error message for unknown errors", async () => {
@@ -370,9 +370,9 @@ describe("POST /api/webhooks/pr/comments", () => {
 			const response = await POST(req);
 			const data = await response.json();
 
-			expect(response.status).toBe(400);
-			expect(data.success).toBe(false);
-			expect(data.error).toContain("Unexpected error while processing PR comment webhook");
+			expect(response.status).toBe(500);
+			expect(data.code).toBe(500);
+			expect(data.message).toContain("An unexpected error occurred");
 		});
 	});
 
