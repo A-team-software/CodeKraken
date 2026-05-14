@@ -28,6 +28,7 @@ describe('BitbucketRepositoryFinder', () => {
 
 		const results = await finder.search('repo');
 
+		expect(invoke).toHaveBeenCalledWith('searchBitbucketRepositories', { query: 'repo' });
 		expect(results.length).toBe(1);
 		expect(results[0].source).toBe('bitbucket');
 	});

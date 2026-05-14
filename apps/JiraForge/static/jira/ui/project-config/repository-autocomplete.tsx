@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { RepositoryResult } from './repository-finder';
 import { MockRepositoryFinder } from './mock-repository-finder';
+import { RemoteRepositoryFinder } from './remote-repository-finder';
 import { SourceAvatar } from './source-avatar';
 
-const finder = new MockRepositoryFinder();
+const useMockFinder = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_REPOSITORIES === '1';
+const finder = useMockFinder ? new MockRepositoryFinder() : new RemoteRepositoryFinder();
 
 type Props = {
 	onSelect: (repo: RepositoryResult) => void;
@@ -17,6 +19,7 @@ export function RepositoryAutocomplete({ onSelect, excludedUrls = [] }: Props) {
 	const [isLoading, setIsLoading] = useState(false);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const requestSeqRef = useRef(0);
 
 	const handleChange = (value: string) => {
 		setQuery(value);
@@ -29,8 +32,12 @@ export function RepositoryAutocomplete({ onSelect, excludedUrls = [] }: Props) {
 		}
 
 		setIsLoading(true);
+		const requestId = ++requestSeqRef.current;
 		debounceRef.current = setTimeout(async () => {
 			const found = await finder.search(value);
+			if (requestId !== requestSeqRef.current) {
+				return;
+			}
 			const filtered = found.filter((repo) => !excludedUrls.includes(repo.url));
 			setResults(filtered);
 			setIsOpen(true);
@@ -52,6 +59,8 @@ export function RepositoryAutocomplete({ onSelect, excludedUrls = [] }: Props) {
 	return (
 		<div ref={containerRef} style={{ position: 'relative', flex: 1 }}>
 			<input
+				id="project-repository-search"
+				aria-label="Add repository"
 				type="text"
 				placeholder="Search repositories across GitHub, GitLab and Bitbucket…"
 				value={query}
@@ -98,7 +107,8 @@ export function RepositoryAutocomplete({ onSelect, excludedUrls = [] }: Props) {
 						results.map((repo) => (
 							<button
 								key={repo.id}
-								onMouseDown={() => handleSelect(repo)}
+								onMouseDown={(e) => e.preventDefault()}
+								onClick={() => handleSelect(repo)}
 								style={{
 									display: 'flex',
 									alignItems: 'center',

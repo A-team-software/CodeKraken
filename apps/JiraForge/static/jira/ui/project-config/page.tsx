@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
@@ -6,6 +6,7 @@ import Flag, { FlagGroup } from '@atlaskit/flag';
 import ErrorIcon from '@atlaskit/icon/glyph/error';
 import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
 import InfoIcon from '@atlaskit/icon/glyph/info';
+import '@atlaskit/css-reset';
 import { useProjectDetails } from '../shared/useProjectDetails';
 import { useResolvedContext } from '../shared/useResolvedContext';
 import { RepositoryResult } from './repository-finder';
@@ -152,45 +153,61 @@ export function ProjectConfigPage() {
 		});
 	};
 
-	const isMockRepository = (url: string): boolean => {
-		return url.includes('acme-corp') || url.includes('acme-group') || url.includes('acme-workspace');
-	};
+	useEffect(() => {
+		let isMounted = true;
+
+		async function loadBaselineRepositories() {
+			if (!cloudId) {
+				return;
+			}
+
+			try {
+				const loaded = (await invoke('getProjectRepositories')) as Repository[];
+				if (!isMounted || !Array.isArray(loaded)) {
+					return;
+				}
+
+				const normalized = loaded
+					.filter((repo) => repo?.url && repo?.name && repo?.id)
+					.map((repo) => ({ ...repo, selected: repo.selected !== false }));
+
+				setRepositories(normalized);
+				setBaselineRepositories(normalized);
+				setCurrentPage(1);
+			} catch (e: any) {
+				if (!isMounted) {
+					return;
+				}
+				addFlag('Load Failed', e?.message || 'Failed to load existing repository configuration.', 'error');
+			}
+		}
+
+		loadBaselineRepositories();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [cloudId, addFlag]);
 
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
 			if (!projectKey) throw new Error('Project key not found in context.');
-
-			// Filter out mock repositories
-			const realRepositories = repositories.filter((r) => !isMockRepository(r.url));
-			const realBaseline = baselineRepositories.filter((r) => !isMockRepository(r.url));
-
-			if (realRepositories.filter((r) => r.selected).length === 0) {
-				throw new Error('Please select at least one real repository (mock repositories cannot be saved).');
-			}
+			if (!cloudId) throw new Error('Cloud ID is missing from Forge context.');
 
 			// Calculate added and removed repos
-			const currentSelectedUrls = new Set(realRepositories.filter((r) => r.selected).map((r) => r.url));
-			const baselineSelectedUrls = new Set(realBaseline.filter((r) => r.selected).map((r) => r.url));
+			const currentSelectedByUrl = new Map(repositories.filter((r) => r.selected).map((r) => [r.url, r]));
+			const baselineSelectedByUrl = new Map(baselineRepositories.filter((r) => r.selected).map((r) => [r.url, r]));
 
-			const added = Array.from(currentSelectedUrls).filter((url) => !baselineSelectedUrls.has(url));
-			const removed = Array.from(baselineSelectedUrls).filter((url) => !currentSelectedUrls.has(url));
+			const added = Array.from(currentSelectedByUrl.entries())
+				.filter(([url]) => !baselineSelectedByUrl.has(url))
+				.map(([, repo]) => repo);
+			const removed = Array.from(baselineSelectedByUrl.entries())
+				.filter(([url]) => !currentSelectedByUrl.has(url))
+				.map(([, repo]) => repo);
 
-			// Build payload
-			const payload = {
-				selectedRepos: {
-					projectId: projectKey,
-					added,
-					removed,
-				},
-			};
-
-			// Get tenantId (use Jira's cloudId)
-			const tenantId = cloudId || projectKey || 'default';
-			const endpoint = `/api/tenants/${tenantId}/config?platform=jira`;
-
-			await invoke('saveProjectRepositories', { endpoint, payload });
-			setBaselineRepositories(realRepositories);
+			await invoke('saveProjectRepositories', { added, removed, projectKey });
+			setBaselineRepositories(repositories);
 			addFlag(
 				'Configuration Saved',
 				`Successfully saved configuration with ${added.length} added and ${removed.length} removed repository(ies).`,
@@ -288,7 +305,7 @@ export function ProjectConfigPage() {
 				)}
 
 				<Box xcss={sectionStyles}>
-					<Box as="label" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+					<Box as="label" htmlFor="project-repository-search" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
 						Add Repository
 					</Box>
 				<RepositoryAutocomplete onSelect={handleAddRepository} excludedUrls={repositories.map((r) => r.url)} />
@@ -312,7 +329,7 @@ export function ProjectConfigPage() {
 					<Button
 						appearance="primary"
 						onClick={handleSave}
-						isDisabled={isSaving || isContextLoading || repositories.length === 0 || selectedCount === 0}
+						isDisabled={isSaving || isContextLoading || !hasActiveChanges}
 					>
 						{isSaving ? 'Saving...' : 'Save Configuration'}
 					</Button>

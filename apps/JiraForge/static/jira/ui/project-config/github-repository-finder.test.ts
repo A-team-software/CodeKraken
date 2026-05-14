@@ -28,6 +28,7 @@ describe('GitHubRepositoryFinder', () => {
 
 		const results = await finder.search('repo');
 
+		expect(invoke).toHaveBeenCalledWith('searchGitHubRepositories', { query: 'repo' });
 		expect(results.length).toBe(1);
 		expect(results[0].source).toBe('github');
 	});

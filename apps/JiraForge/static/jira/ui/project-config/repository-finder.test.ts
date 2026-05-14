@@ -92,8 +92,11 @@ describe('RemoteRepositoryFinder', () => {
 	});
 
 	it('should handle search errors gracefully', async () => {
-		// RemoteRepositoryFinder should handle errors from underlying finders
+		vi.spyOn((finder as any).githubFinder, 'search').mockRejectedValue(new Error('boom'));
+		vi.spyOn((finder as any).gitlabFinder, 'search').mockResolvedValue([]);
+		vi.spyOn((finder as any).bitbucketFinder, 'search').mockResolvedValue([]);
+
 		const results = await finder.search('test');
-		expect(Array.isArray(results)).toBe(true);
+		expect(results).toEqual([]);
 	});
 });

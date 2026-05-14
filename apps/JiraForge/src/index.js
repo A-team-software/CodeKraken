@@ -31,10 +31,13 @@ function getApiSecret() {
 resolver.define('getGitAuthUrl', async ({ payload, context }) => {
   const provider = payload?.provider;
   if (!provider) throw new Error('Provider is required');
+  const accountId = context?.accountId;
+  const cloudId = context?.cloudId;
+  if (!accountId || !cloudId) throw new Error('Missing accountId or cloudId');
   
   return await backendFetch('/api/forge/git/auth-url', {
     method: 'POST',
-    body: { provider },
+    body: { provider, accountId, cloudId },
     context
   });
 });
@@ -64,10 +67,13 @@ resolver.define('getGitStatus', async ({ payload, context }) => {
 resolver.define('disconnect', async ({ payload, context }) => {
   const provider = payload?.provider;
   if (!provider) throw new Error('Provider is required');
+  const accountId = context?.accountId;
+  const cloudId = context?.cloudId;
+  if (!accountId || !cloudId) throw new Error('Missing accountId or cloudId');
   
   return await backendFetch('/api/forge/git/disconnect', {
     method: 'POST',
-    body: { provider },
+    body: { provider, accountId, cloudId },
     context
   });
 });
@@ -139,6 +145,67 @@ resolver.define('getRepositories', async ({ payload, context }) => {
     `/api/git/${provider}/repositories?${qs.toString()}`,
     { context }
   );
+});
+
+function normalizeRepoName(repo) {
+  return repo?.fullName || repo?.name || '';
+}
+
+function normalizeRepoUrl(repo, provider) {
+  return repo?.htmlUrl || repo?.url || repo?.cloneUrl || repo?.links?.html?.href || '';
+}
+
+function filterByQuery(repositories, query) {
+  const normalizedQuery = String(query || '').trim().toLowerCase();
+  if (!normalizedQuery) return repositories;
+  return repositories.filter((repo) => {
+    const name = normalizeRepoName(repo).toLowerCase();
+    const url = normalizeRepoUrl(repo).toLowerCase();
+    return name.includes(normalizedQuery) || url.includes(normalizedQuery);
+  });
+}
+
+resolver.define('searchGitHubRepositories', async ({ payload, context }) => {
+  const query = payload?.query;
+  if (!query || !String(query).trim()) return [];
+
+  const response = await backendFetch('/api/git/github/repositories?page=1&perPage=100', { context });
+  const repositories = Array.isArray(response) ? response : (response?.repositories || []);
+  return filterByQuery(repositories, query).slice(0, 20).map((repo) => {
+    const fullName = normalizeRepoName(repo);
+    const [owner, name] = String(fullName).split('/');
+    return {
+      id: String(repo?.id || fullName || `gh-${name || 'repo'}`),
+      name: name || repo?.name || fullName,
+      owner: owner || repo?.owner || undefined,
+      url: normalizeRepoUrl(repo, 'github'),
+    };
+  });
+});
+
+resolver.define('searchBitbucketRepositories', async ({ payload, context }) => {
+  const query = payload?.query;
+  if (!query || !String(query).trim()) return [];
+
+  const response = await backendFetch('/api/git/bitbucket/repositories?page=1&perPage=100', { context });
+  const repositories = Array.isArray(response) ? response : (response?.repositories || []);
+  return filterByQuery(repositories, query).slice(0, 20).map((repo) => {
+    const fullName = normalizeRepoName(repo);
+    const [workspace, name] = String(fullName).split('/');
+    return {
+      id: String(repo?.id || fullName || `bb-${name || 'repo'}`),
+      name: name || repo?.name || fullName,
+      workspace: workspace || repo?.workspace || undefined,
+      url: normalizeRepoUrl(repo, 'bitbucket'),
+    };
+  });
+});
+
+resolver.define('searchGitlabRepositories', async ({ payload }) => {
+  const query = payload?.query;
+  if (!query || !String(query).trim()) return [];
+  // GitLab is not wired in the backend yet; expose a stable no-op resolver for the UI.
+  return [];
 });
 
 resolver.define('solveTask', async ({ payload, context }) => {
@@ -224,18 +291,80 @@ resolver.define('getProjectDetails', async ({ payload }) => {
   }
 });
 
-resolver.define('saveProjectRepositories', async ({ payload, context }) => {
-  const endpoint = payload?.endpoint;
-  const savePayload = payload?.payload;
+function sourceToProvider(source) {
+  if (source === 'github') return 'GITHUB';
+  if (source === 'bitbucket') return 'BITBUCKET';
+  return null;
+}
 
-  if (!endpoint) throw new Error('Endpoint is required');
-  if (!savePayload) throw new Error('Payload is required');
+function parseRepoId(repo) {
+  if (repo?.repoId) return String(repo.repoId);
+  if (repo?.id) return String(repo.id);
+  const url = String(repo?.url || '');
+  if (!url) return '';
+  const parts = url.replace(/\/+$/, '').split('/');
+  if (parts.length < 2) return '';
+  return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+}
 
-  return await backendFetch(endpoint, {
-    method: 'POST',
-    body: savePayload,
-    context
+resolver.define('getProjectRepositories', async ({ context }) => {
+  const cloudId = context?.cloudId;
+  if (!cloudId) throw new Error('Missing cloudId');
+
+  const response = await backendFetch(`/api/sites/${encodeURIComponent(cloudId)}/repositories`, { context });
+  const repos = response?.repos || [];
+  return repos.map((repo) => {
+    const provider = String(repo?.provider || '').toLowerCase();
+    const source = provider === 'github' ? 'github' : provider === 'bitbucket' ? 'bitbucket' : 'github';
+    return {
+      id: parseRepoId(repo),
+      name: repo?.repoFullName || parseRepoId(repo),
+      url: repo?.htmlUrl || '',
+      source,
+      selected: true,
+    };
   });
+});
+
+resolver.define('saveProjectRepositories', async ({ payload, context }) => {
+  const cloudId = context?.cloudId;
+  if (!cloudId) throw new Error('Missing cloudId');
+
+  const added = Array.isArray(payload?.added) ? payload.added : [];
+  const removed = Array.isArray(payload?.removed) ? payload.removed : [];
+
+  const results = { added: 0, removed: 0 };
+
+  for (const repo of added) {
+    const provider = sourceToProvider(repo?.source);
+    if (!provider) continue;
+    const repoId = parseRepoId(repo);
+    const repoFullName = repo?.name || repoId;
+    const htmlUrl = repo?.url;
+    if (!repoId || !repoFullName || !htmlUrl) continue;
+
+    await backendFetch(`/api/sites/${encodeURIComponent(cloudId)}/repositories`, {
+      method: 'POST',
+      body: { repoId, repoFullName, provider, htmlUrl },
+      context,
+    });
+    results.added += 1;
+  }
+
+  for (const repo of removed) {
+    const provider = sourceToProvider(repo?.source);
+    if (!provider) continue;
+    const repoId = parseRepoId(repo);
+    if (!repoId) continue;
+
+    await backendFetch(
+      `/api/sites/${encodeURIComponent(cloudId)}/repositories/${encodeURIComponent(provider)}/${encodeURIComponent(repoId)}`,
+      { method: 'DELETE', context }
+    );
+    results.removed += 1;
+  }
+
+  return results;
 });
 
 export const handler = resolver.getDefinitions();

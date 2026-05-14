@@ -28,6 +28,7 @@ describe('GitlabRepositoryFinder', () => {
 
 		const results = await finder.search('project');
 
+		expect(invoke).toHaveBeenCalledWith('searchGitlabRepositories', { query: 'project' });
 		expect(results.length).toBe(1);
 		expect(results[0].source).toBe('gitlab');
 	});
