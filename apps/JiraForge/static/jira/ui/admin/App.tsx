@@ -53,7 +53,7 @@ export default function App() {
   } = useSelector((state: RootState) => state.task);
 
   const {
-    incrementalPrsOn, error: configError, successMessage: configSuccess
+    incrementalPrsOn, loading: configLoading, error: configError, successMessage: configSuccess
   } = useSelector((state: RootState) => state.config);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
@@ -241,6 +241,7 @@ export default function App() {
                       <Toggle
                         id="incrementalToggle"
                         isChecked={incrementalPrsOn}
+                        isDisabled={configLoading}
                         onChange={(e: any) => dispatch(updateConfig(e.target.checked))}
                       />
                       <span style={{ marginLeft: '8px', fontSize: '14px' }}>

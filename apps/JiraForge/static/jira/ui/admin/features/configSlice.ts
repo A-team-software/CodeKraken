@@ -7,6 +7,7 @@ export interface ConfigState {
   loading: boolean;
   error: string | null;
   successMessage: string | null;
+  currentRequestId: string | null;
 }
 
 const initialState: ConfigState = {
@@ -14,6 +15,7 @@ const initialState: ConfigState = {
   loading: false,
   error: null,
   successMessage: null,
+  currentRequestId: null,
 };
 
 export const fetchConfig = createAsyncThunk('config/fetchConfig', async (_, { rejectWithValue }) => {
@@ -39,30 +41,40 @@ export const configSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchConfig.pending, (state) => {
+      .addCase(fetchConfig.pending, (state, action) => {
         state.loading = true;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(fetchConfig.fulfilled, (state, action) => {
-        state.loading = false;
-        state.incrementalPrsOn = action.payload;
+        if (state.currentRequestId === action.meta.requestId) {
+          state.loading = false;
+          state.incrementalPrsOn = action.payload;
+        }
       })
       .addCase(fetchConfig.rejected, (state, action) => {
-        state.loading = false;
-        state.error = `Failed to fetch config: ${action.payload}`;
+        if (state.currentRequestId === action.meta.requestId) {
+          state.loading = false;
+          state.error = `Failed to fetch config: ${action.payload}`;
+        }
       })
-      .addCase(updateConfig.pending, (state) => {
+      .addCase(updateConfig.pending, (state, action) => {
         state.loading = true;
         state.error = null;
         state.successMessage = null;
+        state.currentRequestId = action.meta.requestId;
       })
       .addCase(updateConfig.fulfilled, (state, action) => {
-        state.loading = false;
-        state.incrementalPrsOn = action.payload;
-        state.successMessage = 'Configuration saved successfully.';
+        if (state.currentRequestId === action.meta.requestId) {
+          state.loading = false;
+          state.incrementalPrsOn = action.payload;
+          state.successMessage = 'Configuration saved successfully.';
+        }
       })
       .addCase(updateConfig.rejected, (state, action) => {
-        state.loading = false;
-        state.error = `Failed to save config: ${action.payload}`;
+        if (state.currentRequestId === action.meta.requestId) {
+          state.loading = false;
+          state.error = `Failed to save config: ${action.payload}`;
+        }
       });
   },
 });
