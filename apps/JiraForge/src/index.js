@@ -204,19 +204,25 @@ resolver.define('solveTask', async ({ payload, context }) => {
   });
 });
 
-resolver.define('getConfig', async ({ context }) => {
-  return await backendFetch('/api/forge/config', { context });
-});
-
-resolver.define('setConfig', async ({ payload, context }) => {
-  const incrementalPrsOn = payload?.incrementalPrsOn;
-  if (typeof incrementalPrsOn !== 'boolean') {
-    throw new Error('incrementalPrsOn must be a boolean');
+resolver.define('startTaskDevelopment', async ({ payload, context }) => {
+  const issue = payload?.issue;
+  const repoUrl = payload?.repoUrl;
+  if (!issue?.id || !issue?.key || !issue?.fields?.summary) {
+    throw new Error('Missing issue details. Expected issue.id, issue.key, and issue.fields.summary.');
+  }
+  if (!repoUrl) {
+    throw new Error('Missing repoUrl for startTaskDevelopment');
   }
 
-  return await backendFetch('/api/forge/config', {
+  const webhookEvent = payload?.webhookEvent || 'jira:issue_created';
+
+  return await backendFetch('/api/task?provider=jira', {
     method: 'POST',
-    body: { incrementalPrsOn },
+    body: {
+      repoUrl,
+      webhookEvent,
+      issue,
+    },
     context
   });
 });
