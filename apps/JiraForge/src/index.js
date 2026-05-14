@@ -193,7 +193,7 @@ resolver.define('solveTask', async ({ payload, context }) => {
     throw new Error('Missing task or repoUrl');
   }
 
-  return await backendFetch('/api/solve', {
+  return await backendFetch("/api/solve", {
     method: 'POST',
     body: {
       task,
