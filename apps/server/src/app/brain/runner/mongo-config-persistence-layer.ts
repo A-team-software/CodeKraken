@@ -46,10 +46,16 @@ export class MongoConfigPersistenceLayer implements ConfigPersistenceLayer {
         }
 
         await collection.updateOne(
-            { _id: tenantId },
-            { 
+            {
+                $or: [
+                    { _id: tenantId },
+                    { tenantId },
+                    { clientKey: tenantId }
+                ]
+            },
+            {
                 $set: updateDoc,
-                $setOnInsert: { tenantId, clientKey: tenantId }
+                $setOnInsert: { _id: tenantId, tenantId, clientKey: tenantId }
             },
             { upsert: true }
         );
