@@ -7,6 +7,8 @@ import {
 import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-middleware";
 import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { NextRequest, NextResponse } from "next/server";
+import { ApiRes } from "@/utils/api_response";
+import { wrapRoute } from "@/utils/api_handler";
 
 function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapter {
 	switch (platform) {
@@ -38,36 +40,35 @@ function resolveWebhookSecret(platform: PullRequestPlatform): string {
 	}
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-	try {
-		const rawBody = await req.text();
-		const authResult = await authorizeWebhookRequest(
-			req,
-			rawBody,
-			req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
-		);
-		if (!authResult.authorized) {
-			return authResult.response;
-		}
-		const platform = authResult.platform;
-		const webhookSecret = resolveWebhookSecret(platform);
-		if (!webhookSecret) {
-			return NextResponse.json({ success: false, error: "Webhook secret is not configured." }, { status: 401 });
-		}
+export const POST = wrapRoute(async (req: NextRequest) => {
+    const rawBody = await req.text();
+    const authResult = await authorizeWebhookRequest(
+        req,
+        rawBody,
+        req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
+    );
+    if (!authResult.authorized) {
+        // authorizeWebhookRequest returns a raw NextResponse, which wrapRoute handles
+        return authResult.response;
+    }
+    const platform = authResult.platform;
+    const webhookSecret = resolveWebhookSecret(platform);
+    if (!webhookSecret) {
+        return ApiRes.unauthorized("Webhook secret is not configured.");
+    }
 
-		let payload: unknown;
-		try {
-			payload = JSON.parse(rawBody);
-		} catch {
-			return NextResponse.json({ success: false, error: "Invalid JSON payload." }, { status: 400 });
-		}
+    let payload: unknown;
+    try {
+        payload = JSON.parse(rawBody);
+    } catch {
+        return ApiRes.badRequest("Invalid JSON payload.");
+    }
 
-		const adapter = resolveAdapter(platform);
-		const adaptedPayload = adapter.adapt(payload);
+    const adapter = resolveAdapter(platform);
+    const adaptedPayload = adapter.adapt(payload);
 
-		return NextResponse.json({ success: true, platform, pr: adaptedPayload });
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unexpected error while processing PR updated webhook.";
-		return NextResponse.json({ success: false, error: message }, { status: 400 });
-	}
-}
+    return {
+        platform,
+        pr: adaptedPayload
+    };
+});

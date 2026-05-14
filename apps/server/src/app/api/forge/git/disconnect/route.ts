@@ -1,25 +1,25 @@
 import { validateForgeRequest } from '@oliver/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { SafeExecute } from '@oliver/core/src/errors';
+import { ApiRes } from '@/utils/api_response';
 
 export async function POST(req: NextRequest) {
     const { isValid, error } = validateForgeRequest(req);
-    if (!isValid) return NextResponse.json({ error: error }, { status: 401 });
+    if (!isValid) return ApiRes.unauthorized(error);
 
     const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
-    if (bodyError || !body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-    const accountId = body.accountId;
+    if (bodyError || !body) return ApiRes.badRequest('Invalid request body');
+    
+    const { accountId, provider } = body;
     const cloudId = body.cloudId || body.clientKey;
 
-    const provider = body.provider;
-
     if (!accountId || !cloudId) {
-        return NextResponse.json({ error: 'Missing accountId or cloudId' }, { status: 400 });
+        return ApiRes.badRequest('Missing accountId or cloudId');
     }
 
     try {
         const [auth, importAuthError] = await SafeExecute.withSync(async () => import('@oliver/auth')).execute();
-        if (importAuthError || !auth) return NextResponse.json({ error: importAuthError?.message || 'Failed to import auth module' }, { status: 500 });
+        if (importAuthError || !auth) return ApiRes.error(importAuthError?.message || 'Failed to import auth module');
         const { MongoOAuthTokenRepository } = auth;
 
         const tokenRepo = new MongoOAuthTokenRepository();
@@ -31,12 +31,12 @@ export async function POST(req: NextRequest) {
 
         if (invalidateError) {
             console.error('Forge git disconnect invalidation failed:', invalidateError);
-            return NextResponse.json({ success: false, error: invalidateError.message }, { status: 500 });
+            return ApiRes.error(invalidateError.message, 'INVALIDATION_FAILED');
         }
 
-        return NextResponse.json({ success: true, invalidated });
+        return ApiRes.success({ invalidated });
     } catch (e: any) {
         console.error('Forge github disconnect failed:', e);
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+        return ApiRes.error(e.message);
     }
 }

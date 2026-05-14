@@ -8,6 +8,8 @@ import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-mi
 import { ReviewPayloadAdapter } from "@/app/services/pr/review-payload-adapter";
 import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { NextRequest, NextResponse } from "next/server";
+import { ApiRes } from "@/utils/api_response";
+import { wrapRoute } from "@/utils/api_handler";
 
 function resolveAdapter(platform: PullRequestPlatform): ReviewPayloadAdapter {
 	switch (platform) {
@@ -24,34 +26,28 @@ function resolveAdapter(platform: PullRequestPlatform): ReviewPayloadAdapter {
 	}
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-	try {
-		const rawBody = await req.text();
-		const authResult = await authorizeWebhookRequest(req, rawBody, req.nextUrl.searchParams.get("platform"));
-		if (!authResult.authorized) {
-			return authResult.response;
-		}
-		const platform = authResult.platform;
+export const POST = wrapRoute(async (req: NextRequest) => {
+    const rawBody = await req.text();
+    const authResult = await authorizeWebhookRequest(req, rawBody, req.nextUrl.searchParams.get("platform"));
+    if (!authResult.authorized) {
+        return authResult.response;
+    }
+    const platform = authResult.platform;
 
-		let payload: unknown;
-		try {
-			payload = JSON.parse(rawBody);
-		} catch {
-			return NextResponse.json({ success: false, error: "Invalid JSON payload." }, { status: 400 });
-		}
+    let payload: unknown;
+    try {
+        payload = JSON.parse(rawBody);
+    } catch {
+        return ApiRes.badRequest("Invalid JSON payload.");
+    }
 
-		const adapter = resolveAdapter(platform);
-		const reviewPayload = adapter.adapt(payload);
-		const service = new PullRequestServiceImpl();
-		await service.onPullRequestReviewed(reviewPayload, platform);
+    const adapter = resolveAdapter(platform);
+    const reviewPayload = adapter.adapt(payload);
+    const service = new PullRequestServiceImpl();
+    await service.onPullRequestReviewed(reviewPayload, platform);
 
-		return NextResponse.json({
-			success: true,
-			platform,
-			review: reviewPayload,
-		});
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unexpected error while processing PR review webhook.";
-		return NextResponse.json({ success: false, error: message }, { status: 400 });
-	}
-}
+    return {
+        platform,
+        review: reviewPayload,
+    };
+});

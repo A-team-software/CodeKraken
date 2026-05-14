@@ -23,7 +23,7 @@ async function getEncryptionKey(): Promise<CryptoKey> {
 
     const imported = await globalThis.crypto.subtle.importKey(
         'raw',
-        keyData,
+        keyData as any,
         { name: ALGORITHM },
         false,
         ['encrypt', 'decrypt']
@@ -104,9 +104,9 @@ export async function encrypt(text: string): Promise<string> {
         const encoded = new TextEncoder().encode(text);
 
         const encryptedBuffer = await globalThis.crypto.subtle.encrypt(
-            { name: ALGORITHM, iv },
+            { name: ALGORITHM, iv: iv as any },
             key,
-            encoded
+            encoded as any
         );
 
         const encryptedData = new Uint8Array(encryptedBuffer);
@@ -150,9 +150,9 @@ export async function decrypt(encryptedText: string): Promise<string> {
         }
 
         const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
-            { name: ALGORITHM, iv },
+            { name: ALGORITHM, iv: iv as any },
             key,
-            data
+            data as any
         );
 
         return new TextDecoder().decode(decryptedBuffer);
