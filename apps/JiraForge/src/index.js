@@ -42,11 +42,17 @@ resolver.define('getGitAuthUrl', async ({ payload, context }) => {
 resolver.define('getGitStatus', async ({ payload, context }) => {
   const provider = payload?.provider;
   if (!provider) throw new Error('Provider is required');
+
+  const accountId = context?.accountId;
+  const cloudId = context?.cloudId;
+  if (!accountId || !cloudId) {
+    throw new Error('Missing accountId or cloudId');
+  }
   
   try {
     return await backendFetch('/api/forge/git/status', {
       method: 'POST',
-      body: { provider },
+      body: { provider, accountId, cloudId },
       context
     });
   } catch (error) {
