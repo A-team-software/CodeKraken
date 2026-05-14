@@ -7,10 +7,57 @@ import ErrorIcon from '@atlaskit/icon/glyph/error';
 import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
 import InfoIcon from '@atlaskit/icon/glyph/info';
 import { useProjectDetails } from '../shared/useProjectDetails';
+import { useResolvedContext } from '../shared/useResolvedContext';
 import { RepositoryResult } from './repository-finder';
 import { RepositoryAutocomplete } from './repository-autocomplete';
 import { RepositoryList, Repository, PAGE_SIZE } from './repository-list';
-import '@atlaskit/css-reset';
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────────────
+
+function Skeleton({ width = '100%', height = '16px', borderRadius = '4px', style }: {
+	width?: string; height?: string; borderRadius?: string; style?: React.CSSProperties;
+}) {
+	return (
+		<div style={{
+			width, height, borderRadius,
+			background: 'linear-gradient(90deg, #e9ebee 25%, #f4f5f7 50%, #e9ebee 75%)',
+			backgroundSize: '200% 100%',
+			animation: 'skeleton-shimmer 1.4s infinite',
+			...style,
+		}} />
+	);
+}
+
+function PageSkeleton() {
+	return (
+		<div style={{ padding: '16px', maxWidth: '600px' }}>
+			<style>{`@keyframes skeleton-shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
+			<Skeleton width="260px" height="22px" style={{ marginBottom: '24px' }} />
+			<div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+				<Skeleton width="20px" height="20px" borderRadius="3px" />
+				<Skeleton width="140px" height="16px" />
+			</div>
+			<Skeleton width="100px" height="14px" style={{ marginBottom: '8px' }} />
+			<Skeleton width="100%" height="36px" borderRadius="3px" style={{ marginBottom: '24px' }} />
+			<Skeleton width="160px" height="14px" style={{ marginBottom: '12px' }} />
+			{[1, 2, 3].map((i) => (
+				<div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+					<Skeleton width="16px" height="16px" borderRadius="3px" />
+					<Skeleton width="24px" height="24px" borderRadius="50%" />
+					<div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+						<Skeleton width="45%" height="14px" />
+						<Skeleton width="65%" height="12px" />
+					</div>
+					<Skeleton width="60px" height="28px" borderRadius="3px" />
+				</div>
+			))}
+			<div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>
+				<Skeleton width="140px" height="32px" borderRadius="3px" />
+				<Skeleton width="80px" height="32px" borderRadius="3px" />
+			</div>
+		</div>
+	);
+}
 
 // ─── Styles ───────────────────────────────────────────────────────────────────────────
 
@@ -55,11 +102,14 @@ type AppFlag = {
 
 export function ProjectConfigPage() {
 	const { project, isLoading: isContextLoading, error: contextError } = useProjectDetails();
+	const { context } = useResolvedContext();
 	const [repositories, setRepositories] = useState<Repository[]>([]);
 	const [baselineRepositories, setBaselineRepositories] = useState<Repository[]>([]);
 	const [isSaving, setIsSaving] = useState(false);
 	const [flags, setFlags] = useState<AppFlag[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
+
+	const cloudId = context?.cloudId || null;
 
 	const projectKey = project.key;
 	const projectName = project.name;
@@ -102,17 +152,50 @@ export function ProjectConfigPage() {
 		});
 	};
 
+	const isMockRepository = (url: string): boolean => {
+		return url.includes('acme-corp') || url.includes('acme-group') || url.includes('acme-workspace');
+	};
+
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
 			if (!projectKey) throw new Error('Project key not found in context.');
 
-			const selectedRepos = repositories.filter((r) => r.selected).map((r) => r.url);
-			if (selectedRepos.length === 0) throw new Error('Please select at least one repository.');
+			// Filter out mock repositories
+			const realRepositories = repositories.filter((r) => !isMockRepository(r.url));
+			const realBaseline = baselineRepositories.filter((r) => !isMockRepository(r.url));
 
-			await invoke('saveProjectRepositories', { projectKey, repositories: selectedRepos });
-			setBaselineRepositories(repositories);
-			addFlag('Configuration Saved', `Successfully saved ${selectedRepos.length} repository(ies) for project ${projectKey}.`, 'success');
+			if (realRepositories.filter((r) => r.selected).length === 0) {
+				throw new Error('Please select at least one real repository (mock repositories cannot be saved).');
+			}
+
+			// Calculate added and removed repos
+			const currentSelectedUrls = new Set(realRepositories.filter((r) => r.selected).map((r) => r.url));
+			const baselineSelectedUrls = new Set(realBaseline.filter((r) => r.selected).map((r) => r.url));
+
+			const added = Array.from(currentSelectedUrls).filter((url) => !baselineSelectedUrls.has(url));
+			const removed = Array.from(baselineSelectedUrls).filter((url) => !currentSelectedUrls.has(url));
+
+			// Build payload
+			const payload = {
+				selectedRepos: {
+					projectId: projectKey,
+					added,
+					removed,
+				},
+			};
+
+			// Get tenantId (use Jira's cloudId)
+			const tenantId = cloudId || projectKey || 'default';
+			const endpoint = `/tenants/${tenantId}/config?platform=jira`;
+
+			await invoke('saveProjectRepositories', { endpoint, payload });
+			setBaselineRepositories(realRepositories);
+			addFlag(
+				'Configuration Saved',
+				`Successfully saved configuration with ${added.length} added and ${removed.length} removed repository(ies).`,
+				'success'
+			);
 		} catch (e: any) {
 			addFlag('Save Failed', e?.message || 'Failed to save repositories.', 'error');
 		} finally {
@@ -127,10 +210,15 @@ export function ProjectConfigPage() {
 	const hasActiveChanges = serializeRepositories(repositories) !== serializeRepositories(baselineRepositories);
 	const totalPages = Math.max(1, Math.ceil(repositories.length / PAGE_SIZE));
 
+	if (isContextLoading) {
+		return <PageSkeleton />;
+	}
+
 	return (
-		<Box xcss={containerStyles}>
-			<FlagGroup onDismissed={removeFlag}>
-				{flags.map((flag) => (
+		<>
+			<div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
+				<FlagGroup onDismissed={removeFlag}>
+					{flags.map((flag) => (
 					<Flag
 						key={flag.id}
 						id={flag.id}
@@ -146,98 +234,93 @@ export function ProjectConfigPage() {
 						title={flag.title}
 						description={flag.description}
 					/>
-				))}
-			</FlagGroup>
+					))}
+				</FlagGroup>
+			</div>
 
-			<Box xcss={headingStyles}>Project Repository Configuration</Box>
+			<Box xcss={containerStyles}>
+				<Box xcss={headingStyles}>Project Repository Configuration</Box>
 
-			{isContextLoading && (
-				<Flag
-					id="loading-flag"
-					icon={<InfoIcon label="Loading" primaryColor="blue" />}
-					title="Loading project context..."
-				/>
-			)}
-
-			{contextError && (
-				<Flag
-					id="context-error-flag"
-					icon={<ErrorIcon label="Error" primaryColor="red" />}
-					title="Failed to load project context"
-					description={contextError}
-				/>
-			)}
-
-			{projectName && (
-				<Box xcss={sectionStyles}>
-					<Flex alignItems="center" gap="space.100">
-						{projectIconUrl ? (
-							<img
-								src={projectIconUrl}
-								alt={String(projectName)}
-								width={20}
-								height={20}
-								style={{ borderRadius: '3px', objectFit: 'cover' }}
-							/>
-						) : (
-							<Box
-								as="span"
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									width: '20px',
-									height: '20px',
-									borderRadius: '3px',
-									background: '#1d7afc',
-									color: '#ffffff',
-									fontSize: '12px',
-									fontWeight: 600,
-								}}
-							>
-								{String(projectName).charAt(0).toUpperCase()}
-							</Box>
-						)}
-						<Box as="p">
-							<strong>{projectName}</strong>
-						</Box>
-					</Flex>
-				</Box>
-			)}
-
-			<Box xcss={sectionStyles}>
-				<Box as="label" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
-					Add Repository
-				</Box>
-				<RepositoryAutocomplete onSelect={handleAddRepository} />
-			</Box>
-
-			<Box xcss={sectionStyles}>
-				<Box as="label">Selected Repositories ({selectedCount})</Box>
-				<Box xcss={repositoriesListStyles}>
-					<RepositoryList
-						repositories={repositories}
-						currentPage={currentPage}
-						totalPages={totalPages}
-						onPageChange={setCurrentPage}
-						onToggle={handleToggleRepository}
-						onRemove={handleRemoveRepository}
+				{contextError && (
+					<Flag
+						id="context-error-flag"
+						icon={<ErrorIcon label="Error" primaryColor="red" />}
+						title="Failed to load project context"
+						description={contextError}
 					/>
-				</Box>
-			</Box>
+				)}
 
-			<Flex xcss={buttonGroupStyles}>
-				<Button
-					appearance="primary"
-					onClick={handleSave}
-					isDisabled={isSaving || isContextLoading || repositories.length === 0 || selectedCount === 0}
-				>
-					{isSaving ? 'Saving...' : 'Save Configuration'}
-				</Button>
-				<Button appearance="default" onClick={() => window.history.back()} isDisabled={!hasActiveChanges}>
-					Cancel
-				</Button>
-			</Flex>
-		</Box>
+				{projectName && (
+					<Box xcss={sectionStyles}>
+						<Flex alignItems="center" gap="space.100">
+							{projectIconUrl ? (
+								<img
+									src={projectIconUrl}
+									alt={String(projectName)}
+									width={20}
+									height={20}
+									style={{ borderRadius: '3px', objectFit: 'cover' }}
+								/>
+							) : (
+								<Box
+									as="span"
+									style={{
+										display: 'inline-flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										width: '20px',
+										height: '20px',
+										borderRadius: '3px',
+										background: '#1d7afc',
+										color: '#ffffff',
+										fontSize: '12px',
+										fontWeight: 600,
+									}}
+								>
+									{String(projectName).charAt(0).toUpperCase()}
+								</Box>
+							)}
+							<Box as="p">
+								<strong>{projectName}</strong>
+							</Box>
+						</Flex>
+					</Box>
+				)}
+
+				<Box xcss={sectionStyles}>
+					<Box as="label" style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+						Add Repository
+					</Box>
+				<RepositoryAutocomplete onSelect={handleAddRepository} excludedUrls={repositories.map((r) => r.url)} />
+				</Box>
+
+				<Box xcss={sectionStyles}>
+					<Box as="label">Selected Repositories ({selectedCount})</Box>
+					<Box xcss={repositoriesListStyles}>
+						<RepositoryList
+							repositories={repositories}
+							currentPage={currentPage}
+							totalPages={totalPages}
+							onPageChange={setCurrentPage}
+							onToggle={handleToggleRepository}
+							onRemove={handleRemoveRepository}
+						/>
+					</Box>
+				</Box>
+
+				<Flex xcss={buttonGroupStyles}>
+					<Button
+						appearance="primary"
+						onClick={handleSave}
+						isDisabled={isSaving || isContextLoading || repositories.length === 0 || selectedCount === 0}
+					>
+						{isSaving ? 'Saving...' : 'Save Configuration'}
+					</Button>
+					<Button appearance="default" onClick={() => { setRepositories(baselineRepositories); setCurrentPage(1); }} isDisabled={!hasActiveChanges}>
+						Cancel
+					</Button>
+				</Flex>
+			</Box>
+		</>
 	);
 }

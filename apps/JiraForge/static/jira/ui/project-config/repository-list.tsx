@@ -43,8 +43,8 @@ function RepositoryRow({ repo, onToggle, onRemove }: RepositoryRowProps) {
 				position: 'relative',
 				borderBottom: '1px solid var(--ds-border-subtle, #f0f0f0)',
 				borderRadius: '3px',
-				background: hovered ? 'var(--ds-background-neutral-subtle-hovered, #f4f5f7)' : 'transparent',
-				transition: 'background 0.1s ease',
+				background: hovered ? '#f4f5f7' : 'transparent',
+				transition: 'background 120ms ease',
 			}}
 		>
 			<div
@@ -122,7 +122,7 @@ function RepositoryRow({ repo, onToggle, onRemove }: RepositoryRowProps) {
 					<div
 						style={{
 							position: 'absolute',
-							top: '100%',
+							top: 'calc(100% + 8px)',
 							right: 0,
 							background: 'var(--ds-surface-overlay, #fff)',
 							border: '1px solid var(--ds-border, #ddd)',
@@ -136,6 +136,27 @@ function RepositoryRow({ repo, onToggle, onRemove }: RepositoryRowProps) {
 							gap: '10px',
 						}}
 					>
+						{/* Arrow pointing up toward the Delete button */}
+						<div style={{
+							position: 'absolute',
+							top: '-7px',
+							right: '18px',
+							width: 0,
+							height: 0,
+							borderLeft: '7px solid transparent',
+							borderRight: '7px solid transparent',
+							borderBottom: '7px solid var(--ds-border, #ddd)',
+						}} />
+						<div style={{
+							position: 'absolute',
+							top: '-6px',
+							right: '18px',
+							width: 0,
+							height: 0,
+							borderLeft: '7px solid transparent',
+							borderRight: '7px solid transparent',
+							borderBottom: '7px solid var(--ds-surface-overlay, #fff)',
+						}} />
 						<p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--ds-text, #172b4d)' }}>
 							Remove repository?
 						</p>

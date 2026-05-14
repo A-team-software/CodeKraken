@@ -6,9 +6,10 @@ const finder = new MockRepositoryFinder();
 
 type Props = {
 	onSelect: (repo: RepositoryResult) => void;
+	excludedUrls?: string[];
 };
 
-export function RepositoryAutocomplete({ onSelect }: Props) {
+export function RepositoryAutocomplete({ onSelect, excludedUrls = [] }: Props) {
 	const [query, setQuery] = useState('');
 	const [results, setResults] = useState<RepositoryResult[]>([]);
 	const [isOpen, setIsOpen] = useState(false);
@@ -29,7 +30,8 @@ export function RepositoryAutocomplete({ onSelect }: Props) {
 		setIsLoading(true);
 		debounceRef.current = setTimeout(async () => {
 			const found = await finder.search(value);
-			setResults(found);
+			const filtered = found.filter((repo) => !excludedUrls.includes(repo.url));
+			setResults(filtered);
 			setIsOpen(true);
 			setIsLoading(false);
 		}, 200);

@@ -242,4 +242,18 @@ resolver.define('getProjectDetails', async ({ payload }) => {
   }
 });
 
+resolver.define('saveProjectRepositories', async ({ payload, context }) => {
+  const endpoint = payload?.endpoint;
+  const savePayload = payload?.payload;
+
+  if (!endpoint) throw new Error('Endpoint is required');
+  if (!savePayload) throw new Error('Payload is required');
+
+  return await backendFetch(endpoint, {
+    method: 'POST',
+    body: savePayload,
+    context
+  });
+});
+
 export const handler = resolver.getDefinitions();
