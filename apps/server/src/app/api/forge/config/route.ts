@@ -5,14 +5,13 @@ import { MongoConfigPersistenceLayer } from '@/app/brain/runner/mongo-config-per
 function isAuthorized(request: NextRequest): boolean {
     const authHeader = request.headers.get('authorization') ?? '';
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const expectedSecret = process.env.API_SECRET;
 
-    const expectedSecret =
-        process.env.API_SECRET ??
-        (process.env.FORGE_APP_ID?.includes('/')
-            ? process.env.FORGE_APP_ID.split('/').pop()
-            : undefined);
+    if (!expectedSecret) {
+        return false;
+    }
 
-    return !!expectedSecret && token === expectedSecret;
+    return token === expectedSecret;
 }
 
 export async function GET(request: NextRequest) {
