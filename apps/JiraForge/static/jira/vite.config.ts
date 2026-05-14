@@ -114,7 +114,19 @@ function directoryHasFiles(dirPath: string): boolean {
 }
 
 function rewriteLocalImports(jsFilePath: string) {
-  const original = fs.readFileSync(jsFilePath, 'utf8');
+  if (!fs.existsSync(jsFilePath)) {
+    return;
+  }
+
+  let original: string;
+  try {
+    original = fs.readFileSync(jsFilePath, 'utf8');
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
   const [imports] = parse(original);
 
   let updated = '';
