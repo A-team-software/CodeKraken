@@ -6,7 +6,9 @@
     "@atlaskit/button": "^23.11.4",
     "@atlaskit/css": "^0.19.4",
     "@atlaskit/css-reset": "^6.16.0",
+    "@atlaskit/flag": "^16.2.0",
     "@atlaskit/heading": "^5.4.2",
+    "@atlaskit/icon": "^22.11.0",
     "@atlaskit/lozenge": "^13.8.1",
     "@atlaskit/primitives": "^18.1.4",
     "@atlaskit/section-message": "^8.12.14",
@@ -14,6 +16,7 @@
     "@atlaskit/spinner": "^19.1.2",
     "@atlaskit/textarea": "^8.3.0",
     "@atlaskit/textfield": "^8.3.2",
+    "@atlaskit/toggle": "^15.6.1",
     "@atlaskit/tokens": "^13.0.4",
     "@compiled/react": "^0.21.1",
     "@forge/bridge": "5.13.0",
@@ -32,6 +35,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "concurrently": "^9.1.2",
     "es-module-lexer": "^1.7.0",
+    "jsdom": "^29.1.1",
     "typescript": "^5.9.3",
     "vite": "^8.0.0",
     "vite-plugin-static-copy": "^3.1.4",
@@ -41,6 +45,7 @@
     "build": "vite build",
     "build:watch": "vite build --watch",
     "type-check:ui": "tsc --noEmit -p ./ui/tsconfig.json",
-    "serve": "SERVE_MODE=1 vite serve"
+    "serve": "SERVE_MODE=1 vite serve",
+    "test": "vitest run"
   }
 }

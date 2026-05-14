@@ -114,7 +114,19 @@ function directoryHasFiles(dirPath: string): boolean {
 }
 
 function rewriteLocalImports(jsFilePath: string) {
-  const original = fs.readFileSync(jsFilePath, 'utf8');
+  if (!fs.existsSync(jsFilePath)) {
+    return;
+  }
+
+  let original: string;
+  try {
+    original = fs.readFileSync(jsFilePath, 'utf8');
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
   const [imports] = parse(original);
 
   let updated = '';
@@ -244,7 +256,17 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
           throw new Error(`Missing entry script for ${entryName}`);
         }
 
-        const cssFiles = localFiles.filter((fileName) => fileName.endsWith('.css')).sort();
+        // Non-admin surfaces should not inherit admin stylesheet/font bundle links.
+        const cssFiles =
+          entryName === 'admin'
+            ? localFiles.filter((fileName) => fileName.endsWith('.css')).sort()
+            : localFiles
+                .filter(
+                  (fileName) =>
+                    fileName.endsWith('.css') &&
+                    fileName.startsWith(`${entryName.split('/').join('-')}-`)
+                )
+                .sort();
         const html = buildHtml(entryScript, cssFiles, isDevMode);
         fs.writeFileSync(path.join(entryDir, 'index.html'), html, 'utf8');
       }

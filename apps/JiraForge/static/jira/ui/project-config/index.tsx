@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { IssuePanelPage } from './page';
+import { ProjectConfigPage } from './page';
 
 const container = document.getElementById('root');
 
@@ -10,6 +10,6 @@ if (!container) {
 
 createRoot(container).render(
 	<React.StrictMode>
-		<IssuePanelPage />
+		<ProjectConfigPage />
 	</React.StrictMode>
 );

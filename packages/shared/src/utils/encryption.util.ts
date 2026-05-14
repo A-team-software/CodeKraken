@@ -13,13 +13,19 @@ const CIPHER_VERSION = 'v1';
 
 let cachedKey: CryptoKey | null = null;
 
+function toArrayBuffer(input: Uint8Array): ArrayBuffer {
+    const copy = new Uint8Array(input.byteLength);
+    copy.set(input);
+    return copy.buffer;
+}
+
 async function getEncryptionKey(): Promise<CryptoKey> {
     if (cachedKey) return cachedKey;
 
     const keyStr = process.env.ENCRYPTION_KEY;
     if (!keyStr) throw new Error('ENCRYPTION_KEY environment variable is not set');
 
-    const keyData = parseKeyString(keyStr);
+    const keyData = toArrayBuffer(parseKeyString(keyStr));
 
     const imported = await globalThis.crypto.subtle.importKey(
         'raw',
@@ -101,10 +107,11 @@ export async function encrypt(text: string): Promise<string> {
     try {
         const key = await getEncryptionKey();
         const iv = globalThis.crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+        const ivBuffer = toArrayBuffer(iv);
         const encoded = new TextEncoder().encode(text);
 
         const encryptedBuffer = await globalThis.crypto.subtle.encrypt(
-            { name: ALGORITHM, iv: iv as any },
+            { name: ALGORITHM, iv: ivBuffer },
             key,
             encoded as any
         );
@@ -148,6 +155,9 @@ export async function decrypt(encryptedText: string): Promise<string> {
         } else {
             throw new Error('Invalid encrypted text format');
         }
+
+        const ivBuffer = toArrayBuffer(iv);
+        const dataBuffer = toArrayBuffer(data);
 
         const decryptedBuffer = await globalThis.crypto.subtle.decrypt(
             { name: ALGORITHM, iv: iv as any },

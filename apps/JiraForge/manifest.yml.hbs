@@ -7,12 +7,29 @@ modules:
       resource: admin-main-page
       resolver:
         function: resolver
+  jira:issuePanel:
+    - key: oliverai-issue-panel
+      title: OliverAI
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+      resource: issue-panel-page
+      resolver:
+        function: resolver
+  jira:projectSettingsPage:
+    - key: oliverai-project-settings
+      resource: project-config-page
+      resolver:
+        function: resolver
+      title: OliverAI Project Settings
   function:
     - key: resolver
       handler: index.handler
 resources:
   - key: admin-main-page
     path: dist/admin
+  - key: issue-panel-page
+    path: dist/issue-panel
+  - key: project-config-page
+    path: dist/project-config
 remotes:
   - key: oliver-server
     baseUrl: "{{SERVER_REMOTE_URL}}"
@@ -25,6 +42,11 @@ app:
 permissions:
   scopes:
     - storage:app
+    - read:project:jira
+    - read:avatar:jira
+  content:
+    styles:
+      - unsafe-inline
   external:
     fetch:
       backend:
