@@ -17,8 +17,8 @@ export const POST = wrapRoute({
         provider: z.string(),
         providerType: z.string()
     })
-}, async (request, ctx) => {
-    const { provider, providerType } = ctx.body;
+}, async (request, { body }) => {
+    const { provider, providerType } = body;
 
     // Use the AuthService facade to refresh if needed
     const [result, refreshError] = await SafeExecute.withSync(async () =>
