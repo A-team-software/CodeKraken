@@ -41,5 +41,5 @@ export const POST = wrapRoute({
     authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
   }
 
-  return { authUrl };
+  return ApiRes.success({ authUrl }, 200, { headers: { 'Content-Type': 'application/json' } });
 });
