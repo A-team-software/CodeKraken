@@ -1,4 +1,4 @@
-import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
+import { AuthService, GITHUB_CLIENT_ID } from '@oliver/auth';
 import { FORGE_GITHUB_CALLBACK_URL, FORGE_BITBUCKET_CALLBACK_URL, SafeExecute } from '@oliver/core';
 import { BitbucketService } from '@oliver/git';
 import { ApiRes } from '@/utils/api_response';

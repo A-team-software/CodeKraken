@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { GetWorkspacesUseCase } from '@oliver/git';
 import { Logger, SafeExecute } from '@oliver/core';
