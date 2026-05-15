@@ -67,7 +67,7 @@ export function wrapRoute(arg1: any, arg2?: any): any {
       if (options.paramsSchema) {
         const parsed = options.paramsSchema.safeParse(paramsData);
         if (!parsed.success) {
-          throw ApiError.badRequest('Invalid URL parameters', ApiErrorCode.VALIDATION_FAILED);
+          return ApiError.badRequest('Invalid URL parameters', ApiErrorCode.VALIDATION_FAILED);
         }
         paramsData = parsed.data;
       }
@@ -76,7 +76,7 @@ export function wrapRoute(arg1: any, arg2?: any): any {
         const searchParams = Object.fromEntries(req.nextUrl.searchParams.entries());
         const parsed = options.querySchema.safeParse(searchParams);
         if (!parsed.success) {
-          throw ApiError.badRequest('Invalid query parameters', ApiErrorCode.VALIDATION_FAILED);
+          return ApiError.badRequest('Invalid query parameters', ApiErrorCode.VALIDATION_FAILED);
         }
         queryData = parsed.data;
       }
@@ -86,12 +86,12 @@ export function wrapRoute(arg1: any, arg2?: any): any {
         try {
           rawBody = await req.json();
         } catch (err) {
-          throw ApiError.badRequest('Invalid JSON payload', ApiErrorCode.BAD_REQUEST);
+          return ApiError.badRequest('Invalid JSON payload', ApiErrorCode.BAD_REQUEST);
         }
-        
+
         const parsed = options.bodySchema.safeParse(rawBody);
         if (!parsed.success) {
-          throw ApiError.badRequest('Invalid request body', ApiErrorCode.VALIDATION_FAILED);
+          return ApiError.badRequest('Invalid request body', ApiErrorCode.VALIDATION_FAILED);
         }
         bodyData = parsed.data;
       }
