@@ -13,8 +13,6 @@ export const POST = wrapRoute({
     provider: z.string()
   })
 }, async (req, ctx) => {
-  const { isValid, error } = validateForgeRequest(req);
-  if (!isValid) return ApiRes.unauthorized(error || 'Unauthorized');
 
   const { accountId, cloudId, provider } = ctx.body;
 
