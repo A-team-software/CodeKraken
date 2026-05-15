@@ -216,7 +216,7 @@ export const gitSlice = createSlice({
       .addCase(refreshAuthStatus.rejected, (state, action) => {
         state.auth.loading = false;
         state.auth.connected = false;
-        state.error = `Auth check failed: ${action.payload}`;
+        state.error = `Connection check failed: ${action.payload || 'Unknown error'}`;
       })
       .addCase(fetchWorkspaces.pending, (state) => {
         state.workspacesLoading = true;
@@ -225,9 +225,10 @@ export const gitSlice = createSlice({
         state.workspacesLoading = false;
         state.workspaces = action.payload;
       })
-      .addCase(fetchWorkspaces.rejected, (state) => {
+      .addCase(fetchWorkspaces.rejected, (state, action) => {
         state.workspacesLoading = false;
         state.workspaces = [];
+        state.error = `Failed to fetch workspaces: ${action.payload || 'Unknown error'}`;
       })
       .addCase(fetchRepositories.pending, (state) => {
         state.reposLoading = true;
@@ -236,9 +237,10 @@ export const gitSlice = createSlice({
         state.reposLoading = false;
         state.repos = action.payload;
       })
-      .addCase(fetchRepositories.rejected, (state) => {
+      .addCase(fetchRepositories.rejected, (state, action) => {
         state.reposLoading = false;
         state.repos = [];
+        state.error = `Failed to fetch repositories: ${action.payload || 'Unknown error'}`;
       })
       .addCase(disconnectGit.fulfilled, (state) => {
         state.successMessage = 'Successfully disconnected from Git provider.';

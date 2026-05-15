@@ -54,7 +54,7 @@ export const configSlice = createSlice({
       .addCase(fetchConfig.rejected, (state, action) => {
         if (state.currentRequestId === action.meta.requestId) {
           state.loading = false;
-          state.error = `Failed to fetch config: ${action.payload}`;
+          state.error = `Failed to fetch config: ${action.payload || 'Unknown error'}`;
         }
       })
       .addCase(updateConfig.pending, (state, action) => {
@@ -73,7 +73,7 @@ export const configSlice = createSlice({
       .addCase(updateConfig.rejected, (state, action) => {
         if (state.currentRequestId === action.meta.requestId) {
           state.loading = false;
-          state.error = `Failed to save config: ${action.payload}`;
+          state.error = `Failed to save config: ${action.payload || 'Unknown error'}`;
         }
       });
   },

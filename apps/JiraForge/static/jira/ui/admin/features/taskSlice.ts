@@ -5,38 +5,53 @@ import { safeInvokeEffect, safeViewContextEffect, runEffectThunk } from '../util
 
 const ContextSchema = z.any();
 
+interface TaskState {
+  ctx: any;
+  taskInput: string;
+  running: boolean;
+  result: any;
+  error: string | null;
+  warning: string | null;
+  successMessage: string | null;
+}
+
+const initialState: TaskState = {
+  ctx: null,
+  taskInput: '',
+  running: false,
+  result: null,
+  error: null,
+  warning: null,
+  successMessage: null,
+};
+
 export const loadContext = createAsyncThunk('task/loadContext', async (_, { rejectWithValue }) => {
   const effect = safeViewContextEffect();
   const ctx = await runEffectThunk(effect, rejectWithValue);
   return ContextSchema.parse(ctx);
 });
 
-export const solveTaskThunk = createAsyncThunk('task/solveTask', async ({ provider, repoUrl, task }, { dispatch, rejectWithValue }) => {
-  const effect = safeInvokeEffect('solveTask', { provider, repoUrl, task });
-  const result = await Effect.runPromise(Effect.either(effect));
+export const solveTaskThunk = createAsyncThunk(
+  'task/solveTask',
+  async ({ provider, repoUrl, task }: { provider: string; repoUrl: string; task: string }, { dispatch, rejectWithValue }) => {
+    const effect = safeInvokeEffect('solveTask', { provider, repoUrl, task });
+    const result = await Effect.runPromise(Effect.either(effect));
 
-  if (Either.isRight(result)) {
-    return result.right;
-  } else {
-    const errStr = result.left;
-    if (errStr.includes('Unauthorized (401)')) {
-      dispatch({ type: 'git/refreshAuthStatus/fulfilled', payload: { connected: false } });
+    if (Either.isRight(result)) {
+      return result.right;
+    } else {
+      const errStr = result.left;
+      if (errStr.includes('Unauthorized (401)')) {
+        dispatch({ type: 'git/refreshAuthStatus/fulfilled', payload: { connected: false } });
+      }
+      return rejectWithValue(errStr);
     }
-    return rejectWithValue(errStr);
   }
-});
+);
 
 export const taskSlice = createSlice({
   name: 'task',
-  initialState: {
-    ctx: null,
-    taskInput: '',
-    running: false,
-    result: null,
-    error: null,
-    warning: null,
-    successMessage: null,
-  },
+  initialState,
   reducers: {
     setTaskInput(state, action) {
       state.taskInput = action.payload;
@@ -78,7 +93,7 @@ export const taskSlice = createSlice({
       })
       .addCase(solveTaskThunk.rejected, (state, action) => {
         state.running = false;
-        state.error = action.payload;
+        state.error = (action.payload as string) || 'Unknown task error';
         state.successMessage = null;
       });
   },

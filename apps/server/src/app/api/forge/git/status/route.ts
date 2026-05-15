@@ -71,9 +71,9 @@ export const POST = wrapRoute({
     }
 
     // Success Case: Fully connected
-    return {
+    return ApiRes.success({
         connected: true,
         provider: oauthToken.provider,
         scope: oauthToken.scope ?? null,
-    };
+    });
 });

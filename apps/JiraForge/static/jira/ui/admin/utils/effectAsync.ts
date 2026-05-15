@@ -20,10 +20,11 @@ export const safeInvokeEffect = (command: string, payload?: any): Effect.Effect<
       const errPayload = get(error, 'payload.error');
       const errMsg = get(error, 'message');
       
-      const combinedMsg = errPayload || errMsg || String(error);
+      let combinedMsg = errPayload || errMsg || String(error);
       
-      if (status === 401) {
-        return `Unauthorized (401): ${combinedMsg}`;
+      // If we have a status, prepend it for better visibility
+      if (status && !combinedMsg.includes(String(status))) {
+        combinedMsg = `(${status}) ${combinedMsg}`;
       }
       
       return combinedMsg;

@@ -70,5 +70,5 @@ export const GET = wrapRoute({
         );
     }
 
-    return { workspaces: workspaces ?? [] };
+    return ApiRes.success({ workspaces: workspaces ?? [] });
 });
