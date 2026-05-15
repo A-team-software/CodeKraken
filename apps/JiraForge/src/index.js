@@ -114,7 +114,16 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
-    throw new Error(isJson && payload.error ? payload.error : `Request failed: ${res.status}`);
+    // ApiRes error shape: { error: string, code: number }
+    const errMsg = isJson && (payload?.error || payload?.message)
+      ? (payload.error || payload.message)
+      : `Request failed: ${res.status}`;
+    throw new Error(errMsg);
+  }
+
+  // Unwrap the ApiRes envelope: { data: {...}, code: 200 } → {...}
+  if (isJson && payload !== null && typeof payload === 'object' && 'data' in payload && 'code' in payload) {
+    return payload.data;
   }
 
   return payload;

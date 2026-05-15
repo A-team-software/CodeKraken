@@ -157,7 +157,7 @@ export default function App() {
       });
       const { authUrl } = data;
       console.log(data);
-      console.log(authUrl);
+      console.log(`authUrl: ${authUrl}`);
       if (authUrl) {
         await router.open(authUrl);
       } else {
