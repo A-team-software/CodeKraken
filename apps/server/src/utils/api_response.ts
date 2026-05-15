@@ -27,27 +27,27 @@ export const ApiRes = {
    * Returns a 400 Bad Request error
    */
   badRequest(message: string, errorCode: ApiErrorCode | string = ApiErrorCode.BAD_REQUEST) {
-    return NextResponse.json(createErrorPayload(errorCode, message, 400));
+    return NextResponse.json(createErrorPayload(errorCode, message, 400), { status: 400 });
   },
 
   /**
    * Returns a 401 Unauthorized error
    */
   unauthorized(message: string = 'Unauthorized', errorCode: ApiErrorCode | string = ApiErrorCode.UNAUTHORIZED) {
-    return NextResponse.json(createErrorPayload(errorCode, message, 401));
+    return NextResponse.json(createErrorPayload(errorCode, message, 401), { status: 401 });
   },
 
   /**
    * Returns a 403 Forbidden error
    */
   forbidden(message: string = 'Forbidden', errorCode: ApiErrorCode | string = ApiErrorCode.FORBIDDEN) {
-    return NextResponse.json(createErrorPayload(errorCode, message, 403));
+    return NextResponse.json(createErrorPayload(errorCode, message, 403), { status: 403 });
   },
 
   /**
    * Returns a 404 Not Found error
    */
   notFound(message: string = 'Not Found', errorCode: ApiErrorCode | string = ApiErrorCode.NOT_FOUND) {
-    return NextResponse.json(createErrorPayload(errorCode, message, 404));
+    return NextResponse.json(createErrorPayload(errorCode, message, 404), { status: 404 });
   }
 };
