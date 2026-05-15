@@ -37,7 +37,7 @@ resolver.define('getGitAuthUrl', async ({ payload, context }) => {
 
   return await backendFetch('/api/forge/git/auth-url', {
     method: 'POST',
-    body: { provider, accountId, cloudId },
+    body: { accountId, cloudId, provider },
     context
   });
 });

@@ -1,65 +1,87 @@
-import React from 'react';
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setGlobalTheme } from '@atlaskit/tokens';
-import { toggleTheme } from './features/themeSlice';
-import { 
-  fetchProviders, 
-  refreshAuthStatus, 
-  fetchWorkspaces, 
-  fetchRepositories, 
-  disconnectGit, 
-  setProvider, 
-  setWorkspace, 
-  setRepoUrl, 
-  setConnecting,
-  setError as setGitError
-} from './features/gitSlice';
-import { 
-  loadContext, 
-  solveTaskThunk, 
-  setTaskInput 
-} from './features/taskSlice';
+import React from "react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { setGlobalTheme } from "@atlaskit/tokens";
+import { toggleTheme } from "./features/themeSlice";
 import {
-  fetchConfig,
-  updateConfig
-} from './features/configSlice';
-import { invoke, router } from '@forge/bridge';
+  fetchProviders,
+  refreshAuthStatus,
+  fetchWorkspaces,
+  fetchRepositories,
+  disconnectGit,
+  setProvider,
+  setWorkspace,
+  setRepoUrl,
+  setConnecting,
+  setError as setGitError,
+} from "./features/gitSlice";
+import {
+  loadContext,
+  solveTaskThunk,
+  setTaskInput,
+} from "./features/taskSlice";
+import { fetchConfig, updateConfig } from "./features/configSlice";
+import { invoke, router } from "@forge/bridge";
 
-import Button from '@atlaskit/button';
-import LoadingButton from '@atlaskit/button/loading-button';
-import Heading from '@atlaskit/heading';
-import Lozenge from '@atlaskit/lozenge';
-import SectionMessage from '@atlaskit/section-message';
-import Spinner from '@atlaskit/spinner';
-import Select from '@atlaskit/select';
-import Textfield from '@atlaskit/textfield';
-import TextArea from '@atlaskit/textarea';
-import Toggle from '@atlaskit/toggle';
-import { RootState, AppDispatch } from './store';
+import Button from "@atlaskit/button";
+import LoadingButton from "@atlaskit/button/loading-button";
+import Heading from "@atlaskit/heading";
+import Lozenge from "@atlaskit/lozenge";
+import SectionMessage from "@atlaskit/section-message";
+import Spinner from "@atlaskit/spinner";
+import Select from "@atlaskit/select";
+import Textfield from "@atlaskit/textfield";
+import TextArea from "@atlaskit/textarea";
+import Toggle from "@atlaskit/toggle";
+import { RootState, AppDispatch } from "./store";
 
 export default function App() {
   const dispatch = useDispatch<AppDispatch>();
 
-  const themeMode = useSelector((state: RootState) => (state as any).theme.mode);
-  
+  const themeMode = useSelector(
+    (state: RootState) => (state as any).theme.mode,
+  );
+
   const {
-    auth, provider, providers, workspace, workspaces, workspacesLoading,
-    repoUrl, repos, reposLoading, connecting, error: gitError, successMessage: gitSuccess
+    auth,
+    provider,
+    providers,
+    workspace,
+    workspaces,
+    workspacesLoading,
+    repoUrl,
+    repos,
+    reposLoading,
+    connecting,
+    error: gitError,
+    successMessage: gitSuccess,
   } = useSelector((state: RootState) => state.git);
 
   const {
-    taskInput, running, result, error: taskError, warning, successMessage: taskSuccess
+    taskInput,
+    running,
+    result,
+    error: taskError,
+    warning,
+    successMessage: taskSuccess,
   } = useSelector((state: RootState) => state.task);
 
   const {
-    incrementalPrsOn, loading: configLoading, error: configError, successMessage: configSuccess
+    incrementalPrsOn,
+    loading: configLoading,
+    error: configError,
+    successMessage: configSuccess,
   } = useSelector((state: RootState) => state.config);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
 
   useEffect(() => {
-    setGlobalTheme({ colorMode: themeMode as any, dark: 'dark', light: 'light', spacing: 'spacing' });
+    setGlobalTheme({
+      colorMode: themeMode as any,
+      dark: "dark",
+      light: "light",
+      spacing: "spacing",
+    });
   }, [themeMode]);
 
   useEffect(() => {
@@ -82,23 +104,31 @@ export default function App() {
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<any>) => {
-      if (['OAUTH_COMPLETE', 'GITHUB_CONNECTED', 'BITBUCKET_CONNECTED', 'SCA_AUTH_SUCCESS'].includes(event.data?.type)) {
-        const msgProvider = event.data?.payload?.provider || event.data?.provider;
+      if (
+        [
+          "OAUTH_COMPLETE",
+          "GITHUB_CONNECTED",
+          "BITBUCKET_CONNECTED",
+          "SCA_AUTH_SUCCESS",
+        ].includes(event.data?.type)
+      ) {
+        const msgProvider =
+          event.data?.payload?.provider || event.data?.provider;
         if (!msgProvider || msgProvider === provider) {
           dispatch(refreshAuthStatus(provider));
           dispatch(setConnecting(false));
         }
       }
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, [provider, dispatch]);
 
   useEffect(() => {
     if (!connecting) return;
     const timeoutId = setTimeout(() => {
       dispatch(setConnecting(false));
-      dispatch(setGitError('Authentication timed out. Please try again.'));
+      dispatch(setGitError("Authentication timed out. Please try again."));
     }, 60000);
 
     const interval = setInterval(() => {
@@ -111,7 +141,10 @@ export default function App() {
       });
     }, 2000);
 
-    return () => { clearInterval(interval); clearTimeout(timeoutId); };
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeoutId);
+    };
   }, [connecting, provider, dispatch]);
 
   async function handleConnectGit(targetProvider: string) {
@@ -119,11 +152,14 @@ export default function App() {
     dispatch(setConnecting(true));
     dispatch(setGitError(null));
     try {
-      const { authUrl } = await invoke<{ authUrl?: string }>('getGitAuthUrl', { provider: targetProvider });
-      if (authUrl) {
-        await router.open(authUrl);
+      const data = await invoke<{ authUrl?: string }>("getGitAuthUrl", {
+        provider: targetProvider,
+      });
+      console.log(data);
+      if (data.authUrl) {
+        await router.open(data.authUrl);
       } else {
-        throw new Error('No authUrl returned from backend');
+        throw new Error("No authUrl returned from backend");
       }
     } catch (e: any) {
       dispatch(setConnecting(false));
@@ -144,13 +180,20 @@ export default function App() {
     dispatch(solveTaskThunk({ provider, repoUrl, task: taskInput } as any));
   }
 
-  const providerOptions = providers.map((p: any) => ({ label: p.name, value: p.id }));
-  const providerOption = providerOptions.find((o: any) => o.value === provider) || null;
+  const providerOptions = providers.map((p: any) => ({
+    label: p.name,
+    value: p.id,
+  }));
+  const providerOption =
+    providerOptions.find((o: any) => o.value === provider) || null;
   const canRun = !running && !!repoUrl && !!taskInput && !!auth.connected;
 
   if (auth.loading) {
     return (
-      <div className="oliver-root" style={{ justifyContent: 'center', alignItems: 'center' }}>
+      <div
+        className="oliver-root"
+        style={{ justifyContent: "center", alignItems: "center" }}
+      >
         <Spinner size="large" />
       </div>
     );
@@ -166,24 +209,43 @@ export default function App() {
           </div>
           <div className="oliver-inline">
             <Button appearance="subtle" onClick={() => dispatch(toggleTheme())}>
-              {themeMode === 'dark' ? '☀️ Light' : '🌙 Dark'}
+              {themeMode === "dark" ? "☀️ Light" : "🌙 Dark"}
             </Button>
           </div>
-          {auth.connected && (
-            confirmDisconnect ? (
+          {auth.connected &&
+            (confirmDisconnect ? (
               <div className="oliver-inline">
-                <Button className="oliver-btn-warning" appearance="warning" onClick={handleDisconnect}>Confirm</Button>
-                <Button className="oliver-btn-primary" appearance="subtle" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+                <Button
+                  className="oliver-btn-warning"
+                  appearance="warning"
+                  onClick={handleDisconnect}
+                >
+                  Confirm
+                </Button>
+                <Button
+                  className="oliver-btn-primary"
+                  appearance="subtle"
+                  onClick={() => setConfirmDisconnect(false)}
+                >
+                  Cancel
+                </Button>
               </div>
             ) : (
               <div className="oliver-inline">
-                <div style={{ marginRight: '8px' }}>
-                  <Lozenge appearance="success" isBold>Connected as {auth.username}</Lozenge>
+                <div style={{ marginRight: "8px" }}>
+                  <Lozenge appearance="success" isBold>
+                    Connected as {auth.username}
+                  </Lozenge>
                 </div>
-                <Button className="oliver-btn-warning" appearance="subtle" onClick={handleDisconnect}>Disconnect</Button>
+                <Button
+                  className="oliver-btn-warning"
+                  appearance="subtle"
+                  onClick={handleDisconnect}
+                >
+                  Disconnect
+                </Button>
               </div>
-            )
-          )}
+            ))}
         </div>
       </header>
 
@@ -194,16 +256,20 @@ export default function App() {
               <div className="oliver-stack">
                 <Heading size="large">Welcome to OliverAI</Heading>
                 <p>
-                  Connect your Git account to start automating your Jira tasks with AI.
-                  We'll help you fix bugs and implement features directly in your codebase.
+                  Connect your Git account to start automating your Jira tasks
+                  with AI. We'll help you fix bugs and implement features
+                  directly in your codebase.
                 </p>
 
-                <div className="oliver-stack" style={{ maxWidth: '320px', margin: '0 auto', width: '100%' }}>
+                <div
+                  className="oliver-stack"
+                  style={{ maxWidth: "320px", margin: "0 auto", width: "100%" }}
+                >
                   <LoadingButton
                     className="oliver-btn-primary"
                     appearance="primary"
-                    onClick={() => handleConnectGit('github')}
-                    isLoading={connecting && provider === 'github'}
+                    onClick={() => handleConnectGit("github")}
+                    isLoading={connecting && provider === "github"}
                     isDisabled={connecting}
                     shouldFitContainer
                   >
@@ -213,8 +279,8 @@ export default function App() {
                   <LoadingButton
                     className="oliver-btn-warning"
                     appearance="default"
-                    onClick={() => handleConnectGit('bitbucket')}
-                    isLoading={connecting && provider === 'bitbucket'}
+                    onClick={() => handleConnectGit("bitbucket")}
+                    isLoading={connecting && provider === "bitbucket"}
                     isDisabled={connecting}
                     shouldFitContainer
                   >
@@ -222,8 +288,9 @@ export default function App() {
                   </LoadingButton>
                 </div>
 
-                <p style={{ fontSize: '11px', marginTop: '16px' }}>
-                  OAuth is handled securely. We only access the repositories you authorize.
+                <p style={{ fontSize: "11px", marginTop: "16px" }}>
+                  OAuth is handled securely. We only access the repositories you
+                  authorize.
                 </p>
               </div>
             </div>
@@ -237,41 +304,62 @@ export default function App() {
                     <label className="oliver-label" htmlFor="incrementalToggle">
                       PR Creation Strategy
                     </label>
-                    <div className="oliver-inline" style={{ marginTop: '4px' }}>
+                    <div className="oliver-inline" style={{ marginTop: "4px" }}>
                       <Toggle
                         id="incrementalToggle"
                         isChecked={incrementalPrsOn}
                         isDisabled={configLoading}
-                        onChange={(e: any) => dispatch(updateConfig(e.target.checked))}
+                        onChange={(e: any) =>
+                          dispatch(updateConfig(e.target.checked))
+                        }
                       />
-                      <span style={{ marginLeft: '8px', fontSize: '14px' }}>
-                        {incrementalPrsOn ? 'Incremental PRs' : 'One BLOB PR'}
+                      <span style={{ marginLeft: "8px", fontSize: "14px" }}>
+                        {incrementalPrsOn ? "Incremental PRs" : "One BLOB PR"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="oliver-inline oliver-spread" style={{ alignItems: 'flex-end' }}>
-                    <div className="oliver-field-group" style={{ flex: 1, minWidth: '240px' }}>
-                      <label className="oliver-label" htmlFor="provider">Git Provider</label>
+                  <div
+                    className="oliver-inline oliver-spread"
+                    style={{ alignItems: "flex-end" }}
+                  >
+                    <div
+                      className="oliver-field-group"
+                      style={{ flex: 1, minWidth: "240px" }}
+                    >
+                      <label className="oliver-label" htmlFor="provider">
+                        Git Provider
+                      </label>
                       <Select
                         inputId="provider"
                         value={providerOption}
                         options={providerOptions}
-                        onChange={(opt: any) => { if (opt?.value) dispatch(setProvider(opt.value)); }}
+                        onChange={(opt: any) => {
+                          if (opt?.value) dispatch(setProvider(opt.value));
+                        }}
                         placeholder="Select provider"
                       />
                     </div>
                   </div>
 
-                  {provider === 'bitbucket' && (
+                  {provider === "bitbucket" && (
                     <div className="oliver-field-group">
-                      <label className="oliver-label" htmlFor="workspaceSelect">Workspace</label>
+                      <label className="oliver-label" htmlFor="workspaceSelect">
+                        Workspace
+                      </label>
                       <Select
                         inputId="workspaceSelect"
                         value={(() => {
-                          const matched = workspaces.find((w: any) => w.slug === workspace);
-                          if (matched) return { label: matched.name || matched.slug, value: workspace };
-                          if (workspace) return { label: workspace, value: workspace };
+                          const matched = workspaces.find(
+                            (w: any) => w.slug === workspace,
+                          );
+                          if (matched)
+                            return {
+                              label: matched.name || matched.slug,
+                              value: workspace,
+                            };
+                          if (workspace)
+                            return { label: workspace, value: workspace };
                           return null;
                         })()}
                         options={workspaces.map((w: any) => ({
@@ -283,37 +371,67 @@ export default function App() {
                             dispatch(setWorkspace(opt.value));
                           }
                         }}
-                        placeholder={workspacesLoading ? 'Loading workspaces...' : 'Select workspace...'}
+                        placeholder={
+                          workspacesLoading
+                            ? "Loading workspaces..."
+                            : "Select workspace..."
+                        }
                         isLoading={workspacesLoading}
                       />
                     </div>
                   )}
 
                   <div className="oliver-field-group">
-                    <label className="oliver-label" htmlFor="repoSelect">Repository</label>
+                    <label className="oliver-label" htmlFor="repoSelect">
+                      Repository
+                    </label>
                     <Select
                       inputId="repoSelect"
                       value={(() => {
-                        const toCloneUrl = (r: any) => r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`);
-                        const matched = repos.find((r: any) => toCloneUrl(r) === repoUrl);
-                        if (matched) return { label: matched.fullName || `${matched.owner}/${matched.name}`, value: repoUrl };
+                        const toCloneUrl = (r: any) =>
+                          r.cloneUrl ||
+                          (r.htmlUrl?.endsWith(".git")
+                            ? r.htmlUrl
+                            : `${r.htmlUrl}.git`);
+                        const matched = repos.find(
+                          (r: any) => toCloneUrl(r) === repoUrl,
+                        );
+                        if (matched)
+                          return {
+                            label:
+                              matched.fullName ||
+                              `${matched.owner}/${matched.name}`,
+                            value: repoUrl,
+                          };
                         if (repoUrl) return { label: repoUrl, value: repoUrl };
                         return null;
                       })()}
                       options={repos.map((r: any) => ({
                         label: r.fullName || `${r.owner}/${r.name}`,
-                        value: r.cloneUrl || (r.htmlUrl?.endsWith('.git') ? r.htmlUrl : `${r.htmlUrl}.git`),
+                        value:
+                          r.cloneUrl ||
+                          (r.htmlUrl?.endsWith(".git")
+                            ? r.htmlUrl
+                            : `${r.htmlUrl}.git`),
                       }))}
-                      onChange={(opt: any) => opt?.value && dispatch(setRepoUrl(opt.value))}
-                      placeholder={reposLoading ? 'Loading repositories...' : 'Select repository...'}
+                      onChange={(opt: any) =>
+                        opt?.value && dispatch(setRepoUrl(opt.value))
+                      }
+                      placeholder={
+                        reposLoading
+                          ? "Loading repositories..."
+                          : "Select repository..."
+                      }
                       isLoading={reposLoading}
                     />
-                    <div style={{ marginTop: '8px' }}>
+                    <div style={{ marginTop: "8px" }}>
                       <Textfield
                         id="repoUrl"
                         name="repoUrl"
                         value={repoUrl}
-                        onChange={(e: any) => dispatch(setRepoUrl(e.target.value))}
+                        onChange={(e: any) =>
+                          dispatch(setRepoUrl(e.target.value))
+                        }
                         placeholder="Or enter URL manually: https://github.com/acme/project"
                       />
                     </div>
@@ -325,17 +443,21 @@ export default function App() {
                 <div className="oliver-stack">
                   <Heading size="small">Instruction</Heading>
                   <div className="oliver-field-group">
-                    <label className="oliver-label" htmlFor="task">What should OliverAI do?</label>
+                    <label className="oliver-label" htmlFor="task">
+                      What should OliverAI do?
+                    </label>
                     <TextArea
                       id="task"
                       value={taskInput}
-                      onChange={(e: any) => dispatch(setTaskInput(e.target.value))}
+                      onChange={(e: any) =>
+                        dispatch(setTaskInput(e.target.value))
+                      }
                       minimumRows={6}
                       placeholder="Describe the task in detail..."
                     />
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: "right" }}>
                     <LoadingButton
                       className="oliver-btn-primary"
                       appearance="primary"
@@ -362,7 +484,7 @@ export default function App() {
               {configError}
             </SectionMessage>
           )}
-          
+
           {taskError && (
             <SectionMessage title="Task Operation Failed" appearance="error">
               {taskError}
@@ -377,8 +499,20 @@ export default function App() {
 
           {(gitSuccess || taskSuccess || configSuccess) && (
             <SectionMessage title="Success" appearance="success">
-              {gitSuccess && <div style={{ marginBottom: taskSuccess || configSuccess ? '4px' : '0' }}>{gitSuccess}</div>}
-              {configSuccess && <div style={{ marginBottom: taskSuccess ? '4px' : '0' }}>{configSuccess}</div>}
+              {gitSuccess && (
+                <div
+                  style={{
+                    marginBottom: taskSuccess || configSuccess ? "4px" : "0",
+                  }}
+                >
+                  {gitSuccess}
+                </div>
+              )}
+              {configSuccess && (
+                <div style={{ marginBottom: taskSuccess ? "4px" : "0" }}>
+                  {configSuccess}
+                </div>
+              )}
               {taskSuccess && <div>{taskSuccess}</div>}
             </SectionMessage>
           )}
@@ -388,7 +522,9 @@ export default function App() {
               <div className="oliver-stack">
                 <Heading size="small">Agent Report</Heading>
                 <div className="oliver-result-pre">
-                  {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+                  {typeof result === "string"
+                    ? result
+                    : JSON.stringify(result, null, 2)}
                 </div>
               </div>
             </div>
