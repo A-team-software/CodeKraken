@@ -23,7 +23,6 @@ describe("Forge Config API Route", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         process.env = { ...ORIGINAL_ENV };
-        process.env.API_SECRET = "test-secret";
     });
 
     afterEach(() => {
@@ -31,17 +30,10 @@ describe("Forge Config API Route", () => {
     });
 
     describe("GET /api/forge/config", () => {
-        it("returns 401 if unauthorized", async () => {
-            const req = new NextRequest("http://localhost/api/forge/config", {
-                headers: { authorization: "Bearer wrong-secret" }
-            });
-            const res = await GET(req);
-            expect(res.status).toBe(401);
-        });
 
         it("returns 400 if missing client key", async () => {
             const req = new NextRequest("http://localhost/api/forge/config", {
-                headers: { authorization: "Bearer test-secret" }
+                headers: {}
             });
             const res = await GET(req);
             expect(res.status).toBe(400);
@@ -50,7 +42,6 @@ describe("Forge Config API Route", () => {
         it("returns config successfully", async () => {
             const req = new NextRequest("http://localhost/api/forge/config", {
                 headers: { 
-                    authorization: "Bearer test-secret",
                     "X-Forge-Client-Key": "client-1"
                 }
             });
@@ -66,20 +57,11 @@ describe("Forge Config API Route", () => {
     });
 
     describe("POST /api/forge/config", () => {
-        it("returns 401 if unauthorized", async () => {
-            const req = new NextRequest("http://localhost/api/forge/config", {
-                method: "POST",
-                headers: { authorization: "Bearer wrong-secret" }
-            });
-            const res = await POST(req);
-            expect(res.status).toBe(401);
-        });
 
         it("returns 400 if invalid boolean provided", async () => {
             const req = new NextRequest("http://localhost/api/forge/config", {
                 method: "POST",
                 headers: { 
-                    authorization: "Bearer test-secret",
                     "X-Forge-Client-Key": "client-1",
                     "Content-Type": "application/json"
                 },
@@ -93,7 +75,6 @@ describe("Forge Config API Route", () => {
             const req = new NextRequest("http://localhost/api/forge/config", {
                 method: "POST",
                 headers: { 
-                    authorization: "Bearer test-secret",
                     "X-Forge-Client-Key": "client-1",
                     "Content-Type": "application/json"
                 },

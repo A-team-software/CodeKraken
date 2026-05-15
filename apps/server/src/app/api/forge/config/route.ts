@@ -5,10 +5,6 @@ import { MongoConfigPersistenceLayer } from '@/app/brain/runner/mongo-config-per
 
 export async function GET(request: NextRequest) {
     try {
-        const token = request.headers.get('authorization')?.replace('Bearer ', '');
-        if (!token || token !== process.env.API_SECRET) {
-            throw new Error("Unauthorized request");
-        }
 
         const cloudId = request.headers.get('X-Forge-Client-Key');
         if (!cloudId) {
@@ -29,10 +25,6 @@ export async function POST(request: NextRequest) {
 
 
     try {
-        const token = request.headers.get('authorization')?.replace('Bearer ', '');
-        if (!token || token !== process.env.API_SECRET) {
-            throw new Error("Unauthorized request");
-        }
 
         const cloudId = request.headers.get('X-Forge-Client-Key');
         if (!cloudId) {
