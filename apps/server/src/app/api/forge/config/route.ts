@@ -2,23 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Logger, SafeExecute } from '@oliver/core';
 import { MongoConfigPersistenceLayer } from '@/app/brain/runner/mongo-config-persistence-layer';
 
-function isAuthorized(request: NextRequest): boolean {
-    const authHeader = request.headers.get('authorization') ?? '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    const expectedSecret = process.env.API_SECRET;
-
-    if (!expectedSecret) {
-        return false;
-    }
-
-    return token === expectedSecret;
-}
 
 export async function GET(request: NextRequest) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     try {
         const cloudId = request.headers.get('X-Forge-Client-Key');
         if (!cloudId) {
@@ -36,9 +21,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-    if (!isAuthorized(request)) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+
 
     try {
         const cloudId = request.headers.get('X-Forge-Client-Key');

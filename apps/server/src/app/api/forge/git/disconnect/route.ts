@@ -4,12 +4,10 @@ import { SafeExecute } from '@oliver/core/src/errors';
 import { ApiRes } from '@/utils/api_response';
 
 export async function POST(req: NextRequest) {
-    const { isValid, error } = validateForgeRequest(req);
-    if (!isValid) return ApiRes.unauthorized(error);
 
     const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
     if (bodyError || !body) return ApiRes.badRequest('Invalid request body');
-    
+
     const { accountId, provider } = body;
     const cloudId = body.cloudId || body.clientKey;
 
