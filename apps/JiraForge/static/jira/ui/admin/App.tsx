@@ -155,9 +155,10 @@ export default function App() {
       const data = await invoke<{ authUrl?: string }>("getGitAuthUrl", {
         provider: targetProvider,
       });
+      const { authUrl } = data;
       console.log(data);
-      if (data.authUrl) {
-        await router.open(data.authUrl);
+      if (authUrl) {
+        await router.open(authUrl);
       } else {
         throw new Error("No authUrl returned from backend");
       }
