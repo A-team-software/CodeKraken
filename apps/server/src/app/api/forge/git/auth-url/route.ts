@@ -1,19 +1,22 @@
 import { AuthService, GITHUB_CLIENT_ID, validateForgeRequest } from '@oliver/auth';
 import { FORGE_GITHUB_CALLBACK_URL, FORGE_BITBUCKET_CALLBACK_URL, SafeExecute } from '@oliver/core';
 import { BitbucketService } from '@oliver/git';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiRes } from '@/utils/api_response';
+import { wrapRoute } from '@/utils/api_handler';
+import { z } from 'zod';
 
-export async function POST(req: NextRequest) {
+export const POST = wrapRoute({
+  bodySchema: z.object({
+    accountId: z.string(),
+    cloudId: z.string(),
+    provider: z.string()
+  })
+}, async (req, ctx) => {
   const { isValid, error } = validateForgeRequest(req);
-  if (!isValid) return NextResponse.json({ error: error }, { status: 401 });
+  if (!isValid) return ApiRes.unauthorized(error || 'Unauthorized');
 
-  const [body, bodyError] = await SafeExecute.withSync(async () => req.json()).execute();
-  if (bodyError || !body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-
-  const { accountId, cloudId, provider } = body;
-  if (!accountId || !cloudId || !provider) {
-    return NextResponse.json({ error: 'Missing accountId, cloudId, or provider' }, { status: 400 });
-  }
+  const { accountId, cloudId, provider } = ctx.body;
 
   // Generate state with Forge metadata using the standard AuthService
   const authService = AuthService.getInstance();
@@ -38,5 +41,5 @@ export async function POST(req: NextRequest) {
     authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
   }
 
-  return NextResponse.json({ authUrl });
-}
+  return { authUrl };
+});

@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { getDockerTunnelStatusMock, pingMock, getInstanceMock } = vi.hoisted(() => {
@@ -46,11 +47,12 @@ describe("GET /api/status", () => {
 	it("returns 404 when not in local docker mode", async () => {
 		process.env.IS_LOCAL_DOCKER = "false";
 
-		const response = await GET();
+		const req = new NextRequest("http://localhost/api/status");
+		const response = await GET(req as any, {} as any);
 		const payload = await response.json();
 
 		expect(response.status).toBe(404);
-		expect(payload).toEqual({ error: "Not found" });
+		expect(payload).toEqual({ code: 404, errorCode: "NOT_FOUND", message: "Not found" });
 		expect(getDockerTunnelStatusMock).not.toHaveBeenCalled();
 	});
 
@@ -58,13 +60,15 @@ describe("GET /api/status", () => {
 		process.env.IS_LOCAL_DOCKER = "true";
 		pingMock.mockResolvedValueOnce(true);
 
-		const response = await GET();
+		const req = new NextRequest("http://localhost/api/status");
+		const response = await GET(req as any, {} as any);
 		const payload = await response.json();
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get("Cache-Control")).toBe("no-store");
-		expect(payload).toEqual(
-			expect.objectContaining({
+		expect(payload).toEqual({
+			code: 200,
+			data: expect.objectContaining({
 				timestamp: expect.any(String),
 				tunnel: expect.objectContaining({
 					enabled: true,
@@ -75,18 +79,19 @@ describe("GET /api/status", () => {
 					error: null,
 				},
 			}),
-		);
+		});
 	});
 
 	it("returns sanitized database error state when ping fails", async () => {
 		process.env.IS_LOCAL_DOCKER = "true";
 		pingMock.mockResolvedValueOnce(false);
 
-		const response = await GET();
+		const req = new NextRequest("http://localhost/api/status");
+		const response = await GET(req as any, {} as any);
 		const payload = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(payload.database).toEqual({
+		expect(payload.data.database).toEqual({
 			connected: false,
 			error: "Database unavailable",
 		});

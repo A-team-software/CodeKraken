@@ -105,15 +105,17 @@ describe("POST /api/webhooks/pr/updated", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(200);
-        expect(payload).toEqual(expect.objectContaining({
-            success: true,
-            platform: "github",
-            pr: {
-                id: "101",
-                title: "Refactor",
-                description: "Details"
+        expect(payload).toEqual({
+            code: 200,
+            data: {
+                platform: "github",
+                pr: {
+                    id: "101",
+                    title: "Refactor",
+                    description: "Details"
+                }
             }
-        }));
+        });
     });
 
     it("returns 400 when platform is missing", async () => {
@@ -153,7 +155,8 @@ describe("POST /api/webhooks/pr/updated", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(401);
-        expect(payload.error).toContain("Webhook secret is not configured");
+        expect(payload.code).toBe(401);
+        expect(payload.message).toContain("Webhook secret is not configured");
     });
 
     it("returns 400 for unsupported payload shape", async () => {
@@ -164,8 +167,8 @@ describe("POST /api/webhooks/pr/updated", () => {
         const response = await POST(createRequest("github", { action: "edited" }));
         const payload = await response.json();
 
-        expect(response.status).toBe(400);
-        expect(payload.success).toBe(false);
-        expect(payload.error).toContain("Unsupported event payload");
+        expect(response.status).toBe(500);
+        expect(payload.code).toBe(500);
+        expect(payload.message).toContain("Unsupported event payload");
     });
 });
