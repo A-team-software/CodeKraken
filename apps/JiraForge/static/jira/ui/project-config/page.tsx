@@ -1,14 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { invoke } from '@forge/bridge';
+import { invoke, showFlag } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
-import Flag, { FlagGroup } from '@atlaskit/flag';
-import ErrorIcon from '@atlaskit/icon/glyph/error';
-import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
-import InfoIcon from '@atlaskit/icon/glyph/info';
 import '@atlaskit/css-reset';
 import { useProjectDetails } from '../shared/useProjectDetails';
-import { useResolvedContext } from '../shared/useResolvedContext';
 import { RepositoryResult } from './repository-finder';
 import { RepositoryAutocomplete } from './repository-autocomplete';
 import { RepositoryList, Repository, PAGE_SIZE } from './repository-list';
@@ -92,42 +87,39 @@ const buttonGroupStyles = xcss({
 
 // ─── Types ──────────────────────────────────────────────────────────────────────────────
 
-type AppFlag = {
-	id: string;
-	title: string;
-	description?: string;
-	type: 'error' | 'success' | 'info' | 'warning';
-};
-
 // ─── Component ──────────────────────────────────────────────────────────────────────────
 
 export function ProjectConfigPage() {
 	const { project, isLoading: isContextLoading, error: contextError } = useProjectDetails();
-	const { context } = useResolvedContext();
 	const [repositories, setRepositories] = useState<Repository[]>([]);
 	const [baselineRepositories, setBaselineRepositories] = useState<Repository[]>([]);
 	const [isSaving, setIsSaving] = useState(false);
-	const [flags, setFlags] = useState<AppFlag[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const cloudId = context?.cloudId || null;
-
-	const projectKey = project.key;
+	const projectIdOrKey = project.id ?? project.key;
 	const projectName = project.name;
 	const projectIconUrl = project.iconUrl;
 
 	const addFlag = useCallback(
-		(title: string, description: string | undefined, type: AppFlag['type']) => {
-			const id = `flag-${Date.now()}`;
-			setFlags((prev) => [...prev, { id, title, description, type }]);
-			setTimeout(() => setFlags((prev) => prev.filter((f) => f.id !== id)), 6000);
+		(title: string, description: string | undefined, type: 'error' | 'success' | 'info' | 'warning') => {
+			showFlag({
+				id: `project-config-${type}-${Date.now()}`,
+				title,
+				description,
+				type,
+				isAutoDismiss: true,
+			});
 		},
 		[],
 	);
 
-	const removeFlag = useCallback((id: string | number) => {
-		setFlags((prev) => prev.filter((f) => f.id !== String(id)));
-	}, []);
+	useEffect(() => {
+		if (!contextError) {
+			return;
+		}
+
+		addFlag('Failed to load project context', contextError, 'error');
+	}, [contextError, addFlag]);
 
 	const handleAddRepository = (repo: RepositoryResult) => {
 		if (repositories.some((r) => r.url === repo.url)) {
@@ -157,12 +149,12 @@ export function ProjectConfigPage() {
 		let isMounted = true;
 
 		async function loadBaselineRepositories() {
-			if (!cloudId) {
+			if (!projectIdOrKey) {
 				return;
 			}
 
 			try {
-				const loaded = (await invoke('getProjectRepositories')) as Repository[];
+				const loaded = (await invoke('getProjectRepositories', { projectIdOrKey })) as Repository[];
 				if (!isMounted || !Array.isArray(loaded)) {
 					return;
 				}
@@ -187,13 +179,12 @@ export function ProjectConfigPage() {
 		return () => {
 			isMounted = false;
 		};
-	}, [cloudId, addFlag]);
+	}, [projectIdOrKey, addFlag]);
 
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
-			if (!projectKey) throw new Error('Project key not found in context.');
-			if (!cloudId) throw new Error('Cloud ID is missing from Forge context.');
+			if (!projectIdOrKey) throw new Error('Project context was not found.');
 
 			// Calculate added and removed repos
 			const currentSelectedByUrl = new Map(repositories.filter((r) => r.selected).map((r) => [r.url, r]));
@@ -206,7 +197,7 @@ export function ProjectConfigPage() {
 				.filter(([url]) => !currentSelectedByUrl.has(url))
 				.map(([, repo]) => repo);
 
-			await invoke('saveProjectRepositories', { added, removed, projectKey });
+			await invoke('saveProjectRepositories', { repositories, projectIdOrKey });
 			setBaselineRepositories(repositories);
 			addFlag(
 				'Configuration Saved',
@@ -233,39 +224,8 @@ export function ProjectConfigPage() {
 
 	return (
 		<>
-			<div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif' }}>
-				<FlagGroup onDismissed={removeFlag}>
-					{flags.map((flag) => (
-					<Flag
-						key={flag.id}
-						id={flag.id}
-						icon={
-							flag.type === 'error' ? (
-								<ErrorIcon label="Error" primaryColor="red" />
-							) : flag.type === 'success' ? (
-								<SuccessIcon label="Success" primaryColor="green" />
-							) : (
-								<InfoIcon label="Info" primaryColor="blue" />
-							)
-						}
-						title={flag.title}
-						description={flag.description}
-					/>
-					))}
-				</FlagGroup>
-			</div>
-
 			<Box xcss={containerStyles}>
 				<Box xcss={headingStyles}>Project Repository Configuration</Box>
-
-				{contextError && (
-					<Flag
-						id="context-error-flag"
-						icon={<ErrorIcon label="Error" primaryColor="red" />}
-						title="Failed to load project context"
-						description={contextError}
-					/>
-				)}
 
 				{projectName && (
 					<Box xcss={sectionStyles}>

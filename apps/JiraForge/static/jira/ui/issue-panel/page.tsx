@@ -1,129 +1,80 @@
-import React, { useState } from 'react';
-import { invoke } from '@forge/bridge';
-import Button from '@atlaskit/button';
+import React, { useCallback, useState } from 'react';
+import { showFlag } from '@forge/bridge';
+import Button from '@atlaskit/button/new';
+import SectionMessage from '@atlaskit/section-message';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
 import { useResolvedContext } from '../shared/useResolvedContext';
+import { useTaskLauncher } from './use-task-launcher';
+import { useRepositoryConfigManager } from './use-repository-config-manager';
+import { useIssuePanelTheme } from './use-issue-panel-theme';
+import { useContextErrorFlag } from './use-context-error-flag';
+import { useRepositoryConfigurationStatus } from './use-repository-configuration-status';
+import { useIssuePanelHandleStart } from './use-issue-panel-handle-start';
+
 import '@atlaskit/css-reset';
 
-type JiraIssuePayload = {
-	id: string;
-	key: string;
-	fields: {
-		summary: string;
-		description: unknown;
-		issuetype: {
-			id?: string;
-			name?: string;
-		} | null;
-	};
-};
+const REPOSITORY_NOT_CONFIGURED_MESSAGE =
+	'Ask your project admin to configure the code repository for this Jira project in OliverAI Project Settings.';
 
 const panelStyles = xcss({
 	padding: 'space.200',
 	alignItems: 'start',
-	fontFamily:
-		'var(--ds-font-family-body, "Atlassian Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif)',
 });
 
 const statusTextStyles = xcss({
 	color: 'color.text.success',
 });
 
-const errorTextStyles = xcss({
-	color: 'color.text.danger',
-});
-
-function normalizeIssueFromContext(context: any): JiraIssuePayload {
-	const issue = context?.extension?.issue ?? {};
-	const issueFields = issue?.fields ?? {};
-
-	const issueId = String(issue.id ?? issue.issueId ?? '').trim();
-	const issueKey = String(issue.key ?? '').trim();
-	const summary = String(issueFields.summary ?? issue.summary ?? issue.title ?? '').trim();
-	const description = issueFields.description ?? issue.description ?? null;
-
-	const issueType = issueFields.issuetype ?? issue.issuetype ?? null;
-
-	if (!issueId || !issueKey || !summary) {
-		throw new Error('Missing issue details in Forge context. Expected issue id, key, and summary.');
-	}
-
-	return {
-		id: issueId,
-		key: issueKey,
-		fields: {
-			summary,
-			description,
-			issuetype: issueType
-				? {
-					id: issueType.id,
-					name: issueType.name,
-				}
-				: null,
-		},
-	};
-}
-
-function resolveRepoUrlFromContext(context: any): string {
-	const extension = context?.extension ?? {};
-	const issue = extension?.issue ?? {};
-	const fields = issue?.fields ?? {};
-
-	const candidates = [
-		extension.repoUrl,
-		extension.repositoryUrl,
-		issue.repoUrl,
-		issue.repositoryUrl,
-		fields.repoUrl,
-		fields.repositoryUrl,
-		fields.customfield_repoUrl,
-		fields.customfield_repositoryUrl,
-	];
-
-	for (const value of candidates) {
-		if (typeof value === 'string' && value.trim()) {
-			return value.trim();
-		}
-	}
-
-	throw new Error('Missing repoUrl in Forge context. Configure a repository URL on the issue context before starting development.');
-}
-
 export function IssuePanelPage() {
 	const { context, isLoading: isContextLoading, error: contextError } = useResolvedContext();
+	const taskLauncher = useTaskLauncher();
+	const repositoryConfigManager = useRepositoryConfigManager();
 	const [isStarting, setIsStarting] = useState(false);
 	const [status, setStatus] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [isRepositoryConfigured, setIsRepositoryConfigured] = useState<boolean | null>(null);
 
-	async function handleStart() {
-		setIsStarting(true);
-		setStatus(null);
-		setError(null);
+	const showErrorFlag = useCallback((message: string) => {
+		showFlag({
+			id: `issue-panel-error-${Date.now()}`,
+			title: 'Operation failed',
+			description: message,
+			type: 'error',
+			isAutoDismiss: true,
+		});
+	}, []);
 
-		try {
-			if (!context) {
-				throw new Error(contextError || 'Forge context has not been resolved yet.');
-			}
+	useIssuePanelTheme();
+	useContextErrorFlag(contextError, showErrorFlag);
+	useRepositoryConfigurationStatus({
+		context,
+		isContextLoading,
+		contextError,
+		repositoryConfigManager,
+		setIsRepositoryConfigured,
+		showErrorFlag,
+	});
 
-			const issue = normalizeIssueFromContext(context);
-			const repoUrl = resolveRepoUrlFromContext(context);
-
-			await invoke('startTaskDevelopment', {
-				repoUrl,
-				webhookEvent: 'jira:issue_created',
-				issue,
-			});
-
-			setStatus('Task started successfully.');
-		} catch (e: any) {
-			setError(e?.message || 'Failed to start task development.');
-		} finally {
-			setIsStarting(false);
-		}
-	}
+	const handleStart = useIssuePanelHandleStart({
+		context,
+		contextError,
+		taskLauncher,
+		repositoryConfigManager,
+		setIsStarting,
+		setStatus,
+		setIsRepositoryConfigured,
+		showErrorFlag,
+	});
 
 	return (
 		<Flex direction="column" gap="space.100" xcss={panelStyles}>
+			{isRepositoryConfigured === false && (
+				<Box style={{ width: '100%' }}>
+					<SectionMessage title="Repository not configured" appearance="warning">
+						{REPOSITORY_NOT_CONFIGURED_MESSAGE}
+					</SectionMessage>
+				</Box>
+			)}
+
 			<Button
 				appearance="primary"
 				onClick={handleStart}
@@ -133,20 +84,10 @@ export function IssuePanelPage() {
 			</Button>
 
 			{isContextLoading && <Box as="p">Resolving issue context...</Box>}
-			{contextError && (
-				<Box as="p" xcss={errorTextStyles}>
-					{contextError}
-				</Box>
-			)}
 
 			{status && (
 				<Box as="p" xcss={statusTextStyles}>
 					{status}
-				</Box>
-			)}
-			{error && (
-				<Box as="p" xcss={errorTextStyles}>
-					{error}
 				</Box>
 			)}
 		</Flex>

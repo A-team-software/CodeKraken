@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setGlobalTheme } from "@atlaskit/tokens";
 import { toggleTheme } from "./features/themeSlice";
@@ -21,13 +21,12 @@ import {
   setTaskInput,
 } from "./features/taskSlice";
 import { fetchConfig, updateConfig } from "./features/configSlice";
-import { invoke, router } from "@forge/bridge";
+import { invoke, router, showFlag } from "@forge/bridge";
 
 import Button from "@atlaskit/button";
 import LoadingButton from "@atlaskit/button/loading-button";
 import Heading from "@atlaskit/heading";
 import Lozenge from "@atlaskit/lozenge";
-import SectionMessage from "@atlaskit/section-message";
 import Spinner from "@atlaskit/spinner";
 import Select from "@atlaskit/select";
 import Textfield from "@atlaskit/textfield";
@@ -74,6 +73,27 @@ export default function App() {
   } = useSelector((state: RootState) => state.config);
 
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const lastFlagByKeyRef = useRef<Record<string, string | null>>({});
+
+  const notify = (
+    key: string,
+    title: string,
+    description: string,
+    type: "info" | "success" | "warning" | "error",
+  ) => {
+    const normalized = String(description || "").trim();
+    if (!normalized) return;
+    if (lastFlagByKeyRef.current[key] === normalized) return;
+
+    lastFlagByKeyRef.current[key] = normalized;
+    showFlag({
+      id: `admin-${key}-${Date.now()}`,
+      title,
+      description: normalized,
+      type,
+      isAutoDismiss: true,
+    });
+  };
 
   useEffect(() => {
     setGlobalTheme({
@@ -146,6 +166,41 @@ export default function App() {
       clearTimeout(timeoutId);
     };
   }, [connecting, provider, dispatch]);
+
+  useEffect(() => {
+    if (!gitError) return;
+    notify("git-error", "Git Error", gitError, "error");
+  }, [gitError]);
+
+  useEffect(() => {
+    if (!configError) return;
+    notify("config-error", "Configuration Error", configError, "error");
+  }, [configError]);
+
+  useEffect(() => {
+    if (!taskError) return;
+    notify("task-error", "Task Operation Failed", taskError, "error");
+  }, [taskError]);
+
+  useEffect(() => {
+    if (!warning) return;
+    notify("task-warning", "Note", warning, "warning");
+  }, [warning]);
+
+  useEffect(() => {
+    if (!gitSuccess) return;
+    notify("git-success", "Success", gitSuccess, "success");
+  }, [gitSuccess]);
+
+  useEffect(() => {
+    if (!configSuccess) return;
+    notify("config-success", "Success", configSuccess, "success");
+  }, [configSuccess]);
+
+  useEffect(() => {
+    if (!taskSuccess) return;
+    notify("task-success", "Success", taskSuccess, "success");
+  }, [taskSuccess]);
 
   async function handleConnectGit(targetProvider: string) {
     dispatch(setProvider(targetProvider));
@@ -473,50 +528,6 @@ export default function App() {
                 </div>
               </div>
             </>
-          )}
-
-          {gitError && (
-            <SectionMessage title="Git Error" appearance="error">
-              {gitError}
-            </SectionMessage>
-          )}
-
-          {configError && (
-            <SectionMessage title="Configuration Error" appearance="error">
-              {configError}
-            </SectionMessage>
-          )}
-
-          {taskError && (
-            <SectionMessage title="Task Operation Failed" appearance="error">
-              {taskError}
-            </SectionMessage>
-          )}
-
-          {warning && (
-            <SectionMessage title="Note" appearance="warning">
-              {warning}
-            </SectionMessage>
-          )}
-
-          {(gitSuccess || taskSuccess || configSuccess) && (
-            <SectionMessage title="Success" appearance="success">
-              {gitSuccess && (
-                <div
-                  style={{
-                    marginBottom: taskSuccess || configSuccess ? "4px" : "0",
-                  }}
-                >
-                  {gitSuccess}
-                </div>
-              )}
-              {configSuccess && (
-                <div style={{ marginBottom: taskSuccess ? "4px" : "0" }}>
-                  {configSuccess}
-                </div>
-              )}
-              {taskSuccess && <div>{taskSuccess}</div>}
-            </SectionMessage>
           )}
 
           {result && (

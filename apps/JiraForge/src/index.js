@@ -3,6 +3,7 @@ import api, { invokeRemote, route } from '@forge/api';
 
 const resolver = new Resolver();
 const REMOTE_KEY = 'oliver-server';
+const PROJECT_REPOSITORIES_PROPERTY_KEY = 'oliverai.project.repositories';
 
 // ─── AUTH BOUNDARY (New Arch) ────────────────────────────────────────────────
 /**
@@ -302,11 +303,43 @@ resolver.define('getProjectDetails', async ({ payload }) => {
   }
 });
 
-function sourceToProvider(source) {
-  if (source === 'github') return 'GITHUB';
-  if (source === 'bitbucket') return 'BITBUCKET';
-  return null;
-}
+resolver.define('getIssueDetails', async ({ payload }) => {
+  const issueIdOrKey = payload?.issueIdOrKey;
+
+  if (!issueIdOrKey) {
+    throw new Error('issueIdOrKey is required');
+  }
+
+  try {
+    const response = await api.asApp().requestJira(route`/rest/api/3/issue/${String(issueIdOrKey)}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch issue details: ${response.status} ${errorText}`);
+    }
+
+    const issue = await response.json();
+    const issueType = issue?.fields?.issuetype ?? null;
+
+    return {
+      id: issue?.id ? String(issue.id) : null,
+      key: issue?.key ? String(issue.key) : null,
+      fields: {
+        summary: String(issue?.fields?.summary || '').trim(),
+        description: issue?.fields?.description ?? null,
+        issuetype: issueType
+          ? {
+              id: issueType.id,
+              name: issueType.name,
+            }
+          : null,
+      },
+    };
+  } catch (error) {
+    console.error(`[getIssueDetails] Exception: ${error?.message || error}`);
+    throw error;
+  }
+});
 
 function parseRepoId(repo) {
   if (repo?.repoId) return String(repo.repoId);
@@ -318,64 +351,125 @@ function parseRepoId(repo) {
   return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
 }
 
-resolver.define('getProjectRepositories', async ({ context }) => {
-  const cloudId = context?.cloudId;
-  if (!cloudId) throw new Error('Missing cloudId');
+function resolveProjectIdOrKey(context, payload) {
+  const fromPayload = payload?.projectIdOrKey;
+  if (fromPayload) return String(fromPayload);
 
-  const response = await backendFetch(`/api/sites/${encodeURIComponent(cloudId)}/repositories`, { context });
-  const repos = response?.repos || [];
-  return repos.map((repo) => {
-    const provider = String(repo?.provider || '').toLowerCase();
-    const source = provider === 'github' ? 'github' : provider === 'bitbucket' ? 'bitbucket' : 'github';
-    return {
-      id: parseRepoId(repo),
-      name: repo?.repoFullName || parseRepoId(repo),
-      url: repo?.htmlUrl || '',
-      source,
-      selected: true,
-    };
-  });
+  const contextProject = context?.extension?.project;
+  if (contextProject?.id) return String(contextProject.id);
+  if (contextProject?.key) return String(contextProject.key);
+
+  throw new Error('Missing project context. Expected project id or key.');
+}
+
+function normalizeRepositoryEntry(repo) {
+  const id = parseRepoId(repo);
+  const name = String(repo?.name || id || '').trim();
+  const url = String(repo?.url || '').trim();
+  const source = String(repo?.source || '').toLowerCase();
+  const selected = repo?.selected !== false;
+
+  if (!id || !name || !url || !source) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    url,
+    source,
+    selected,
+  };
+}
+
+async function getProjectRepositoriesProperty(projectIdOrKey) {
+  const response = await api
+    .asApp()
+    .requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}/properties/${PROJECT_REPOSITORIES_PROPERTY_KEY}`);
+
+  if (response.status === 404) {
+    return [];
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to load project repositories: ${response.status} ${errorText}`);
+  }
+
+  const property = await response.json();
+  const repos = Array.isArray(property?.value?.repositories)
+    ? property.value.repositories
+    : Array.isArray(property?.value)
+      ? property.value
+      : [];
+
+  return repos
+    .map((repo) => normalizeRepositoryEntry(repo))
+    .filter(Boolean);
+}
+
+async function putProjectRepositoriesProperty(projectIdOrKey, repositories) {
+  const response = await api
+    .asApp()
+    .requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}/properties/${PROJECT_REPOSITORIES_PROPERTY_KEY}`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ repositories }),
+    });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to save project repositories: ${response.status} ${errorText}`);
+  }
+}
+
+resolver.define('getProjectRepositories', async ({ payload, context }) => {
+  const projectIdOrKey = resolveProjectIdOrKey(context, payload);
+  return await getProjectRepositoriesProperty(projectIdOrKey);
 });
 
 resolver.define('saveProjectRepositories', async ({ payload, context }) => {
-  const cloudId = context?.cloudId;
-  if (!cloudId) throw new Error('Missing cloudId');
+  const projectIdOrKey = resolveProjectIdOrKey(context, payload);
 
-  const added = Array.isArray(payload?.added) ? payload.added : [];
-  const removed = Array.isArray(payload?.removed) ? payload.removed : [];
+  const repositoriesFromPayload = Array.isArray(payload?.repositories)
+    ? payload.repositories
+    : null;
 
-  const results = { added: 0, removed: 0 };
+  let repositoriesToSave = [];
 
-  for (const repo of added) {
-    const provider = sourceToProvider(repo?.source);
-    if (!provider) continue;
-    const repoId = parseRepoId(repo);
-    const repoFullName = repo?.name || repoId;
-    const htmlUrl = repo?.url;
-    if (!repoId || !repoFullName || !htmlUrl) continue;
+  if (repositoriesFromPayload) {
+    repositoriesToSave = repositoriesFromPayload
+      .map((repo) => normalizeRepositoryEntry(repo))
+      .filter(Boolean);
+  } else {
+    const existing = await getProjectRepositoriesProperty(projectIdOrKey);
+    const existingByUrl = new Map(existing.map((repo) => [repo.url, repo]));
 
-    await backendFetch(`/api/sites/${encodeURIComponent(cloudId)}/repositories`, {
-      method: 'POST',
-      body: { repoId, repoFullName, provider, htmlUrl },
-      context,
-    });
-    results.added += 1;
+    const added = Array.isArray(payload?.added) ? payload.added : [];
+    const removed = Array.isArray(payload?.removed) ? payload.removed : [];
+
+    for (const repo of added) {
+      const normalized = normalizeRepositoryEntry(repo);
+      if (normalized) {
+        existingByUrl.set(normalized.url, normalized);
+      }
+    }
+
+    for (const repo of removed) {
+      const url = String(repo?.url || '').trim();
+      if (url) {
+        existingByUrl.delete(url);
+      }
+    }
+
+    repositoriesToSave = Array.from(existingByUrl.values());
   }
 
-  for (const repo of removed) {
-    const provider = sourceToProvider(repo?.source);
-    if (!provider) continue;
-    const repoId = parseRepoId(repo);
-    if (!repoId) continue;
-
-    await backendFetch(
-      `/api/sites/${encodeURIComponent(cloudId)}/repositories/${encodeURIComponent(provider)}/${encodeURIComponent(repoId)}`,
-      { method: 'DELETE', context }
-    );
-    results.removed += 1;
-  }
-
-  return results;
+  await putProjectRepositoriesProperty(projectIdOrKey, repositoriesToSave);
+  return { saved: repositoriesToSave.length };
 });
 
 export const handler = resolver.getDefinitions();
