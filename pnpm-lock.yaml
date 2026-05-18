@@ -33,15 +33,12 @@ importers:
 
   apps/JiraForge:
     dependencies:
-      '@compiled/react':
-        specifier: ^0.21.1
-        version: 0.21.1(react@18.3.1)
       '@forge/api':
         specifier: 7.0.2
         version: 7.0.2
       '@forge/bridge':
         specifier: 5.13.0
-        version: 5.13.0(@types/react@18.3.28)(react@18.3.1)
+        version: 5.13.0(@types/react@19.2.14)(react@18.3.1)
       '@forge/resolver':
         specifier: 1.7.1
         version: 1.7.1
@@ -51,9 +48,6 @@ importers:
       react:
         specifier: ^18.2.0
         version: 18.3.1
-      react-intl:
-        specifier: ^6.0.0
-        version: 6.8.9(react@18.3.1)(typescript@5.9.3)
     devDependencies:
       concurrently:
         specifier: ^9.1.2
@@ -1450,35 +1444,6 @@ packages:
   '@forge/storage@2.0.3':
     resolution: {integrity: sha512-DvliHUgr9AYPslpFWBB4LufS8yzvJisqfpP+CCAwo76xBWNlXWFd3PRFA/DaZeGz+Vb4vmBYP7qFMqM1oijIrQ==}
 
-  '@formatjs/ecma402-abstract@2.2.4':
-    resolution: {integrity: sha512-lFyiQDVvSbQOpU+WFd//ILolGj4UgA/qXrKeZxdV14uKiAUiPAtX6XAn7WBCRi7Mx6I7EybM9E5yYn4BIpZWYg==}
-
-  '@formatjs/fast-memoize@2.2.3':
-    resolution: {integrity: sha512-3jeJ+HyOfu8osl3GNSL4vVHUuWFXR03Iz9jjgI7RwjG6ysu/Ymdr0JRCPHfF5yGbTE6JCrd63EpvX1/WybYRbA==}
-
-  '@formatjs/icu-messageformat-parser@2.9.4':
-    resolution: {integrity: sha512-Tbvp5a9IWuxUcpWNIW6GlMQYEc4rwNHR259uUFoKWNN1jM9obf9Ul0e+7r7MvFOBNcN+13K7NuKCKqQiAn1QEg==}
-
-  '@formatjs/icu-skeleton-parser@1.8.8':
-    resolution: {integrity: sha512-vHwK3piXwamFcx5YQdCdJxUQ1WdTl6ANclt5xba5zLGDv5Bsur7qz8AD7BevaKxITwpgDeU0u8My3AIibW9ywA==}
-
-  '@formatjs/intl-displaynames@6.8.5':
-    resolution: {integrity: sha512-85b+GdAKCsleS6cqVxf/Aw/uBd+20EM0wDpgaxzHo3RIR3bxF4xCJqH/Grbzx8CXurTgDDZHPdPdwJC+May41w==}
-
-  '@formatjs/intl-listformat@7.7.5':
-    resolution: {integrity: sha512-Wzes10SMNeYgnxYiKsda4rnHP3Q3II4XT2tZyOgnH5fWuHDtIkceuWlRQNsvrI3uiwP4hLqp2XdQTCsfkhXulg==}
-
-  '@formatjs/intl-localematcher@0.5.8':
-    resolution: {integrity: sha512-I+WDNWWJFZie+jkfkiK5Mp4hEDyRSEvmyfYadflOno/mmKJKcB17fEpEH0oJu/OWhhCJ8kJBDz2YMd/6cDl7Mg==}
-
-  '@formatjs/intl@2.10.15':
-    resolution: {integrity: sha512-i6+xVqT+6KCz7nBfk4ybMXmbKO36tKvbMKtgFz9KV+8idYFyFbfwKooYk8kGjyA5+T5f1kEPQM5IDLXucTAQ9g==}
-    peerDependencies:
-      typescript: ^4.7 || 5
-    peerDependenciesMeta:
-      typescript:
-        optional: true
-
   '@google/genai@1.48.0':
     resolution: {integrity: sha512-plonYK4ML2PrxsRD9SeqmFt76eREWkQdPCglOA6aYDzL1AAbE+7PUnT54SvpWGfws13L0AZEqGSpL7+1IPnTxQ==}
     engines: {node: '>=20.0.0'}
@@ -2173,11 +2138,6 @@ packages:
 
   '@types/history@4.7.11':
     resolution: {integrity: sha512-qjDJRrmvBMiTx+jyLxvLfJU7UznFuokDv4f3WRuriHKERccVpFU+8XMQUAbDzoiJCsmexxRExQeMwwCdamSKDA==}
-
-  '@types/hoist-non-react-statics@3.3.7':
-    resolution: {integrity: sha512-PQTyIulDkIDro8P+IHbKCsw7U2xxBYflVzW/FgWdCAePD9xGSidgA76/GeJ6lBKoblyhf9pBY763gbrN+1dI8g==}
-    peerDependencies:
-      '@types/react': '*'
 
   '@types/iframe-resizer@3.5.13':
     resolution: {integrity: sha512-/Np2ntlOWd/NOHs23Mj7QlNEnZ6SL02AWWdYZLm4RQNukDdpqpagfMAdin5FvQDLngR8LWfh/qUnYxuDmR8BCg==}
@@ -3108,9 +3068,6 @@ packages:
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
 
-  intl-messageformat@10.7.7:
-    resolution: {integrity: sha512-F134jIoeYMro/3I0h08D0Yt4N9o9pjddU/4IIxMMURqbAtI2wu70X8hvG1V48W49zXHXv3RKSF/po+0fDfsGjA==}
-
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
@@ -3853,15 +3810,6 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
-        optional: true
-
-  react-intl@6.8.9:
-    resolution: {integrity: sha512-TUfj5E7lyUDvz/GtovC9OMh441kBr08rtIbgh3p0R8iF3hVY+V2W9Am7rb8BpJ/29BH1utJOqOOhmvEVh3GfZg==}
-    peerDependencies:
-      react: ^16.6.0 || 17 || 18
-      typescript: ^4.7 || 5
-    peerDependenciesMeta:
-      typescript:
         optional: true
 
   react-is@16.13.1:
@@ -4895,6 +4843,16 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
+  '@atlaskit/ds-lib@2.7.0(@types/react@19.2.14)(react@18.3.1)':
+    dependencies:
+      '@atlaskit/platform-feature-flags': 0.3.0
+      '@babel/runtime': 7.29.2
+      bind-event-listener: 3.0.0
+      react: 18.3.1
+      react-uid: 2.4.0(@types/react@19.2.14)(react@18.3.1)
+    transitivePeerDependencies:
+      - '@types/react'
+
   '@atlaskit/ds-lib@3.5.1(@types/react@18.3.28)(react@18.3.1)':
     dependencies:
       '@atlaskit/platform-feature-flags': 1.1.3(react@18.3.1)
@@ -5540,6 +5498,19 @@ snapshots:
       - '@types/react'
       - supports-color
 
+  '@atlaskit/tokens@1.61.0(@types/react@19.2.14)(react@18.3.1)':
+    dependencies:
+      '@atlaskit/ds-lib': 2.7.0(@types/react@19.2.14)(react@18.3.1)
+      '@atlaskit/platform-feature-flags': 0.3.0
+      '@babel/runtime': 7.29.2
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
+      bind-event-listener: 3.0.0
+      react: 18.3.1
+    transitivePeerDependencies:
+      - '@types/react'
+      - supports-color
+
   '@atlaskit/tokens@10.1.0(@types/react@18.3.28)(react@18.3.1)':
     dependencies:
       '@atlaskit/ds-lib': 5.4.0(@types/react@18.3.28)(react@18.3.1)
@@ -6128,6 +6099,24 @@ snapshots:
       - react
       - supports-color
 
+  '@forge/bridge@5.13.0(@types/react@19.2.14)(react@18.3.1)':
+    dependencies:
+      '@atlaskit/adf-schema': 48.0.0(react@18.3.1)
+      '@atlaskit/tokens': 1.61.0(@types/react@19.2.14)(react@18.3.1)
+      '@forge/egress': 2.3.2
+      '@forge/i18n': 0.0.7
+      '@forge/manifest': 12.1.1
+      '@forge/resolver': 1.7.1
+      '@statsig/js-client': 3.18.2
+      '@types/history': 4.7.11
+      '@types/iframe-resizer': 3.5.13
+      iframe-resizer: 4.4.5
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - '@types/react'
+      - react
+      - supports-color
+
   '@forge/egress@2.3.1': {}
 
   '@forge/egress@2.3.2': {}
@@ -6163,55 +6152,6 @@ snapshots:
   '@forge/resolver@1.7.1': {}
 
   '@forge/storage@2.0.3': {}
-
-  '@formatjs/ecma402-abstract@2.2.4':
-    dependencies:
-      '@formatjs/fast-memoize': 2.2.3
-      '@formatjs/intl-localematcher': 0.5.8
-      tslib: 2.8.1
-
-  '@formatjs/fast-memoize@2.2.3':
-    dependencies:
-      tslib: 2.8.1
-
-  '@formatjs/icu-messageformat-parser@2.9.4':
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/icu-skeleton-parser': 1.8.8
-      tslib: 2.8.1
-
-  '@formatjs/icu-skeleton-parser@1.8.8':
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      tslib: 2.8.1
-
-  '@formatjs/intl-displaynames@6.8.5':
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/intl-localematcher': 0.5.8
-      tslib: 2.8.1
-
-  '@formatjs/intl-listformat@7.7.5':
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/intl-localematcher': 0.5.8
-      tslib: 2.8.1
-
-  '@formatjs/intl-localematcher@0.5.8':
-    dependencies:
-      tslib: 2.8.1
-
-  '@formatjs/intl@2.10.15(typescript@5.9.3)':
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/fast-memoize': 2.2.3
-      '@formatjs/icu-messageformat-parser': 2.9.4
-      '@formatjs/intl-displaynames': 6.8.5
-      '@formatjs/intl-listformat': 7.7.5
-      intl-messageformat: 10.7.7
-      tslib: 2.8.1
-    optionalDependencies:
-      typescript: 5.9.3
 
   '@google/genai@1.48.0':
     dependencies:
@@ -6721,11 +6661,6 @@ snapshots:
   '@types/estree@1.0.8': {}
 
   '@types/history@4.7.11': {}
-
-  '@types/hoist-non-react-statics@3.3.7(@types/react@18.3.28)':
-    dependencies:
-      '@types/react': 18.3.28
-      hoist-non-react-statics: 3.3.2
 
   '@types/iframe-resizer@3.5.13': {}
 
@@ -7770,13 +7705,6 @@ snapshots:
 
   inherits@2.0.4: {}
 
-  intl-messageformat@10.7.7:
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/fast-memoize': 2.2.3
-      '@formatjs/icu-messageformat-parser': 2.9.4
-      tslib: 2.8.1
-
   is-arrayish@0.2.1: {}
 
   is-binary-path@2.1.0:
@@ -8467,22 +8395,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.28
 
-  react-intl@6.8.9(react@18.3.1)(typescript@5.9.3):
-    dependencies:
-      '@formatjs/ecma402-abstract': 2.2.4
-      '@formatjs/icu-messageformat-parser': 2.9.4
-      '@formatjs/intl': 2.10.15(typescript@5.9.3)
-      '@formatjs/intl-displaynames': 6.8.5
-      '@formatjs/intl-listformat': 7.7.5
-      '@types/hoist-non-react-statics': 3.3.7(@types/react@18.3.28)
-      '@types/react': 18.3.28
-      hoist-non-react-statics: 3.3.2
-      intl-messageformat: 10.7.7
-      react: 18.3.1
-      tslib: 2.8.1
-    optionalDependencies:
-      typescript: 5.9.3
-
   react-is@16.13.1: {}
 
   react-popper@2.3.0(@popperjs/core@2.11.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
@@ -8510,6 +8422,13 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 18.3.28
+
+  react-uid@2.4.0(@types/react@19.2.14)(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      tslib: 2.8.1
+    optionalDependencies:
+      '@types/react': 19.2.14
 
   react@18.3.1:
     dependencies:

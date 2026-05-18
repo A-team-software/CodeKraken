@@ -1,7 +1,7 @@
 import { JiraIssueDescription, TaskLauncher } from './task-launcher';
 import { RemoteTaskLauncher } from './remote-task-launcher';
 
-export const DEFAULT_FIBONNACY_REPOSITORY_URLS = ['https://github.com/hervinhio/fibonacci'];
+export const DEFAULT_FIBONACCI_REPOSITORY_URLS = ['https://github.com/hervinhio/fibonacci'];
 
 type InvokeFunction = (functionName: string, payload?: Record<string, unknown>) => Promise<unknown>;
 
@@ -22,7 +22,7 @@ export class MockTaskLauncher implements TaskLauncher {
 
 	constructor(
 		private readonly deps: MockTaskLauncherDeps,
-		private readonly defaultTargetRepositoryUrls: string[] = DEFAULT_FIBONNACY_REPOSITORY_URLS
+		private readonly defaultTargetRepositoryUrls: string[] = DEFAULT_FIBONACCI_REPOSITORY_URLS
 	) {
 		this.remoteLauncher = new RemoteTaskLauncher(deps);
 	}

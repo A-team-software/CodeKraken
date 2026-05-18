@@ -1,8 +1,8 @@
 import { RepositoryConfigManager } from './repository-config-manager';
 import { Repository } from './repository-config-manager';
-import { DEFAULT_FIBONNACY_REPOSITORY_URLS } from './mock-task-launcher';
+import { DEFAULT_FIBONACCI_REPOSITORY_URLS } from './mock-task-launcher';
 
-const DEFAULT_MOCK_REPOSITORIES: Repository[] = DEFAULT_FIBONNACY_REPOSITORY_URLS.map((url, index) => ({
+const DEFAULT_MOCK_REPOSITORIES: Repository[] = DEFAULT_FIBONACCI_REPOSITORY_URLS.map((url, index) => ({
 	id: `mock-repository-${index + 1}`,
 	name: `mock-repository-${index + 1}`,
 	url,
