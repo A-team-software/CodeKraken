@@ -8,7 +8,6 @@ import SuccessIcon from '@atlaskit/icon/glyph/check-circle';
 import InfoIcon from '@atlaskit/icon/glyph/info';
 import '@atlaskit/css-reset';
 import { useProjectDetails } from '../shared/useProjectDetails';
-import { useResolvedContext } from '../shared/useResolvedContext';
 import { RepositoryResult } from './repository-finder';
 import { RepositoryAutocomplete } from './repository-autocomplete';
 import { RepositoryList, Repository, PAGE_SIZE } from './repository-list';
@@ -103,16 +102,13 @@ type AppFlag = {
 
 export function ProjectConfigPage() {
 	const { project, isLoading: isContextLoading, error: contextError } = useProjectDetails();
-	const { context } = useResolvedContext();
 	const [repositories, setRepositories] = useState<Repository[]>([]);
 	const [baselineRepositories, setBaselineRepositories] = useState<Repository[]>([]);
 	const [isSaving, setIsSaving] = useState(false);
 	const [flags, setFlags] = useState<AppFlag[]>([]);
 	const [currentPage, setCurrentPage] = useState(1);
 
-	const cloudId = context?.cloudId || null;
-
-	const projectKey = project.key;
+	const projectIdOrKey = project.id ?? project.key;
 	const projectName = project.name;
 	const projectIconUrl = project.iconUrl;
 
@@ -157,12 +153,12 @@ export function ProjectConfigPage() {
 		let isMounted = true;
 
 		async function loadBaselineRepositories() {
-			if (!cloudId) {
+			if (!projectIdOrKey) {
 				return;
 			}
 
 			try {
-				const loaded = (await invoke('getProjectRepositories')) as Repository[];
+				const loaded = (await invoke('getProjectRepositories', { projectIdOrKey })) as Repository[];
 				if (!isMounted || !Array.isArray(loaded)) {
 					return;
 				}
@@ -187,13 +183,12 @@ export function ProjectConfigPage() {
 		return () => {
 			isMounted = false;
 		};
-	}, [cloudId, addFlag]);
+	}, [projectIdOrKey, addFlag]);
 
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
-			if (!projectKey) throw new Error('Project key not found in context.');
-			if (!cloudId) throw new Error('Cloud ID is missing from Forge context.');
+			if (!projectIdOrKey) throw new Error('Project context was not found.');
 
 			// Calculate added and removed repos
 			const currentSelectedByUrl = new Map(repositories.filter((r) => r.selected).map((r) => [r.url, r]));
@@ -206,7 +201,7 @@ export function ProjectConfigPage() {
 				.filter(([url]) => !currentSelectedByUrl.has(url))
 				.map(([, repo]) => repo);
 
-			await invoke('saveProjectRepositories', { added, removed, projectKey });
+			await invoke('saveProjectRepositories', { repositories, projectIdOrKey });
 			setBaselineRepositories(repositories);
 			addFlag(
 				'Configuration Saved',

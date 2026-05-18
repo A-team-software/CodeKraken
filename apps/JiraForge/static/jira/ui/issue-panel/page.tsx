@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
-import { invoke } from '@forge/bridge';
-import Button from '@atlaskit/button';
+import React, { useEffect, useState } from 'react';
+import { invoke, showFlag } from '@forge/bridge';
+import Button from '@atlaskit/button/new';
+import SectionMessage from '@atlaskit/section-message';
 import { Box, Flex, xcss } from '@atlaskit/primitives';
+import { setGlobalTheme } from '@atlaskit/tokens';
 import { useResolvedContext } from '../shared/useResolvedContext';
+
 import '@atlaskit/css-reset';
+
+type Repository = {
+	id: string;
+	name: string;
+	url: string;
+	source: string;
+	selected: boolean;
+};
+
+const REPOSITORY_NOT_CONFIGURED_MESSAGE =
+	'Ask your project admin to configure the code repository for this Jira project in OliverAI Project Settings.';
 
 type JiraIssuePayload = {
 	id: string;
@@ -21,8 +35,6 @@ type JiraIssuePayload = {
 const panelStyles = xcss({
 	padding: 'space.200',
 	alignItems: 'start',
-	fontFamily:
-		'var(--ds-font-family-body, "Atlassian Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif)',
 });
 
 const statusTextStyles = xcss({
@@ -64,29 +76,25 @@ function normalizeIssueFromContext(context: any): JiraIssuePayload {
 	};
 }
 
-function resolveRepoUrlFromContext(context: any): string {
-	const extension = context?.extension ?? {};
-	const issue = extension?.issue ?? {};
-	const fields = issue?.fields ?? {};
+function resolveProjectIdOrKeyFromContext(context: any): string {
+	const project = context?.extension?.project;
+	if (project?.id) return String(project.id);
+	if (project?.key) return String(project.key);
+	throw new Error('Missing project context. Could not resolve project id or key.');
+}
 
-	const candidates = [
-		extension.repoUrl,
-		extension.repositoryUrl,
-		issue.repoUrl,
-		issue.repositoryUrl,
-		fields.repoUrl,
-		fields.repositoryUrl,
-		fields.customfield_repoUrl,
-		fields.customfield_repositoryUrl,
-	];
-
-	for (const value of candidates) {
-		if (typeof value === 'string' && value.trim()) {
-			return value.trim();
-		}
+function resolveRepoUrlFromProjectRepositories(repositories: Repository[]): string {
+	const selected = repositories.find((repo) => repo?.selected !== false && typeof repo?.url === 'string' && repo.url.trim());
+	if (selected) {
+		return selected.url.trim();
 	}
 
-	throw new Error('Missing repoUrl in Forge context. Configure a repository URL on the issue context before starting development.');
+	const fallback = repositories.find((repo) => typeof repo?.url === 'string' && repo.url.trim());
+	if (fallback) {
+		return fallback.url.trim();
+	}
+
+	throw new Error('No repository URL found in project configuration.');
 }
 
 export function IssuePanelPage() {
@@ -94,6 +102,49 @@ export function IssuePanelPage() {
 	const [isStarting, setIsStarting] = useState(false);
 	const [status, setStatus] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [isRepositoryConfigured, setIsRepositoryConfigured] = useState<boolean | null>(null);
+
+	useEffect(() => {
+		setGlobalTheme({ colorMode: 'light', dark: 'dark', light: 'light', spacing: 'spacing' });
+	}, []);
+
+	useEffect(() => {
+		let isMounted = true;
+
+		async function loadRepositoryConfiguration() {
+			if (isContextLoading || contextError) {
+				return;
+			}
+
+			if (!context) {
+				setIsRepositoryConfigured(null);
+				return;
+			}
+
+			try {
+				const projectIdOrKey = resolveProjectIdOrKeyFromContext(context);
+				const configuredRepositories = (await invoke('getProjectRepositories', { projectIdOrKey })) as Repository[];
+
+				if (!isMounted) {
+					return;
+				}
+
+				setIsRepositoryConfigured(Array.isArray(configuredRepositories) && configuredRepositories.length > 0);
+			} catch {
+				if (!isMounted) {
+					return;
+				}
+
+				setIsRepositoryConfigured(null);
+			}
+		}
+
+		loadRepositoryConfiguration();
+
+		return () => {
+			isMounted = false;
+		};
+	}, [context, isContextLoading, contextError]);
 
 	async function handleStart() {
 		setIsStarting(true);
@@ -105,8 +156,24 @@ export function IssuePanelPage() {
 				throw new Error(contextError || 'Forge context has not been resolved yet.');
 			}
 
+			const projectIdOrKey = resolveProjectIdOrKeyFromContext(context);
+			const configuredRepositories = (await invoke('getProjectRepositories', { projectIdOrKey })) as Repository[];
+			if (!Array.isArray(configuredRepositories) || configuredRepositories.length === 0) {
+				showFlag({
+					id: `repository-not-configured-${projectIdOrKey}`,
+					title: 'Repository not configured',
+					description: REPOSITORY_NOT_CONFIGURED_MESSAGE,
+					type: 'warning',
+					isAutoDismiss: true,
+				});
+				setIsRepositoryConfigured(false);
+				return;
+			}
+
+			setIsRepositoryConfigured(true);
+
 			const issue = normalizeIssueFromContext(context);
-			const repoUrl = resolveRepoUrlFromContext(context);
+			const repoUrl = resolveRepoUrlFromProjectRepositories(configuredRepositories);
 
 			await invoke('startTaskDevelopment', {
 				repoUrl,
@@ -124,6 +191,14 @@ export function IssuePanelPage() {
 
 	return (
 		<Flex direction="column" gap="space.100" xcss={panelStyles}>
+			{isRepositoryConfigured === false && (
+				<Box style={{ width: '100%' }}>
+					<SectionMessage title="Repository not configured" appearance="warning">
+						{REPOSITORY_NOT_CONFIGURED_MESSAGE}
+					</SectionMessage>
+				</Box>
+			)}
+
 			<Button
 				appearance="primary"
 				onClick={handleStart}
