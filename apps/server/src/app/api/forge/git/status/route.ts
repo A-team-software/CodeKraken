@@ -18,20 +18,6 @@ export const POST = wrapRoute({
         provider: z.string().optional()
     }).passthrough()
 }, async (request, ctx) => {
-    // ── Bearer auth ────────────────────────────────────────────────────────
-    const authHeader = request.headers.get('authorization') ?? '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-    const expectedSecret =
-        process.env.API_SECRET ??
-        (process.env.FORGE_APP_ID?.includes('/')
-            ? process.env.FORGE_APP_ID.split('/').pop()
-            : undefined);
-
-    if (!expectedSecret || token !== expectedSecret) {
-        return ApiRes.unauthorized('Unauthorized');
-    }
-
     // ── Parse body ────────────────────────────────────────────────────────
     const safeBody = ctx.body || {};
     const accountId: string | undefined = safeBody.accountId;
@@ -85,9 +71,9 @@ export const POST = wrapRoute({
     }
 
     // Success Case: Fully connected
-    return {
+    return ApiRes.success({
         connected: true,
         provider: oauthToken.provider,
         scope: oauthToken.scope ?? null,
-    };
+    });
 });

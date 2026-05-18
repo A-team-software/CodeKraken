@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { MongoOAuthTokenRepository } from '@oliver/auth';
 import { GetWorkspacesUseCase } from '@oliver/git';
 import { Logger, SafeExecute } from '@oliver/core';
@@ -10,19 +9,6 @@ import { z } from 'zod';
 export const GET = wrapRoute({
     querySchema: z.object({ provider: z.string() })
 }, async (request, ctx) => {
-    const authHeader = request.headers.get('authorization') ?? '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-    const expectedSecret =
-        process.env.API_SECRET ??
-        (process.env.FORGE_APP_ID?.includes('/')
-            ? process.env.FORGE_APP_ID.split('/').pop()
-            : undefined);
-
-    if (!expectedSecret || token !== expectedSecret) {
-        return ApiRes.unauthorized('Unauthorized');
-    }
-
     const accountId = request.headers.get('x-forge-account-id');
     const cloudId = request.headers.get('x-forge-client-key');
 
@@ -84,5 +70,5 @@ export const GET = wrapRoute({
         );
     }
 
-    return { workspaces: workspaces ?? [] };
+    return ApiRes.success({ workspaces: workspaces ?? [] });
 });
