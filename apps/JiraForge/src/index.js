@@ -426,8 +426,8 @@ async function putProjectRepositoriesProperty(projectIdOrKey, repositories) {
   }
 }
 
-resolver.define('getProjectRepositories', async ({ context }) => {
-  const projectIdOrKey = resolveProjectIdOrKey(context);
+resolver.define('getProjectRepositories', async ({ payload, context }) => {
+  const projectIdOrKey = resolveProjectIdOrKey(context, payload);
   return await getProjectRepositoriesProperty(projectIdOrKey);
 });
 
