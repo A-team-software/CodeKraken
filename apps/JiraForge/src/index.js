@@ -35,10 +35,10 @@ resolver.define('getGitAuthUrl', async ({ payload, context }) => {
   const accountId = context?.accountId;
   const cloudId = context?.cloudId;
   if (!accountId || !cloudId) throw new Error('Missing accountId or cloudId');
-  
+
   return await backendFetch('/api/forge/git/auth-url', {
     method: 'POST',
-    body: { provider, accountId, cloudId },
+    body: { accountId, cloudId, provider },
     context
   });
 });
@@ -52,7 +52,7 @@ resolver.define('getGitStatus', async ({ payload, context }) => {
   if (!accountId || !cloudId) {
     throw new Error('Missing accountId or cloudId');
   }
-  
+
   try {
     return await backendFetch('/api/forge/git/status', {
       method: 'POST',
@@ -71,7 +71,7 @@ resolver.define('disconnect', async ({ payload, context }) => {
   const accountId = context?.accountId;
   const cloudId = context?.cloudId;
   if (!accountId || !cloudId) throw new Error('Missing accountId or cloudId');
-  
+
   return await backendFetch('/api/forge/git/disconnect', {
     method: 'POST',
     body: { provider, accountId, cloudId },
@@ -115,7 +115,18 @@ async function backendFetch(path, { method = 'GET', body, context } = {}) {
   const payload = isJson ? await res.json() : await res.text();
 
   if (!res.ok) {
-    throw new Error(isJson && payload.error ? payload.error : `Request failed: ${res.status}`);
+    // ApiRes error shape: { message: string, errorCode: string, code: number }
+    if (isJson && payload) {
+      const msg = payload.message || payload.error || `Request failed: ${res.status}`;
+      const code = payload.errorCode || 'UNKNOWN_ERROR';
+      throw new Error(`[${code}] ${msg}`);
+    }
+    throw new Error(`Request failed: ${res.status}`);
+  }
+
+  // Unwrap the ApiRes envelope: { data: {...}, code: 200 } → {...}
+  if (isJson && payload !== null && typeof payload === 'object' && 'data' in payload) {
+    return payload.data;
   }
 
   return payload;
@@ -219,7 +230,7 @@ resolver.define('solveTask', async ({ payload, context }) => {
     throw new Error('Missing task or repoUrl');
   }
 
-  return await backendFetch('/api/solve', {
+  return await backendFetch("/api/solve", {
     method: 'POST',
     body: {
       task,
@@ -263,9 +274,9 @@ resolver.define('getProjectDetails', async ({ payload }) => {
   try {
     console.log(`[getProjectDetails] Fetching project: ${projectIdOrKey}`);
     const response = await api.asApp().requestJira(route`/rest/api/3/project/${String(projectIdOrKey)}`);
-    
+
     console.log(`[getProjectDetails] Response status: ${response.status}`);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`[getProjectDetails] Error response: ${response.status} - ${errorText}`);
@@ -279,7 +290,7 @@ resolver.define('getProjectDetails', async ({ payload }) => {
       project?.avatarUrls?.['24x24'] ||
       project?.avatarUrls?.['16x16'] ||
       null;
-    
+
     return {
       id: project?.id ? String(project.id) : null,
       key: project?.key ? String(project.key) : null,

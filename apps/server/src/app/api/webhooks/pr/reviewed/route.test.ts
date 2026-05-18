@@ -105,17 +105,17 @@ describe("POST /api/webhooks/pr/reviewed", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(200);
-        expect(payload).toEqual(
-            expect.objectContaining({
-                success: true,
+        expect(payload).toEqual({
+            code: 200,
+            data: {
                 platform: "github",
                 review: {
                     id: "101",
                     branch: "feature-1",
                     status: "approved"
                 }
-            })
-        );
+            }
+        });
         expect(reviewServiceMock).toHaveBeenCalledWith(
             { id: "101", branch: "feature-1", status: "approved" },
             "github"
@@ -133,7 +133,8 @@ describe("POST /api/webhooks/pr/reviewed", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(400);
-        expect(payload.success).toBe(false);
+        expect(payload.code).toBe(400);
+        expect(payload.message).toBe("Invalid JSON payload.");
         expect(reviewServiceMock).not.toHaveBeenCalled();
     });
 
@@ -168,7 +169,7 @@ describe("POST /api/webhooks/pr/reviewed", () => {
         const payload = await response.json();
 
         expect(response.status).toBe(200);
-        expect(payload.review).toEqual({ id: "11", branch: "feature-2", status: "approved" });
+        expect(payload.data.review).toEqual({ id: "11", branch: "feature-2", status: "approved" });
         expect(reviewServiceMock).toHaveBeenCalledWith(
             { id: "11", branch: "feature-2", status: "approved" },
             "gitlab"

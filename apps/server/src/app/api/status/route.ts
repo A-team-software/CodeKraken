@@ -1,10 +1,11 @@
 import { getDockerTunnelStatus } from "@/app/services/docker-tunnel";
 import { MongoConnectionManager } from "@oliver/db";
-import { NextResponse } from "next/server";
+import { ApiRes } from "@/utils/api_response";
+import { wrapRoute } from "@/utils/api_handler";
 
-export async function GET(): Promise<NextResponse> {
+export const GET = wrapRoute({}, async () => {
 	if (process.env.IS_LOCAL_DOCKER !== "true") {
-		return NextResponse.json({ error: "Not found" }, { status: 404 });
+		return ApiRes.notFound("Not found");
 	}
 
 	const tunnel = getDockerTunnelStatus();
@@ -22,7 +23,7 @@ export async function GET(): Promise<NextResponse> {
 		dbError = "Database unavailable";
 	}
 
-	return NextResponse.json(
+	return ApiRes.success(
 		{
 			timestamp: new Date().toISOString(),
 			tunnel,
@@ -31,10 +32,11 @@ export async function GET(): Promise<NextResponse> {
 				error: dbError,
 			},
 		},
+		200,
 		{
 			headers: {
 				"Cache-Control": "no-store",
 			},
-		},
+		}
 	);
-}
+});

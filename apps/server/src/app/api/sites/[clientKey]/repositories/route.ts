@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { MongoSiteRepositoryRepository } from '@oliver/db';
-import { MongoAtlassianTenantRepository } from '@oliver/db';
-import { MongoUserJiraSiteAccessRepository } from '@oliver/db';
-import { ListSiteReposUseCase } from '@oliver/application';
-import { AssignRepoToSiteUseCase } from '@oliver/application';
+import { NextRequest } from 'next/server';
+import { MongoSiteRepositoryRepository, MongoAtlassianTenantRepository, MongoUserJiraSiteAccessRepository } from '@oliver/db';
+import { ListSiteReposUseCase, AssignRepoToSiteUseCase } from '@oliver/application';
 import { AssignRepoBodySchema } from '@oliver/domains';
 import { SafeExecute } from '@oliver/core/src/errors';
+import { ApiRes } from '@/utils/api_response';
+import { wrapRoute } from '@/utils/api_handler';
+import { ApiError } from '@/utils/api_error';
+import { z } from 'zod';
 
 // -----------------------------------------------------------------------
 // Singletons (created once per cold-start, reused across requests)
@@ -43,85 +44,54 @@ async function resolveSite(clientKey: string): Promise<[{ exists: boolean; siteU
 // GET /api/sites/[clientKey]/repositories
 // Returns all repositories assigned to this Jira site.
 // -----------------------------------------------------------------------
-export async function GET(
-    _request: NextRequest,
-    { params }: { params: Promise<{ clientKey: string }> }
-) {
-    try {
-        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
-        const { clientKey } = paramsResult;
+export const GET = wrapRoute({
+    paramsSchema: z.object({ clientKey: z.string() })
+}, async (request, ctx) => {
+    const { clientKey } = ctx.params;
 
-        const [site, siteResolveError] = await resolveSite(clientKey);
-        if (siteResolveError || !site) return NextResponse.json({ error: siteResolveError || 'Failed to resolve site' }, { status: 500 });
+    const [site, siteResolveError] = await resolveSite(clientKey);
+    if (siteResolveError || !site) throw ApiError.internal(siteResolveError || 'Failed to resolve site');
 
-        if (!site.exists) {
-            return NextResponse.json({ error: 'Site not found' }, { status: 404 });
-        }
-
-        const [repos, reposError] = await SafeExecute.withSync(async () =>
-            new ListSiteReposUseCase(siteRepoRepository).execute(clientKey)
-        ).execute();
-
-        if (reposError) return NextResponse.json({ error: reposError.message || 'Failed to list repositories' }, { status: 500 });
-        return NextResponse.json({ repos });
-    } catch (error: any) {
-        console.error('[GET /api/sites/[clientKey]/repositories]', error);
-        return NextResponse.json(
-            { error: error.message ?? 'Failed to list repositories' },
-            { status: 500 }
-        );
+    if (!site.exists) {
+        throw ApiError.notFound('Site not found');
     }
-}
+
+    const [repos, reposError] = await SafeExecute.withSync(async () =>
+        new ListSiteReposUseCase(siteRepoRepository).execute(clientKey)
+    ).execute();
+
+    if (reposError) throw ApiError.internal(reposError.message || 'Failed to list repositories');
+    return { repos };
+});
 
 // -----------------------------------------------------------------------
 // POST /api/sites/[clientKey]/repositories
 // Assigns a repository to this Jira site.
 // Body: { repoId, repoFullName, provider, htmlUrl }
 // -----------------------------------------------------------------------
-export async function POST(
-    request: NextRequest,
-    { params }: { params: Promise<{ clientKey: string }> }
-) {
-    try {
-        const [paramsResult, paramsError] = await SafeExecute.withSync(async () => params).execute();
-        if (paramsError || !paramsResult) return NextResponse.json({ error: paramsError?.message || 'Invalid params' }, { status: 400 });
-        const { clientKey } = paramsResult;
+export const POST = wrapRoute({
+    paramsSchema: z.object({ clientKey: z.string() }),
+    bodySchema: AssignRepoBodySchema
+}, async (request, ctx) => {
+    const { clientKey } = ctx.params;
+    const body = ctx.body;
 
-        const [site, siteResolveError] = await resolveSite(clientKey);
-        if (siteResolveError || !site) return NextResponse.json({ error: siteResolveError || 'Failed to resolve site' }, { status: 500 });
+    const [site, siteResolveError] = await resolveSite(clientKey);
+    if (siteResolveError || !site) throw ApiError.internal(siteResolveError || 'Failed to resolve site');
 
-        if (!site.exists || !site.siteUrl) {
-            return NextResponse.json({ error: 'Site not found' }, { status: 404 });
-        }
-
-        const [body, bodyError] = await SafeExecute.withSync(async () => request.json()).execute();
-        if (bodyError || !body) return NextResponse.json({ error: bodyError?.message || 'Invalid request body' }, { status: 400 });
-        const parsed = AssignRepoBodySchema.safeParse(body);
-
-        if (!parsed.success) {
-            return NextResponse.json(
-                { error: 'Invalid request body', details: parsed.error.flatten() },
-                { status: 400 }
-            );
-        }
-
-        const [repos, reposError] = await SafeExecute.withSync(async () =>
-            new AssignRepoToSiteUseCase(siteRepoRepository).execute({
-                clientKey,
-                siteUrl: site.siteUrl!,
-                ...parsed.data,
-            })
-        ).execute();
-
-        if (reposError) return NextResponse.json({ error: reposError.message || 'Failed to assign repository' }, { status: 500 });
-
-        return NextResponse.json({ repos }, { status: 201 });
-    } catch (error: any) {
-        console.error('[POST /api/sites/[clientKey]/repositories]', error);
-        return NextResponse.json(
-            { error: error.message ?? 'Failed to assign repository' },
-            { status: 500 }
-        );
+    if (!site.exists || !site.siteUrl) {
+        throw ApiError.notFound('Site not found');
     }
-}
+
+    const [repos, reposError] = await SafeExecute.withSync(async () =>
+        new AssignRepoToSiteUseCase(siteRepoRepository).execute({
+            clientKey,
+            siteUrl: site.siteUrl!,
+            ...body,
+        })
+    ).execute();
+
+    if (reposError) throw ApiError.internal(reposError.message || 'Failed to assign repository');
+
+    return ApiRes.success({ repos }, 201);
+});

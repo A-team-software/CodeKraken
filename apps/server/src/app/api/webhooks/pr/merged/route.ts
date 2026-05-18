@@ -9,6 +9,8 @@ import { authorizeWebhookRequest } from "@/app/middlewares/code-platform-auth-mi
 import { PullRequestPlatform } from "@/app/types/pull-request-platform";
 import { SafeExecute } from "@oliver/core";
 import { NextRequest, NextResponse } from "next/server";
+import { ApiRes } from "@/utils/api_response";
+import { wrapRoute } from "@/utils/api_handler";
 
 function resolveAdapter(platform: PullRequestPlatform): PullRequestPayloadAdapter {
 	switch (platform) {
@@ -50,57 +52,45 @@ function resolveClientId(req: NextRequest, body: unknown): string {
 	return bodyClientId;
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
-	try {
-		const rawBody = await req.text();
-		const authResult = await authorizeWebhookRequest(
-			req,
-			rawBody,
-			req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
-		);
-		if (!authResult.authorized) {
-			return authResult.response;
-		}
-		const platform = authResult.platform;
+export const POST = wrapRoute({}, async (req, ctx) => {
+    const rawBody = await req.text();
+    const authResult = await authorizeWebhookRequest(
+        req,
+        rawBody,
+        req.nextUrl.searchParams.get("platform") || req.nextUrl.searchParams.get("provider")
+    );
+    if (!authResult.authorized) {
+        return authResult.response;
+    }
+    const platform = authResult.platform;
 
-		let payload: unknown;
-		try {
-			payload = JSON.parse(rawBody);
-		} catch {
-			return NextResponse.json({ success: false, error: "Invalid JSON payload." }, { status: 400 });
-		}
+    let payload: unknown;
+    try {
+        payload = JSON.parse(rawBody);
+    } catch {
+        return ApiRes.badRequest("Invalid JSON payload.");
+    }
 
-		const adapter = resolveAdapter(platform);
-		const adaptedPayload = adapter.adapt(payload);
-		const clientId = resolveClientId(req, payload);
+    const adapter = resolveAdapter(platform);
+    const adaptedPayload = adapter.adapt(payload);
+    const clientId = resolveClientId(req, payload);
 
-		const service = new PullRequestServiceImpl();
-		const [, onPullRequestMergedError] = await SafeExecute.withSync(async () =>
-			service.onPullRequestMerged({
-				prId: adaptedPayload.id,
-				platform,
-				clientId
-			})
-		).execute();
+    const service = new PullRequestServiceImpl();
+    const [, onPullRequestMergedError] = await SafeExecute.withSync(async () =>
+        service.onPullRequestMerged({
+            prId: adaptedPayload.id,
+            platform,
+            clientId
+        })
+    ).execute();
 
-		if (onPullRequestMergedError) {
-			throw onPullRequestMergedError;
-		}
+    if (onPullRequestMergedError) {
+        throw onPullRequestMergedError;
+    }
 
-		return NextResponse.json({
-			success: true,
-			prId: adaptedPayload.id,
-			platform,
-			clientId
-		});
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unexpected error while processing merged PR webhook.";
-		return NextResponse.json(
-			{
-				success: false,
-				error: message
-			},
-			{ status: 400 }
-		);
-	}
-}
+    return {
+        prId: adaptedPayload.id,
+        platform,
+        clientId
+    };
+});
