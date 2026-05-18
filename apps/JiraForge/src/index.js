@@ -303,6 +303,44 @@ resolver.define('getProjectDetails', async ({ payload }) => {
   }
 });
 
+resolver.define('getIssueDetails', async ({ payload }) => {
+  const issueIdOrKey = payload?.issueIdOrKey;
+
+  if (!issueIdOrKey) {
+    throw new Error('issueIdOrKey is required');
+  }
+
+  try {
+    const response = await api.asApp().requestJira(route`/rest/api/3/issue/${String(issueIdOrKey)}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch issue details: ${response.status} ${errorText}`);
+    }
+
+    const issue = await response.json();
+    const issueType = issue?.fields?.issuetype ?? null;
+
+    return {
+      id: issue?.id ? String(issue.id) : null,
+      key: issue?.key ? String(issue.key) : null,
+      fields: {
+        summary: String(issue?.fields?.summary || '').trim(),
+        description: issue?.fields?.description ?? null,
+        issuetype: issueType
+          ? {
+              id: issueType.id,
+              name: issueType.name,
+            }
+          : null,
+      },
+    };
+  } catch (error) {
+    console.error(`[getIssueDetails] Exception: ${error?.message || error}`);
+    throw error;
+  }
+});
+
 function parseRepoId(repo) {
   if (repo?.repoId) return String(repo.repoId);
   if (repo?.id) return String(repo.id);
