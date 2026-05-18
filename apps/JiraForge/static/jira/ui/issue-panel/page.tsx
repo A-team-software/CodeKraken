@@ -41,10 +41,6 @@ const statusTextStyles = xcss({
 	color: 'color.text.success',
 });
 
-const errorTextStyles = xcss({
-	color: 'color.text.danger',
-});
-
 function normalizeIssueFromContext(context: any): JiraIssuePayload {
 	const issue = context?.extension?.issue ?? {};
 	const issueFields = issue?.fields ?? {};
@@ -101,12 +97,29 @@ export function IssuePanelPage() {
 	const { context, isLoading: isContextLoading, error: contextError } = useResolvedContext();
 	const [isStarting, setIsStarting] = useState(false);
 	const [status, setStatus] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
 	const [isRepositoryConfigured, setIsRepositoryConfigured] = useState<boolean | null>(null);
+
+	const showErrorFlag = (message: string) => {
+		showFlag({
+			id: `issue-panel-error-${Date.now()}`,
+			title: 'Operation failed',
+			description: message,
+			type: 'error',
+			isAutoDismiss: true,
+		});
+	};
 
 	useEffect(() => {
 		setGlobalTheme({ colorMode: 'light', dark: 'dark', light: 'light', spacing: 'spacing' });
 	}, []);
+
+	useEffect(() => {
+		if (!contextError) {
+			return;
+		}
+
+		showErrorFlag(contextError);
+	}, [contextError]);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -136,6 +149,7 @@ export function IssuePanelPage() {
 				}
 
 				setIsRepositoryConfigured(null);
+				showErrorFlag('Failed to load project repository configuration.');
 			}
 		}
 
@@ -149,7 +163,6 @@ export function IssuePanelPage() {
 	async function handleStart() {
 		setIsStarting(true);
 		setStatus(null);
-		setError(null);
 
 		try {
 			if (!context) {
@@ -183,7 +196,7 @@ export function IssuePanelPage() {
 
 			setStatus('Task started successfully.');
 		} catch (e: any) {
-			setError(e?.message || 'Failed to start task development.');
+			showErrorFlag(e?.message || 'Failed to start task development.');
 		} finally {
 			setIsStarting(false);
 		}
@@ -208,20 +221,10 @@ export function IssuePanelPage() {
 			</Button>
 
 			{isContextLoading && <Box as="p">Resolving issue context...</Box>}
-			{contextError && (
-				<Box as="p" xcss={errorTextStyles}>
-					{contextError}
-				</Box>
-			)}
 
 			{status && (
 				<Box as="p" xcss={statusTextStyles}>
 					{status}
-				</Box>
-			)}
-			{error && (
-				<Box as="p" xcss={errorTextStyles}>
-					{error}
 				</Box>
 			)}
 		</Flex>

@@ -152,21 +152,10 @@ function rewriteLocalImports(jsFilePath: string) {
   fs.writeFileSync(jsFilePath, updated, 'utf8');
 }
 
-function buildHtml(entryScript: string, cssFiles: string[], isDevMode: boolean) {
+function buildHtml(entryScript: string, cssFiles: string[]) {
   const cssTags = cssFiles
     .map((fileName) => `  <link rel="stylesheet" href="./${fileName}" />`)
     .join('\n');
-
-  const liveReloadSnippet = isDevMode
-    ? [
-        '<script>',
-        '  // Lightweight live refresh for tunnel + watch during development.',
-        '  setInterval(() => fetch(window.location.href, { method: "HEAD", cache: "no-store" })',
-        '    .then(() => undefined)',
-        '    .catch(() => undefined), 3000);',
-        '</script>',
-      ].join('\n')
-    : '';
 
   return [
     '<!DOCTYPE html>',
@@ -180,7 +169,6 @@ function buildHtml(entryScript: string, cssFiles: string[], isDevMode: boolean) 
     '<body>',
     '  <div id="root"></div>',
     `  <script type="module" src="./${entryScript}"></script>`,
-    liveReloadSnippet,
     '</body>',
     '</html>',
     '',
@@ -203,7 +191,7 @@ function getViteMajorVersion() {
   }
 }
 
-function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean): Plugin {
+function multiHtmlPlugin(entryPoints: Record<string, string>): Plugin {
   const entryTopSegments = new Set(
     Object.keys(entryPoints).map((entryName) => entryName.split('/')[0])
   );
@@ -257,7 +245,9 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
           throw new Error(`Missing entry script for ${entryName}`);
         }
 
-        // Non-admin surfaces should not inherit admin stylesheet/font bundle links.
+        // Non-admin surfaces should include their own CSS plus shared chunks (e.g. Atlaskit styles).
+        const entryPrefixes = Array.from(entryTopSegments).map((segment) => `${segment}-`);
+        const ownPrefix = `${entryName.split('/').join('-')}-`;
         const cssFiles =
           entryName === 'admin'
             ? localFiles.filter((fileName) => fileName.endsWith('.css')).sort()
@@ -265,10 +255,10 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
                 .filter(
                   (fileName) =>
                     fileName.endsWith('.css') &&
-                    fileName.startsWith(`${entryName.split('/').join('-')}-`)
+                    (fileName.startsWith(ownPrefix) || !entryPrefixes.some((prefix) => fileName.startsWith(prefix)))
                 )
                 .sort();
-        const html = buildHtml(entryScript, cssFiles, isDevMode);
+        const html = buildHtml(entryScript, cssFiles);
         fs.writeFileSync(path.join(entryDir, 'index.html'), html, 'utf8');
       }
 
@@ -281,7 +271,6 @@ function multiHtmlPlugin(entryPoints: Record<string, string>, isDevMode: boolean
 
 const entryPoints = getEntryPoints();
 const isServeMode = process.env.SERVE_MODE === '1';
-const isDevMode = process.env.DEV_MODE === '1';
 const viteMajor = getViteMajorVersion();
 
 const staticCopyTargets = [
@@ -320,7 +309,7 @@ export default defineConfig({
           }),
         ]
       : []),
-    ...(isServeMode ? [] : [multiHtmlPlugin(entryPoints, isDevMode)]),
+    ...(isServeMode ? [] : [multiHtmlPlugin(entryPoints)]),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
